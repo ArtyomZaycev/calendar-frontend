@@ -1,5 +1,5 @@
 use calendar_lib::api_types::{auth::login, roles::load_user_roles};
-use reqwest::{Method, Response};
+use reqwest::{Method, RequestBuilder, Response};
 
 use super::{
     aliases::*,
@@ -9,10 +9,10 @@ use super::{
 
 enum StateAction {
     Login(login::Response),
-    LoginError(Response),
-
     LoadUserRoles(roles::load_user_roles::Response),
-    LoadUserRolesError(Response),
+    LoadEvents(events::load_array::Response),
+
+    Error(Response),
 }
 
 pub struct State {
@@ -20,6 +20,7 @@ pub struct State {
 
     pub me: Option<UserInfo>,
 
+    // Should not be modified manually, use requests
     pub users: Vec<()>,
     pub events: Vec<Event>,
 
@@ -39,50 +40,65 @@ impl State {
 }
 
 impl State {
-    pub fn load_user_roles(&mut self) {
-        if let Some(me) = &self.me {
-            let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
-                Box::new(|response| StateAction::LoadUserRoles(response));
-            let on_error: request::OnError<StateAction> =
-                Box::new(|e| StateAction::LoadUserRolesError(e));
+    fn make_request(&self, method: Method, op: &str) -> RequestBuilder {
+        self.connector.make_request(method, op)
+    }
 
-            self.connector.request(AppRequest::new(
-                self.connector
-                    .make_request_authorized(
-                        Method::GET,
-                        "user_roles",
-                        me.user.user_id,
-                        &me.user.key,
-                    )
-                    .build()
-                    .unwrap(),
-                on_success,
-                on_error,
-            ));
+    fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
+        if let Some(me) = &self.me {
+            self.connector
+                .make_request_authorized(method, op, me.user.user_id, &me.user.key)
         } else {
-            // TODO
-            println!("No auth");
+            todo!()
         }
+    }
+}
+
+impl State {
+    pub fn load_user_roles(&mut self) {
+        let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
+            Box::new(|response| StateAction::LoadUserRoles(response));
+        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+
+        let req = self
+            .make_request_authorized(Method::GET, "user_roles")
+            .build()
+            .unwrap();
+
+        self.connector
+            .request(AppRequest::new(req, on_success, on_error));
     }
 
     pub fn login(&mut self, email: &str, pass: &str) {
         let on_success: request::OnSuccess<StateAction, login::Response> =
             Box::new(|response| StateAction::Login(response));
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::LoginError(e));
-        self.connector.request(AppRequest::new(
-            self.connector
-                .make_request(Method::POST, "auth/login")
-                .json(&login::Body {
-                    email: email.to_string(),
-                    password: pass.to_string(),
-                })
-                .build()
-                .unwrap(),
-            on_success,
-            on_error,
-        ));
+        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+        let req = self
+            .make_request(Method::POST, "auth/login")
+            .json(&login::Body {
+                email: email.to_string(),
+                password: pass.to_string(),
+            })
+            .build()
+            .unwrap();
+        self.connector
+            .request(AppRequest::new(req, on_success, on_error));
     }
 
+    pub fn load_events(&mut self) {
+        let on_success: request::OnSuccess<StateAction, events::load_array::Response> =
+            Box::new(|response| StateAction::LoadEvents(response));
+        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+        let req = self
+            .make_request_authorized(Method::GET, "events")
+            .build()
+            .unwrap();
+        self.connector
+            .request(AppRequest::new(req, on_success, on_error));
+    }
+}
+
+impl State {
     pub fn poll(&mut self) {
         let actions = self.connector.poll();
 
@@ -94,15 +110,15 @@ impl State {
                         roles: vec![],
                     })
                 }
-                StateAction::LoginError(res) => {
-                    println!("smth went wrong: {res:?}");
-                }
                 StateAction::LoadUserRoles(res) => {
                     if let Some(me) = &mut self.me {
                         me.roles = res.array;
                     }
                 }
-                StateAction::LoadUserRolesError(res) => {
+                StateAction::LoadEvents(res) => {
+                    self.events = res.array;
+                }
+                StateAction::Error(res) => {
                     println!("smth went wrong: {res:?}");
                 }
             }

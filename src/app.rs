@@ -98,6 +98,11 @@ impl eframe::App for CalendarApp {
                 if ui.button("Load roles").clicked() {
                     self.state.load_user_roles();
                 }
+
+                ui.label(format!("{:?}", self.state.events));
+                if ui.button("Load events").clicked() {
+                    self.state.load_events();
+                }
             }
 
             // The central panel the region left after adding TopPanel's and SidePanel's
