@@ -1,8 +1,12 @@
-use std::sync::{Arc, Mutex};
+use egui::{Button, TextEdit};
 use reqwest::Method;
+use std::sync::{Arc, Mutex};
 
-use crate::db::{state::State, request::{AppRequest, self}, aliases::EchoStruct};
-
+use crate::db::{
+    aliases::EchoStruct,
+    request::{self, AppRequest},
+    state::State,
+};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -14,6 +18,8 @@ pub struct CalendarApp {
 
     #[serde(skip)]
     echo_recieved: Arc<Mutex<Option<String>>>,
+
+    login_info: Option<(String, String)>,
 }
 
 impl Default for CalendarApp {
@@ -22,6 +28,7 @@ impl Default for CalendarApp {
             state: State::new(),
             echo_input: "Hello API!".into(),
             echo_recieved: Arc::default(),
+            login_info: Some((String::default(), String::default())),
         }
     }
 }
@@ -40,6 +47,19 @@ impl CalendarApp {
 
         Default::default()
     }
+
+    // Bad coding style, redo
+    fn make_login<'a>(
+        &'a mut self,
+    ) -> Option<(egui::TextEdit<'a>, egui::TextEdit<'a>, egui::Button)> {
+        self.login_info.as_mut().map(|(login, password)| {
+            (
+                TextEdit::singleline(login),
+                TextEdit::singleline(password),
+                Button::new("Login"),
+            )
+        })
+    }
 }
 
 impl eframe::App for CalendarApp {
@@ -51,9 +71,7 @@ impl eframe::App for CalendarApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { state, echo_input, echo_recieved } = self;
-
-        state.connector.poll();
+        self.state.poll();
 
         #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -68,10 +86,29 @@ impl eframe::App for CalendarApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.text_edit_singleline(echo_input);
+            if let Some((login_edit, pass_edit, login_button)) = self.make_login() {
+                ui.add(login_edit);
+                ui.add(pass_edit);
+                if ui.add(login_button).clicked() {
+                    self.state.login(
+                        &self.login_info.as_ref().unwrap().0,
+                        &self.login_info.as_ref().unwrap().1,
+                    );
+                }
+            }
 
-            if ui.button("Echo").clicked() {
-                let echo_recieved = echo_recieved.clone();
+            if let Some(me) = &self.state.me {
+                ui.label(format!("{:?}", me.user.key));
+                ui.label(format!("{:?}", me.roles));
+                if ui.button("Load roles").clicked() {
+                    self.state.load_user_roles();
+                }
+            }
+
+            ui.text_edit_singleline(&mut self.echo_input);
+
+            /*if ui.button("Echo").clicked() {
+                let echo_recieved = self.echo_recieved.clone();
                 let on_success : request::OnSuccess<EchoStruct> = Box::new(move |s| {
                     let mut rec = echo_recieved.lock().unwrap();
                     *rec = Some(s.echo.clone());
@@ -80,18 +117,18 @@ impl eframe::App for CalendarApp {
                 let on_error : request::OnError = Box::new(|e| {
                     println!("request::OnError {:?}", e);
                 });
-                state.connector.request(AppRequest::new(
-                    state.connector.client.request(Method::POST, "http://127.0.0.1:8080/echo_struct")
-                        .body(echo_input.clone())
+                self.state.connector.request(AppRequest::new(
+                    self.state.connector.client.request(Method::POST, "http://127.0.0.1:8080/echo_struct")
+                        .body(self.echo_input.clone())
                         .build().unwrap(),
                     on_success,
                     on_error
                 ))
-            }
-            
+            }*/
+
             // The central panel the region left after adding TopPanel's and SidePanel's
 
-            let rec = if let Ok(val) = echo_recieved.try_lock() {
+            let rec = if let Ok(val) = self.echo_recieved.try_lock() {
                 val.clone().unwrap_or_default()
             } else {
                 String::default()

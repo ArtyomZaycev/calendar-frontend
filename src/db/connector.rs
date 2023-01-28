@@ -1,27 +1,33 @@
-use reqwest::{Client, StatusCode};
+use std::cell::{Cell, RefCell};
+
+use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
-use tokio::sync::mpsc::{channel, Sender, Receiver};
+use tokio::sync::oneshot::{channel, Receiver};
 
 use super::request::AppRequest;
 
-type FnSend = Box<dyn FnOnce() + Send>;
+#[derive(Debug)]
+enum ReqRes {
+    Success(Value),
+    BadResponse(Response),
+    Error(reqwest::Error),
+}
+type RequestResult<T> = (AppRequest<T>, Receiver<ReqRes>);
 
-pub struct Connector {
-    req_sender: Sender<FnSend>,
-    req_receiver: Receiver<FnSend>,
+pub struct Connector<T> {
+    // Remove RefCell?
+    requests: RefCell<Vec<RequestResult<T>>>,
 
     pub client: Client,
     pub api_url: String,
 
-    pub error_handler: Box<dyn FnMut(reqwest::Error) + Send>
+    pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl Connector {
+impl<T> Connector<T> {
     pub fn new() -> Self {
-        let (s, r) = channel(5);
         Self {
-            req_sender: s,
-            req_receiver: r,
+            requests: RefCell::new(Vec::default()),
             client: Client::new(),
             api_url: "http://127.0.0.1:8080".into(),
             error_handler: Box::new(|e| println!("Request error: {:?}", e)),
@@ -32,40 +38,65 @@ impl Connector {
         self.client.clone()
     }
 
-    pub fn request(&mut self, request: AppRequest) {
+    pub fn request(&self, request: AppRequest<T>) {
         let client = self.get_client();
-        let sender = self.req_sender.clone();
-        // TODO: Error handler from self
-        let error_handler = |e| {println!("Err: {e:?}")};//self.error_handler.clone();
+        let (s, r) = channel::<ReqRes>();
+        // TODO: Remove clone
+        let req = request.request.try_clone().unwrap();
         tokio::spawn(async move {
-            println!("spawn");
-            let response = client.execute(request.request).await;
-            if let Ok(response) = response {
-                if response.status() == StatusCode::OK {
-                    if let Some(on_success) = request.on_success {
-                        let val = response.json::<Value>().await.unwrap();
-                        sender.send(Box::new(|| {
-                            on_success(val);
-                        })).await.map_err(|_| "TODO").expect("TODO");
-                    }
+            let res = client.execute(req).await;
+            if let Ok(res) = res {
+                if res.status() == StatusCode::OK {
+                    s.send(ReqRes::Success(res.json().await.unwrap())).unwrap();
                 } else {
-                    if let Some(on_error) = request.on_error {
-                        sender.send(Box::new(|| {
-                            on_error(response);
-                        })).await.map_err(|_| "TODO").expect("TODO");
-                    }
+                    s.send(ReqRes::BadResponse(res)).unwrap();
                 }
             } else {
-                sender.send(Box::new(move || {
-                    error_handler(response.unwrap_err())
-                })).await.map_err(|_| "TODO").expect("TODO");
+                let err = res.unwrap_err();
+                s.send(ReqRes::Error(err)).unwrap();
             }
         });
+        self.requests.borrow_mut().push((request, r));
     }
 
-    pub fn poll(&mut self) {
-        while let Ok(f) = self.req_receiver.try_recv() {
-            f()
-        }
+    pub fn poll(&self) -> Vec<T> {
+        let mut requests = self.requests.borrow_mut();
+        let indicies = requests.iter_mut().enumerate().filter_map(|(i, (_, res))| {
+            if let Ok(res) = res.try_recv() {
+                Some((i, res))
+            } else {
+                None
+            }
+        });
+
+        //let error_handler = &mut self.error_handler;
+        indicies
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .filter_map(|(i, res)| {
+                let (req, _) = requests.swap_remove(i);
+                match res {
+                    ReqRes::Success(value) => {
+                        if let Some(on_success) = req.on_success {
+                            Some(on_success(value))
+                        } else {
+                            None
+                        }
+                    }
+                    ReqRes::BadResponse(response) => {
+                        if let Some(on_error) = req.on_error {
+                            Some(on_error(response))
+                        } else {
+                            None
+                        }
+                    }
+                    ReqRes::Error(err) => {
+                        //error_handler(err);
+                        None
+                    }
+                }
+            })
+            .collect()
     }
 }

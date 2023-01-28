@@ -1,4 +1,4 @@
 pub mod aliases;
+pub mod connector;
 pub mod request;
-mod connector;
 pub mod state;

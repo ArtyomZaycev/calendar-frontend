@@ -1,21 +1,23 @@
-use reqwest::{Response, Request};
+use reqwest::{Request, Response};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+pub type OnSuccessJson<T> = Box<dyn FnOnce(Value) -> T + Send>;
+pub type OnSuccess<T, U> = Box<dyn FnOnce(U) -> T + Send>;
+pub type OnError<T> = Box<dyn FnOnce(Response) -> T + Send>;
 
-pub type OnSuccessJson = Box<dyn FnOnce(Value) + Send>;
-pub type OnSuccess<T> = Box<dyn FnOnce(T) + Send>;
-pub type OnError = Box<dyn FnOnce(Response) + Send>;
-
-pub struct AppRequest {
+pub struct AppRequest<T> {
     pub request: Request,
-    pub on_success: Option<OnSuccessJson>,
-    pub on_error: Option<OnError>,
+    pub on_success: Option<OnSuccessJson<T>>,
+    pub on_error: Option<OnError<T>>,
 }
 
-impl AppRequest {
-    pub fn new_json(request: Request, on_success: impl Into<Option<OnSuccessJson>>, on_error: impl Into<Option<OnError>>) -> Self
-    {
+impl<T: 'static> AppRequest<T> {
+    pub fn new_json(
+        request: Request,
+        on_success: impl Into<Option<OnSuccessJson<T>>>,
+        on_error: impl Into<Option<OnError<T>>>,
+    ) -> Self {
         Self {
             request,
             on_success: on_success.into(),
@@ -23,16 +25,19 @@ impl AppRequest {
         }
     }
 
-    pub fn new<O>(request: Request, on_success: impl Into<Option<OnSuccess<O>>>, on_error: impl Into<Option<OnError>>) -> Self where
-        O: DeserializeOwned + 'static
+    pub fn new<O>(
+        request: Request,
+        on_success: impl Into<Option<OnSuccess<T, O>>>,
+        on_error: impl Into<Option<OnError<T>>>,
+    ) -> Self
+    where
+        O: DeserializeOwned + 'static,
     {
         Self {
             request,
-            on_success: on_success.into().map::<OnSuccessJson, _>(|on_success| 
-                Box::new(|j| 
-                    on_success(serde_json::from_value(j).unwrap())
-                )
-            ),
+            on_success: on_success.into().map::<OnSuccessJson<T>, _>(|on_success| {
+                Box::new(|j| on_success(serde_json::from_value(j).unwrap()))
+            }),
             on_error: on_error.into(),
         }
     }
