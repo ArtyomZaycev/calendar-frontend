@@ -41,4 +41,12 @@ impl<T: 'static> AppRequest<T> {
             on_error: on_error.into(),
         }
     }
+
+    pub fn new_ignore(request: Request, on_error: impl Into<Option<OnError<T>>>) -> Self {
+        Self {
+            request,
+            on_success: None,
+            on_error: on_error.into(),
+        }
+    }
 }

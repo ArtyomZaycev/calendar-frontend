@@ -96,6 +96,28 @@ impl State {
         self.connector
             .request(AppRequest::new(req, on_success, on_error));
     }
+
+    pub fn insert_event(&mut self, new_event: &events::insert::Body) {
+        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+        let req = self
+            .make_request_authorized(Method::POST, "event")
+            .json(new_event)
+            .build()
+            .unwrap();
+        self.connector
+            .request(AppRequest::new_ignore(req, on_error));
+    }
+
+    pub fn delete_event(&mut self, id: i32) {
+        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+        let req = self
+            .make_request_authorized(Method::POST, "event")
+            .query(&events::delete::Args { id })
+            .build()
+            .unwrap();
+        self.connector
+            .request(AppRequest::new_ignore(req, on_error));
+    }
 }
 
 impl State {
