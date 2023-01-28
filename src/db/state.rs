@@ -138,6 +138,7 @@ impl State {
                     }
                 }
                 StateAction::LoadEvents(res) => {
+                    dbg!(&res.array);
                     self.events = res.array;
                 }
                 StateAction::Error(res) => {

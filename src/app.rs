@@ -1,7 +1,7 @@
 use egui::{Button, TextEdit};
 use std::sync::{Arc, Mutex};
 
-use crate::db::state::State;
+use crate::{db::state::State, ui::{event_card::EventCard, popup::{Popup, PopupType}, event_input::EventInput}};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -15,6 +15,9 @@ pub struct CalendarApp {
     echo_recieved: Arc<Mutex<Option<String>>>,
 
     login_info: Option<(String, String)>,
+
+    #[serde(skip)]
+    popups: Vec<Popup>,
 }
 
 impl Default for CalendarApp {
@@ -24,6 +27,7 @@ impl Default for CalendarApp {
             echo_input: "Hello API!".into(),
             echo_recieved: Arc::default(),
             login_info: Some((String::default(), String::default())),
+            popups: Vec::default(),
         }
     }
 }
@@ -103,7 +107,28 @@ impl eframe::App for CalendarApp {
                 if ui.button("Load events").clicked() {
                     self.state.load_events();
                 }
+
+                ui.label("Events:");
+                ui.vertical(|ui| {
+                    self.state.events.iter().for_each(|e| {
+                        ui.add(EventCard::new(e));
+                    });
+                });
+
+                if ui.button("Add Event").clicked() {
+                    self.popups.push(PopupType::NewEvent(EventInput::new(
+
+                    )).popup())
+                }
             }
+            
+            let to_close = self.popups.iter_mut().enumerate().filter_map(|(i, popup)| {
+                (popup.show(ctx, &mut self.state)).then_some(i)
+            }).collect::<Vec::<_>>();
+
+            to_close.iter().rev().for_each(|&i| {
+                self.popups.swap_remove(i);
+            });
 
             // The central panel the region left after adding TopPanel's and SidePanel's
 

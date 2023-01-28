@@ -3,6 +3,7 @@
 
 mod app;
 mod db;
+mod ui;
 
 use app::CalendarApp;
 
