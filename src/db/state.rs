@@ -40,15 +40,12 @@ impl State {
 
 impl State {
     pub fn load_user_roles(&self) {
-        println!("load_user_roles");
+
         if let Some(me) = &self.me {
             let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
                 Box::new(|response| StateAction::LoadUserRoles(response));
             let on_error: request::OnError<StateAction> =
                 Box::new(|e| StateAction::LoadUserRolesError(e));
-
-            println!("{:?}", std::str::from_utf8(&[0u8,]));
-            println!("{:?}", me.user.key);
 
             self.connector.request(AppRequest::new(
                 self.connector
@@ -64,12 +61,13 @@ impl State {
                 on_error,
             ));
         } else {
+            // TODO
             println!("No auth");
         }
     }
 
     pub fn login(&self, email: &str, pass: &str) {
-        println!("login");
+
         let on_success: request::OnSuccess<StateAction, login::Response> =
             Box::new(|response| StateAction::Login(response));
         let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::LoginError(e));
