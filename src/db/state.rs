@@ -40,7 +40,6 @@ impl State {
 
 impl State {
     pub fn load_user_roles(&self) {
-
         if let Some(me) = &self.me {
             let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
                 Box::new(|response| StateAction::LoadUserRoles(response));
@@ -49,11 +48,11 @@ impl State {
 
             self.connector.request(AppRequest::new(
                 self.connector
-                    .client
-                    .request(Method::GET, "http://127.0.0.1:8080/user_roles")
-                    .basic_auth(
+                    .make_request_authorized(
+                        Method::GET,
+                        "user_roles",
                         me.user.user_id,
-                        Some(std::str::from_utf8(&me.user.key).expect("parse error")),
+                        &me.user.key,
                     )
                     .build()
                     .unwrap(),
@@ -67,14 +66,12 @@ impl State {
     }
 
     pub fn login(&self, email: &str, pass: &str) {
-
         let on_success: request::OnSuccess<StateAction, login::Response> =
             Box::new(|response| StateAction::Login(response));
         let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::LoginError(e));
         self.connector.request(AppRequest::new(
             self.connector
-                .client
-                .request(Method::POST, "http://127.0.0.1:8080/auth/login")
+                .make_request(Method::POST, "auth/login")
                 .json(&login::Body {
                     email: email.to_string(),
                     password: pass.to_string(),
