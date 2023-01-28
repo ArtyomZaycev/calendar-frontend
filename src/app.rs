@@ -105,27 +105,6 @@ impl eframe::App for CalendarApp {
                 }
             }
 
-            ui.text_edit_singleline(&mut self.echo_input);
-
-            /*if ui.button("Echo").clicked() {
-                let echo_recieved = self.echo_recieved.clone();
-                let on_success : request::OnSuccess<EchoStruct> = Box::new(move |s| {
-                    let mut rec = echo_recieved.lock().unwrap();
-                    *rec = Some(s.echo.clone());
-                    println!("request::OnSuccess {:?}", s);
-                });
-                let on_error : request::OnError = Box::new(|e| {
-                    println!("request::OnError {:?}", e);
-                });
-                self.state.connector.request(AppRequest::new(
-                    self.state.connector.client.request(Method::POST, "http://127.0.0.1:8080/echo_struct")
-                        .body(self.echo_input.clone())
-                        .build().unwrap(),
-                    on_success,
-                    on_error
-                ))
-            }*/
-
             // The central panel the region left after adding TopPanel's and SidePanel's
 
             let rec = if let Ok(val) = self.echo_recieved.try_lock() {
