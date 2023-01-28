@@ -1,7 +1,14 @@
 use egui::{Button, TextEdit};
 use std::sync::{Arc, Mutex};
 
-use crate::{db::state::State, ui::{event_card::EventCard, popup::{Popup, PopupType}, event_input::EventInput}};
+use crate::{
+    db::state::State,
+    ui::{
+        event_card::EventCard,
+        event_input::EventInput,
+        popup::{Popup, PopupType},
+    },
+};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -116,15 +123,17 @@ impl eframe::App for CalendarApp {
                 });
 
                 if ui.button("Add Event").clicked() {
-                    self.popups.push(PopupType::NewEvent(EventInput::new(
-
-                    )).popup())
+                    self.popups
+                        .push(PopupType::NewEvent(EventInput::new()).popup())
                 }
             }
-            
-            let to_close = self.popups.iter_mut().enumerate().filter_map(|(i, popup)| {
-                (popup.show(ctx, &mut self.state)).then_some(i)
-            }).collect::<Vec::<_>>();
+
+            let to_close = self
+                .popups
+                .iter_mut()
+                .enumerate()
+                .filter_map(|(i, popup)| (popup.show(ctx, &mut self.state)).then_some(i))
+                .collect::<Vec<_>>();
 
             to_close.iter().rev().for_each(|&i| {
                 self.popups.swap_remove(i);

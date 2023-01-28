@@ -1,4 +1,4 @@
-use egui::{Widget, Context};
+use egui::{Context, Widget};
 
 use crate::db::state::State;
 
@@ -34,7 +34,10 @@ impl Popup {
             PopupType::Login => todo!(),
             PopupType::NewEvent(w) => w.make_widget(state),
         };
-        egui::Window::new("").id(self.id).title_bar(true).show(ctx, |ui| ui.add(w));
+        egui::Window::new("")
+            .id(self.id)
+            .title_bar(true)
+            .show(ctx, |ui| ui.add(w));
         false
     }
 }

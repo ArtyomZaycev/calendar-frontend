@@ -62,7 +62,8 @@ impl<T> Connector<T> {
             let res = client.execute(req).await;
             if let Ok(res) = res {
                 if res.status() == StatusCode::OK {
-                    s.send(ReqRes::Success(res.json().await.unwrap_or_default())).unwrap();
+                    s.send(ReqRes::Success(res.json().await.unwrap_or_default()))
+                        .unwrap();
                 } else {
                     s.send(ReqRes::BadResponse(res)).unwrap();
                 }

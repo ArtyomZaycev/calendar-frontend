@@ -1,6 +1,6 @@
 use calendar_lib::api_types::events;
+use chrono::{Duration, NaiveDateTime};
 use egui::Widget;
-use chrono::{NaiveDateTime, Duration};
 
 use crate::db::state::State;
 
@@ -35,7 +35,7 @@ impl EventInput {
         move |ui: &mut egui::Ui| {
             ui.vertical(|ui| {
                 ui.text_edit_singleline(&mut self.name);
-    
+
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
@@ -43,7 +43,9 @@ impl EventInput {
                     if ui.button("Create").clicked() {
                         state.insert_event(&events::insert::Body {
                             name: self.name.clone(),
-                            description: self.description_enabled.then_some(self.description.clone()),
+                            description: self
+                                .description_enabled
+                                .then_some(self.description.clone()),
                             start: self.start,
                             end: self.end,
                             access_level: self.access_level,
@@ -51,7 +53,8 @@ impl EventInput {
                         self.closed = true;
                     }
                 });
-            }).response
+            })
+            .response
         }
     }
 
