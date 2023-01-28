@@ -39,7 +39,7 @@ impl State {
 }
 
 impl State {
-    pub fn load_user_roles(&self) {
+    pub fn load_user_roles(&mut self) {
         if let Some(me) = &self.me {
             let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
                 Box::new(|response| StateAction::LoadUserRoles(response));
@@ -65,7 +65,7 @@ impl State {
         }
     }
 
-    pub fn login(&self, email: &str, pass: &str) {
+    pub fn login(&mut self, email: &str, pass: &str) {
         let on_success: request::OnSuccess<StateAction, login::Response> =
             Box::new(|response| StateAction::Login(response));
         let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::LoginError(e));

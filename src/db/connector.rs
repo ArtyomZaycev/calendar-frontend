@@ -1,8 +1,3 @@
-use std::{
-    cell::{Cell, RefCell},
-    str::from_utf8,
-};
-
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use serde_json::Value;
 use tokio::sync::oneshot::{channel, Receiver};
@@ -18,8 +13,7 @@ enum ReqRes {
 type RequestResult<T> = (AppRequest<T>, Receiver<ReqRes>);
 
 pub struct Connector<T> {
-    // Remove RefCell?
-    requests: RefCell<Vec<RequestResult<T>>>,
+    requests: Vec<RequestResult<T>>,
     client: Client,
 
     pub api_url: String,
@@ -30,7 +24,7 @@ pub struct Connector<T> {
 impl<T> Connector<T> {
     pub fn new() -> Self {
         Self {
-            requests: RefCell::new(Vec::default()),
+            requests: Vec::default(),
             client: Client::new(),
             api_url: "http://127.0.0.1:8080/".into(),
             error_handler: Box::new(|e| println!("Request error: {:?}", e)),
@@ -59,7 +53,7 @@ impl<T> Connector<T> {
             .basic_auth(uid, Some(std::str::from_utf8(key).expect("parse error")))
     }
 
-    pub fn request(&self, request: AppRequest<T>) {
+    pub fn request(&mut self, request: AppRequest<T>) {
         let client = self.get_client();
         let (s, r) = channel::<ReqRes>();
         // TODO: Remove clone
@@ -77,11 +71,11 @@ impl<T> Connector<T> {
                 s.send(ReqRes::Error(err)).unwrap();
             }
         });
-        self.requests.borrow_mut().push((request, r));
+        self.requests.push((request, r));
     }
 
-    pub fn poll(&self) -> Vec<T> {
-        let mut requests = self.requests.borrow_mut();
+    pub fn poll(&mut self) -> Vec<T> {
+        let requests = &mut self.requests;
         let indicies = requests.iter_mut().enumerate().filter_map(|(i, (_, res))| {
             if let Ok(res) = res.try_recv() {
                 Some((i, res))
@@ -90,7 +84,7 @@ impl<T> Connector<T> {
             }
         });
 
-        //let error_handler = &mut self.error_handler;
+        let error_handler = &mut self.error_handler;
         indicies
             .collect::<Vec<_>>()
             .into_iter()
@@ -113,7 +107,7 @@ impl<T> Connector<T> {
                         }
                     }
                     ReqRes::Error(err) => {
-                        //error_handler(err);
+                        error_handler(err);
                         None
                     }
                 }
