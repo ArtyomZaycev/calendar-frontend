@@ -111,8 +111,9 @@ impl State {
     pub fn delete_event(&mut self, id: i32) {
         let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
         let req = self
-            .make_request_authorized(Method::POST, "event")
+            .make_request_authorized(Method::DELETE, "event")
             .query(&events::delete::Args { id })
+            .json(&events::delete::Body {})
             .build()
             .unwrap();
         self.connector
@@ -130,7 +131,9 @@ impl State {
                     self.me = Some(UserInfo {
                         user: res,
                         roles: vec![],
-                    })
+                    });
+                    self.load_events();
+                    self.load_user_roles();
                 }
                 StateAction::LoadUserRoles(res) => {
                     if let Some(me) = &mut self.me {
@@ -138,7 +141,6 @@ impl State {
                     }
                 }
                 StateAction::LoadEvents(res) => {
-                    dbg!(&res.array);
                     self.events = res.array;
                 }
                 StateAction::Error(res) => {

@@ -1,3 +1,3 @@
 pub mod event_card;
-pub mod event_input;
-pub mod popup;
+pub mod popups;
+pub mod widget_builder;

@@ -1,8 +1,9 @@
+use std::ops::RangeInclusive;
+
 use calendar_lib::api_types::events;
 use chrono::{Duration, NaiveDateTime};
-use egui::Widget;
 
-use crate::db::state::State;
+use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
 
 pub struct EventInput {
     pub name: String,
@@ -30,11 +31,25 @@ impl EventInput {
             closed: false,
         }
     }
+}
 
-    pub fn make_widget<'a>(&'a mut self, state: &'a mut State) -> impl Widget + 'a {
-        move |ui: &mut egui::Ui| {
+impl WidgetBuilder for EventInput {
+    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
+        if self.closed {
+            false
+        } else {
             ui.vertical(|ui| {
                 ui.text_edit_singleline(&mut self.name);
+                ui.checkbox(&mut self.description_enabled, "Description");
+
+                if self.description_enabled {
+                    ui.text_edit_multiline(&mut self.description);
+                }
+
+                ui.add(egui::Slider::new(
+                    &mut self.access_level,
+                    RangeInclusive::new(0, state.me.as_ref().unwrap().user.access_level),
+                ));
 
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {
@@ -53,12 +68,8 @@ impl EventInput {
                         self.closed = true;
                     }
                 });
-            })
-            .response
+            });
+            true
         }
-    }
-
-    pub fn is_closed(&self) -> bool {
-        self.closed
     }
 }
