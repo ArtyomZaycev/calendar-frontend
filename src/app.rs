@@ -1,4 +1,4 @@
-use egui::{style::Spacing, Align, Layout};
+use egui::{Align, Layout};
 
 use crate::{
     db::state::State,
@@ -34,13 +34,7 @@ impl Default for CalendarApp {
 }
 
 impl CalendarApp {
-    /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
-        // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
@@ -64,14 +58,11 @@ impl CalendarApp {
 }
 
 impl eframe::App for CalendarApp {
-    /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         self.state.poll();
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -119,7 +110,7 @@ impl eframe::App for CalendarApp {
             ui.separator();
 
             // CALENDAR
-            if let Some(me) = &self.state.me {
+            if let Some(_) = &self.state.me {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         ui.heading("Events");
