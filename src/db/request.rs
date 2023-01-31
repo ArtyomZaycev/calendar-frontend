@@ -27,7 +27,7 @@ impl<T: 'static> AppRequest<T> {
 
     pub fn new<O>(
         request: Request,
-        on_success: impl Into<Option<OnSuccess<T, O>>>,
+        on_success: OnSuccess<T, O>,
         on_error: impl Into<Option<OnError<T>>>,
     ) -> Self
     where
@@ -35,9 +35,7 @@ impl<T: 'static> AppRequest<T> {
     {
         Self {
             request,
-            on_success: on_success.into().map::<OnSuccessJson<T>, _>(|on_success| {
-                Box::new(|j| on_success(serde_json::from_value(j).unwrap()))
-            }),
+            on_success: Some(Box::new(|j| on_success(serde_json::from_value(j).unwrap()))),
             on_error: on_error.into(),
         }
     }
