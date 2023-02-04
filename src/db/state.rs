@@ -1,4 +1,4 @@
-use calendar_lib::api_types::{auth::login, roles::load_user_roles};
+use calendar_lib::api::{auth::login, user_roles, events};
 use reqwest::{Method, RequestBuilder, Response};
 
 use super::{
@@ -9,7 +9,7 @@ use super::{
 
 enum StateAction {
     Login(login::Response),
-    LoadUserRoles(roles::load_user_roles::Response),
+    LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
 
     Error(Response),
@@ -47,7 +47,7 @@ impl State {
     fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
         if let Some(me) = &self.me {
             self.connector
-                .make_request_authorized(method, op, me.user.user_id, &me.user.key)
+                .make_request_authorized(method, op, me.user.id, &me.key)
         } else {
             todo!()
         }
@@ -56,7 +56,7 @@ impl State {
 
 impl State {
     pub fn load_user_roles(&mut self) {
-        let on_success: request::OnSuccess<StateAction, load_user_roles::Response> =
+        let on_success: request::OnSuccess<StateAction, user_roles::load_array::Response> =
             Box::new(|response| StateAction::LoadUserRoles(response));
         let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
 
@@ -129,7 +129,10 @@ impl State {
             match action {
                 StateAction::Login(res) => {
                     self.me = Some(UserInfo {
-                        user: res,
+                        user: res.user,
+                        access_level: res.access_level,
+                        edit_rights: res.edit_rights,
+                        key: res.key,
                         roles: vec![],
                     });
                     self.load_events();

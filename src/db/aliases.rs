@@ -1,18 +1,21 @@
-pub use calendar_lib::api_types::*;
+use calendar_lib::api::utils;
+pub use calendar_lib::api::*;
 use serde::{Deserialize, Serialize};
 
-pub type Event = events::load::Response;
-pub type Role = roles::load::Response;
+pub use events::types::*;
+pub use roles::types::*;
+pub use utils::User;
 
 #[derive(Debug, Deserialize)]
 pub struct EchoStruct {
     pub echo: String,
 }
 
-pub type User = auth::login::Response;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: User,
+    pub access_level: i32,
+    pub edit_rights: bool,
+    pub key: Vec<u8>,
     pub roles: Vec<Role>,
 }

@@ -87,7 +87,7 @@ impl eframe::App for CalendarApp {
                     // RTL, so add widgets in the reversed order
 
                     if let Some(me) = &self.state.me {
-                        ui.label(me.user.user_id.to_string());
+                        ui.label(me.user.id.to_string());
                         if ui.button("Logout").clicked() {
                             println!("Not implemented");
                         }

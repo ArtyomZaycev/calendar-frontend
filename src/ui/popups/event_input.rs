@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api_types::events;
+use calendar_lib::api::events::{self, types::NewEvent};
 use chrono::{Duration, NaiveDateTime};
 
 use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
@@ -48,7 +48,7 @@ impl WidgetBuilder for EventInput {
 
                 ui.add(egui::Slider::new(
                     &mut self.access_level,
-                    RangeInclusive::new(0, state.me.as_ref().unwrap().user.access_level),
+                    RangeInclusive::new(0, state.me.as_ref().unwrap().access_level),
                 ));
 
                 ui.horizontal(|ui| {
@@ -57,13 +57,15 @@ impl WidgetBuilder for EventInput {
                     }
                     if ui.button("Create").clicked() {
                         state.insert_event(&events::insert::Body {
-                            name: self.name.clone(),
-                            description: self
-                                .description_enabled
-                                .then_some(self.description.clone()),
-                            start: self.start,
-                            end: self.end,
-                            access_level: self.access_level,
+                            new_event: NewEvent {
+                                name: self.name.clone(),
+                                description: self
+                                    .description_enabled
+                                    .then_some(self.description.clone()),
+                                start: self.start,
+                                end: self.end,
+                                access_level: self.access_level,
+                            }
                         });
                         self.closed = true;
                     }
