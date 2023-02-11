@@ -8,6 +8,20 @@ use super::request_parser::RequestParser;
 
 type RequestIndex = u16;
 
+
+pub struct RequestDescriptor<T> {
+    parser: RequestParser<T>,
+}
+
+impl<T> RequestDescriptor<T> {
+    pub fn new(parser: RequestParser<T>) -> Self {
+        Self {
+            parser,
+        }
+    }
+}
+
+
 #[derive(Debug)]
 struct RequestResult {
     id: RequestIndex,
@@ -24,28 +38,28 @@ impl RequestResult {
 
 struct RequestCounter<T> {
     request_id: Cell<RequestIndex>,
-    requests: RefCell<HashMap<RequestIndex, RequestParser<T>>>,
+    requests: RefCell<HashMap<RequestIndex, RequestDescriptor<T>>>,
 }
 
 impl<T> RequestCounter<T> {
     fn new() -> Self {
         Self {
-            request_id: 0.into(),
+            request_id: Cell::new(0),
             requests: RefCell::new(HashMap::new()),
         }
     }
 
-    fn put(&self, parser: RequestParser<T>) -> RequestIndex {
+    fn put(&self, request: RequestDescriptor<T>) -> RequestIndex {
         let request_id = self.request_id.get();
         self.request_id.set(request_id + 1);
 
         let mut requests = self.requests.borrow_mut();
-        requests.insert(request_id, parser);
+        requests.insert(request_id, request);
 
         request_id
     }
 
-    fn take(&mut self, id: &RequestIndex) -> Option<RequestParser<T>> {
+    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T>> {
         self.requests.get_mut().remove(id)
     }
 }
@@ -79,11 +93,11 @@ impl<T> Connector<T> {
         client.request(method, self.server_url.clone() + op)
     }
 
-    pub fn request(&self, request: reqwest::Request, parser: RequestParser<T>) {
+    pub fn request(&self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {
         let client = self.client.clone();
         let sender = self.sender.clone();
 
-        let request_id = self.requests.put(parser);
+        let request_id = self.requests.put(descriptor);
 
         tokio::spawn(async move {
             let res = client.execute(request).await;
@@ -108,10 +122,10 @@ impl<T> Connector<T> {
     pub fn poll(&mut self) -> Vec<T> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
-            let parser = self.requests.take(&res.id).expect("Parser not found");
+            let descriptor = self.requests.take(&res.id).expect("Parser not found");
 
             match res.result {
-                Ok((status_code, bytes)) => polled.push(parser.parse(status_code, bytes)),
+                Ok((status_code, bytes)) => polled.push(descriptor.parser.parse(status_code, bytes)),
                 Err(error) => (self.error_handler)(error),
             }
         }

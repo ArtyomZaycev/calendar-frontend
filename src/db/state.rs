@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 
 use super::{
     aliases::*,
-    connector::Connector,
+    connector::{Connector, RequestDescriptor},
     request_parser::RequestParser,
 };
 
@@ -88,11 +88,11 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::LoadUserRoles(r));
-        self.connector.request(request, parser);
+        self.connector.request(request, RequestDescriptor::new(parser));
     }
 
     pub fn login(&mut self, email: &str, pass: &str) {
-        let req = self
+        let request = self
             .make_request(Method::POST, "auth/login")
             .json(&login::Body {
                 email: email.to_string(),
@@ -102,32 +102,32 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::Login(r));
-        self.connector.request(req, parser);
+        self.connector.request(request, RequestDescriptor::new(parser));
     }
 
     pub fn load_events(&mut self) {
-        let req = self
+        let request = self
             .make_request_authorized(Method::GET, "events")
             .build()
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::LoadEvents(r));
-        self.connector.request(req, parser);
+        self.connector.request(request, RequestDescriptor::new(parser));
     }
 
     pub fn insert_event(&mut self, new_event: NewEvent) {
-        let req = self
+        let request = self
             .make_request_authorized(Method::POST, "event")
             .json(&events::insert::Body { new_event })
             .build()
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::InsertEvent(r));
-        self.connector.request(req, parser);
+        self.connector.request(request, RequestDescriptor::new(parser));
     }
 
     pub fn delete_event(&mut self, id: i32) {
-        let req = self
+        let request = self
             .make_request_authorized(Method::DELETE, "event")
             .query(&events::delete::Args { id })
             .json(&events::delete::Body {})
@@ -135,7 +135,7 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::DeleteEvent(r));
-        self.connector.request(req, parser);
+        self.connector.request(request, RequestDescriptor::new(parser));
     }
 }
 
