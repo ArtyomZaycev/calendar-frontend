@@ -1,4 +1,4 @@
-use egui::{Align, Layout, Widget};
+use egui::{Align, Layout};
 
 use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
 
@@ -20,7 +20,7 @@ impl SignUp {
 }
 
 impl WidgetBuilder for SignUp {
-    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
+    fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
         if self.closed {
             false
         } else {

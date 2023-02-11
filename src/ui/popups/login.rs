@@ -1,4 +1,4 @@
-use egui::{Align, Layout, Widget};
+use egui::{Align, Layout};
 
 use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
 
@@ -20,7 +20,7 @@ impl Login {
 }
 
 impl WidgetBuilder for Login {
-    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
+    fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
         if !self.closed {
             ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                 // TODO: Unique id

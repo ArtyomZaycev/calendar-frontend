@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::events::{self, types::NewEvent};
+use calendar_lib::api::events::types::NewEvent;
 use chrono::{Duration, NaiveDateTime};
 
 use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
@@ -34,7 +34,7 @@ impl EventInput {
 }
 
 impl WidgetBuilder for EventInput {
-    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
+    fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
         if self.closed {
             false
         } else {
@@ -56,16 +56,14 @@ impl WidgetBuilder for EventInput {
                         self.closed = true;
                     }
                     if ui.button("Create").clicked() {
-                        state.insert_event(&events::insert::Body {
-                            new_event: NewEvent {
-                                name: self.name.clone(),
-                                description: self
-                                    .description_enabled
-                                    .then_some(self.description.clone()),
-                                start: self.start,
-                                end: self.end,
-                                access_level: self.access_level,
-                            }
+                        state.insert_event(NewEvent {
+                            name: self.name.clone(),
+                            description: self
+                                .description_enabled
+                                .then_some(self.description.clone()),
+                            start: self.start,
+                            end: self.end,
+                            access_level: self.access_level,
                         });
                         self.closed = true;
                     }

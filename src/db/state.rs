@@ -1,18 +1,23 @@
 use calendar_lib::api::{auth::login, user_roles, events};
-use reqwest::{Method, RequestBuilder, Response};
+use reqwest::{Method, RequestBuilder, StatusCode};
+use serde::de::DeserializeOwned;
 
 use super::{
     aliases::*,
     connector::Connector,
-    request::{self, AppRequest},
+    request_parser::RequestParser,
 };
 
 enum StateAction {
     Login(login::Response),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
+    InsertEvent(events::insert::Response),
+    DeleteEvent(events::delete::Response),
 
-    Error(Response),
+    #[allow(dead_code)]
+    None,
+    Error(StatusCode, String),
 }
 
 pub struct State {
@@ -21,7 +26,7 @@ pub struct State {
     pub me: Option<UserInfo>,
 
     // Should not be modified manually, use requests
-    pub users: Vec<()>,
+    pub users: Vec<User>,
     pub events: Vec<Event>,
 
     pub errors: Vec<()>,
@@ -47,32 +52,46 @@ impl State {
     fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
         if let Some(me) = &self.me {
             self.connector
-                .make_request_authorized(method, op, me.user.id, &me.key)
+                .make_request(method, op)
+                .basic_auth(me.user.id, Some(std::str::from_utf8(&me.key).expect("parse error")))
         } else {
             todo!()
         }
+    }
+
+    // Use for testing only
+    #[cfg(debug_assertions)]
+    #[allow(dead_code)]
+    fn make_empty_parser(&mut self) -> RequestParser<StateAction> {
+        RequestParser::new_split(
+            |_| StateAction::None, 
+            |_, _| StateAction::None
+        )
+    }
+
+    fn make_parser<U, F>(&mut self, on_success: F) -> RequestParser<StateAction> where
+        U: DeserializeOwned,
+        F: FnOnce(U) -> StateAction + 'static
+    {
+        RequestParser::new_complex(
+            on_success,
+            |code, s| StateAction::Error(code, s)
+        )
     }
 }
 
 impl State {
     pub fn load_user_roles(&mut self) {
-        let on_success: request::OnSuccess<StateAction, user_roles::load_array::Response> =
-            Box::new(|response| StateAction::LoadUserRoles(response));
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
-
-        let req = self
+        let request = self
             .make_request_authorized(Method::GET, "user_roles")
             .build()
             .unwrap();
 
-        self.connector
-            .request(AppRequest::new(req, on_success, on_error));
+        let parser = self.make_parser(|r| StateAction::LoadUserRoles(r));
+        self.connector.request(request, parser);
     }
 
     pub fn login(&mut self, email: &str, pass: &str) {
-        let on_success: request::OnSuccess<StateAction, login::Response> =
-            Box::new(|response| StateAction::Login(response));
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
         let req = self
             .make_request(Method::POST, "auth/login")
             .json(&login::Body {
@@ -81,43 +100,42 @@ impl State {
             })
             .build()
             .unwrap();
-        self.connector
-            .request(AppRequest::new(req, on_success, on_error));
+
+        let parser = self.make_parser(|r| StateAction::Login(r));
+        self.connector.request(req, parser);
     }
 
     pub fn load_events(&mut self) {
-        let on_success: request::OnSuccess<StateAction, events::load_array::Response> =
-            Box::new(|response| StateAction::LoadEvents(response));
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
         let req = self
             .make_request_authorized(Method::GET, "events")
             .build()
             .unwrap();
-        self.connector
-            .request(AppRequest::new(req, on_success, on_error));
+
+        let parser = self.make_parser(|r| StateAction::LoadEvents(r));
+        self.connector.request(req, parser);
     }
 
-    pub fn insert_event(&mut self, new_event: &events::insert::Body) {
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
+    pub fn insert_event(&mut self, new_event: NewEvent) {
         let req = self
             .make_request_authorized(Method::POST, "event")
-            .json(new_event)
+            .json(&events::insert::Body { new_event })
             .build()
             .unwrap();
-        self.connector
-            .request(AppRequest::new_ignore(req, on_error));
+
+        let parser = self.make_parser(|r| StateAction::InsertEvent(r));
+        self.connector.request(req, parser);
     }
 
     pub fn delete_event(&mut self, id: i32) {
-        let on_error: request::OnError<StateAction> = Box::new(|e| StateAction::Error(e));
         let req = self
             .make_request_authorized(Method::DELETE, "event")
             .query(&events::delete::Args { id })
             .json(&events::delete::Body {})
             .build()
             .unwrap();
-        self.connector
-            .request(AppRequest::new_ignore(req, on_error));
+
+        let parser = self.make_parser(|r| StateAction::DeleteEvent(r));
+        self.connector.request(req, parser);
     }
 }
 
@@ -146,8 +164,17 @@ impl State {
                 StateAction::LoadEvents(res) => {
                     self.events = res.array;
                 }
-                StateAction::Error(res) => {
-                    println!("smth went wrong: {res:?}");
+                StateAction::InsertEvent(_) => {
+                    self.load_events();
+                },
+                StateAction::DeleteEvent(_) => {
+                    self.load_events();
+                },
+                StateAction::None => {
+                    println!("none");
+                }
+                StateAction::Error(status, s) => {
+                    println!("smth went wrong: {status:?}=>{s:?}");
                 }
             }
         }

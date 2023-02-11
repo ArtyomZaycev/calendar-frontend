@@ -23,7 +23,7 @@ pub struct Popup {
 }
 
 impl WidgetBuilder for Popup {
-    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
+    fn show(&mut self, state: &mut State, ctx: &egui::Context, _ui: &mut egui::Ui) -> bool {
         egui::Window::new("")
             .id(self.id)
             .title_bar(false)
