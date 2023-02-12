@@ -8,7 +8,8 @@ use super::{
     request_parser::RequestParser,
 };
 
-enum StateAction {
+#[derive(Clone)]
+pub enum StateAction {
     Login(login::Response),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
@@ -16,7 +17,7 @@ enum StateAction {
     DeleteEvent(events::delete::Response),
 
     #[allow(dead_code)]
-    None,
+    None,   // for debug only
     Error(StatusCode, String),
 }
 
@@ -45,11 +46,11 @@ impl State {
 }
 
 impl State {
-    fn make_request(&self, method: Method, op: &str) -> RequestBuilder {
+    pub fn make_request(&self, method: Method, op: &str) -> RequestBuilder {
         self.connector.make_request(method, op)
     }
 
-    fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
+    pub fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
         if let Some(me) = &self.me {
             self.connector
                 .make_request(method, op)
@@ -62,14 +63,14 @@ impl State {
     // Use for testing only
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
-    fn make_empty_parser(&mut self) -> RequestParser<StateAction> {
+    fn make_empty_parser(&self) -> RequestParser<StateAction> {
         RequestParser::new_split(
             |_| StateAction::None, 
             |_, _| StateAction::None
         )
     }
 
-    fn make_parser<U, F>(&mut self, on_success: F) -> RequestParser<StateAction> where
+    fn make_parser<U, F>(&self, on_success: F) -> RequestParser<StateAction> where
         U: DeserializeOwned,
         F: FnOnce(U) -> StateAction + 'static
     {
@@ -81,9 +82,10 @@ impl State {
 }
 
 impl State {
-    pub fn load_user_roles(&mut self) {
+    pub fn load_user_roles(&self) {
         let request = self
             .make_request_authorized(Method::GET, "user_roles")
+            .query(&user_roles::load_array::Args { user_id: None })
             .build()
             .unwrap();
 
@@ -91,9 +93,10 @@ impl State {
         self.connector.request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn login(&mut self, email: &str, pass: &str) {
+    pub fn login(&self, email: &str, pass: &str) {
         let request = self
             .make_request(Method::POST, "auth/login")
+            .query(&login::Args {})
             .json(&login::Body {
                 email: email.to_string(),
                 password: pass.to_string(),
@@ -105,9 +108,10 @@ impl State {
         self.connector.request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn load_events(&mut self) {
+    pub fn load_events(&self) {
         let request = self
             .make_request_authorized(Method::GET, "events")
+            .query(&events::load_array::Args {})
             .build()
             .unwrap();
 
@@ -115,9 +119,10 @@ impl State {
         self.connector.request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn insert_event(&mut self, new_event: NewEvent) {
+    pub fn insert_event(&self, new_event: NewEvent) {
         let request = self
             .make_request_authorized(Method::POST, "event")
+            .query(&events::insert::Args {})
             .json(&events::insert::Body { new_event })
             .build()
             .unwrap();
@@ -126,7 +131,7 @@ impl State {
         self.connector.request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn delete_event(&mut self, id: i32) {
+    pub fn delete_event(&self, id: i32) {
         let request = self
             .make_request_authorized(Method::DELETE, "event")
             .query(&events::delete::Args { id })
@@ -140,43 +145,45 @@ impl State {
 }
 
 impl State {
-    pub fn poll(&mut self) {
-        let actions = self.connector.poll();
-
-        for action in actions {
-            match action {
-                StateAction::Login(res) => {
-                    self.me = Some(UserInfo {
-                        user: res.user,
-                        access_level: res.access_level,
-                        edit_rights: res.edit_rights,
-                        key: res.key,
-                        roles: vec![],
-                    });
-                    self.load_events();
-                    self.load_user_roles();
-                }
-                StateAction::LoadUserRoles(res) => {
-                    if let Some(me) = &mut self.me {
-                        me.roles = res.array;
-                    }
-                }
-                StateAction::LoadEvents(res) => {
-                    self.events = res.array;
-                }
-                StateAction::InsertEvent(_) => {
-                    self.load_events();
-                },
-                StateAction::DeleteEvent(_) => {
-                    self.load_events();
-                },
-                StateAction::None => {
-                    println!("none");
-                }
-                StateAction::Error(status, s) => {
-                    println!("smth went wrong: {status:?}=>{s:?}");
+    fn parse_action(&mut self, action: StateAction) {
+        match action {
+            StateAction::Login(res) => {
+                self.me = Some(UserInfo {
+                    user: res.user,
+                    access_level: res.access_level,
+                    edit_rights: res.edit_rights,
+                    key: res.key,
+                    roles: vec![],
+                });
+                self.load_events();
+                self.load_user_roles();
+            }
+            StateAction::LoadUserRoles(res) => {
+                if let Some(me) = &mut self.me {
+                    me.roles = res.array;
                 }
             }
+            StateAction::LoadEvents(res) => {
+                self.events = res.array;
+            }
+            StateAction::InsertEvent(_) => {
+                self.load_events();
+            },
+            StateAction::DeleteEvent(_) => {
+                self.load_events();
+            },
+            StateAction::None => {
+                println!("none");
+            }
+            StateAction::Error(status, s) => {
+                println!("smth went wrong: {status:?}=>{s:?}");
+            }
         }
+    }
+
+    pub fn poll(&mut self) -> Vec<StateAction> {
+        let actions = self.connector.poll();
+        actions.clone().into_iter().for_each(|a| self.parse_action(a));
+        actions
     }
 }
