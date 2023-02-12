@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use egui::{Align, Layout};
 
 use crate::{
@@ -11,7 +13,7 @@ use crate::{
             sign_up::SignUp,
         },
         widget_builder::WidgetBuilder,
-    },
+    }, config::Config,
 };
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -26,8 +28,9 @@ pub struct CalendarApp {
 
 impl Default for CalendarApp {
     fn default() -> Self {
+        let config = Config::load(&Path::new("./config.json"));
         Self {
-            state: State::new(),
+            state: State::new(&config),
             popups: Vec::default(),
         }
     }

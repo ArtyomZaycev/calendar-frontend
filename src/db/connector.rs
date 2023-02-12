@@ -4,6 +4,8 @@ use bytes::Bytes;
 use reqwest::StatusCode;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
+use crate::config::Config;
+
 use super::request_parser::RequestParser;
 
 type RequestIndex = u16;
@@ -76,11 +78,11 @@ pub struct Connector<T> {
 }
 
 impl<T> Connector<T> {
-    pub fn new() -> Self {
+    pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel(5);
         Self {
             client: reqwest::Client::new(),
-            server_url: "http://127.0.0.1:8080/".into(),
+            server_url: config.api_url.clone(),
             requests: RequestCounter::new(),
             sender,
             reciever,

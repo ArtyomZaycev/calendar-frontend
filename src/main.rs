@@ -4,6 +4,7 @@
 mod app;
 mod db;
 mod ui;
+mod config;
 
 use app::CalendarApp;
 

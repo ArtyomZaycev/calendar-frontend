@@ -2,6 +2,8 @@ use calendar_lib::api::{auth::login, user_roles, events};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
+use crate::config::Config;
+
 use super::{
     aliases::*,
     connector::{Connector, RequestDescriptor},
@@ -34,9 +36,9 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
+    pub fn new(config: &Config) -> Self {
         Self {
-            connector: Connector::new(),
+            connector: Connector::new(config),
             me: None,
             users: Vec::default(),
             events: Vec::default(),
