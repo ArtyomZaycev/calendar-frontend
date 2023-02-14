@@ -188,4 +188,8 @@ impl State {
         actions.clone().into_iter().for_each(|a| self.parse_action(a));
         actions
     }
+
+    pub fn get_active_requests_descriptions(&self) -> Vec<()> {
+        self.connector.get_active_requests_descriptions()
+    }
 }

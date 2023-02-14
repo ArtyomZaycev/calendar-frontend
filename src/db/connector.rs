@@ -64,6 +64,12 @@ impl<T> RequestCounter<T> {
     fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T>> {
         self.requests.get_mut().remove(id)
     }
+
+    fn get_requests_descriptions(&self) -> Vec<()> {
+        self.requests.borrow().iter().map(|(_, _descriptor)| {
+            ()
+        }).collect()
+    }
 }
 
 pub struct Connector<T> {
@@ -132,5 +138,9 @@ impl<T> Connector<T> {
             }
         }
         polled
+    }
+
+    pub fn get_active_requests_descriptions(&self) -> Vec<()> {
+        self.requests.get_requests_descriptions()
     }
 }

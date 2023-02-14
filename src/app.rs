@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use egui::{Align, Layout};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     db::state::State,
@@ -16,7 +17,7 @@ use crate::{
     }, config::Config,
 };
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct CalendarApp {
     #[serde(skip)]
@@ -107,6 +108,10 @@ impl eframe::App for CalendarApp {
                         {
                             self.popups.push(PopupType::SignUp(SignUp::new()).popup());
                         }
+                    }
+
+                    if self.state.get_active_requests_descriptions().len() > 0 {
+                        ui.label("xxx");
                     }
                 });
             });
