@@ -8,6 +8,7 @@ pub enum StateAction {
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),
+    UpdateEvent(events::update::Response),
     DeleteEvent(events::delete::Response),
 
     #[allow(dead_code)]
@@ -21,6 +22,7 @@ pub trait HasStateAction {
     fn has_load_user_roles(&self) -> bool;
     fn has_load_events(&self) -> bool;
     fn has_insert_event(&self) -> bool;
+    fn has_update_event(&self) -> bool;
     fn has_delete_events(&self) -> bool;
     fn has_none(&self) -> bool;
     fn has_error(&self) -> bool;
@@ -58,6 +60,9 @@ impl HasStateAction for Vec<StateAction> {
     }
     fn has_insert_event(&self) -> bool {
         self.iter().any(|x| x.is_insert_event())
+    }
+    fn has_update_event(&self) -> bool {
+        self.iter().any(|x| x.is_update_event())
     }
     fn has_delete_events(&self) -> bool {
         self.iter().any(|x| x.is_delete_event())

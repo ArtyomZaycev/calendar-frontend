@@ -1,11 +1,13 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::events::types::NewEvent;
+use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
 use chrono::{Duration, NaiveDateTime};
 
 use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
 
 pub struct EventInput {
+    pub id: Option<i32>,
+
     pub name: String,
 
     pub description_enabled: bool,
@@ -22,6 +24,7 @@ impl EventInput {
     pub fn new() -> Self {
         let now = chrono::offset::Local::now().naive_local();
         Self {
+            id: None,
             name: String::default(),
             description_enabled: false,
             description: String::default(),
@@ -31,13 +34,24 @@ impl EventInput {
             closed: false,
         }
     }
+
+    pub fn change(event: &Event) -> Self {
+        Self {
+            id: Some(event.id),
+            name: event.name.clone(),
+            description_enabled: event.description.is_some(),
+            description: event.description.clone().unwrap_or_default(),
+            access_level: event.access_level,
+            start: event.start,
+            end: event.end,
+            closed: false,
+        }
+    }
 }
 
 impl WidgetBuilder for EventInput {
     fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
-        if self.closed {
-            false
-        } else {
+        if !self.closed {
             ui.vertical(|ui| {
                 ui.text_edit_singleline(&mut self.name);
                 ui.checkbox(&mut self.description_enabled, "Description");
@@ -55,21 +69,36 @@ impl WidgetBuilder for EventInput {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
                     }
-                    if ui.button("Create").clicked() {
-                        state.insert_event(NewEvent {
-                            name: self.name.clone(),
-                            description: self
-                                .description_enabled
-                                .then_some(self.description.clone()),
-                            start: self.start,
-                            end: self.end,
-                            access_level: self.access_level,
-                        });
-                        self.closed = true;
+                    if let Some(id) = self.id {
+                        if ui.button("Update").clicked() {
+                            state.update_event(UpdateEvent {
+                                id,
+                                user_id: None,
+                                name: Some(self.name.clone()),
+                                description: Some(
+                                    self.description_enabled.then_some(self.description.clone()),
+                                ),
+                                start: Some(self.start),
+                                end: Some(self.end),
+                                access_level: Some(self.access_level),
+                            });
+                        }
+                    } else {
+                        if ui.button("Create").clicked() {
+                            state.insert_event(NewEvent {
+                                name: self.name.clone(),
+                                description: self
+                                    .description_enabled
+                                    .then_some(self.description.clone()),
+                                start: self.start,
+                                end: self.end,
+                                access_level: self.access_level,
+                            });
+                        }
                     }
                 });
             });
-            true
         }
+        !self.closed
     }
 }

@@ -9,6 +9,7 @@ pub enum PopupType {
     Login(Login),
     SignUp(SignUp),
     NewEvent(EventInput),
+    UpdateEvent(EventInput),
 }
 
 impl PopupType {
@@ -33,6 +34,7 @@ impl WidgetBuilder for Popup {
                     PopupType::Login(w) => w.show(state, ctx, ui),
                     PopupType::SignUp(w) => w.show(state, ctx, ui),
                     PopupType::NewEvent(w) => w.show(state, ctx, ui),
+                    PopupType::UpdateEvent(w) => w.show(state, ctx, ui),
                 }
             })
             .unwrap()

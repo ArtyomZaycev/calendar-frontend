@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use calendar_lib::api::events::types::Event;
 use egui::{Align, Layout};
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +23,7 @@ use crate::{
 #[serde(default)]
 pub struct CalendarApp {
     #[serde(skip)]
-    state: State,
+    pub state: State,
 
     #[serde(skip)]
     popups: Vec<Popup>,
@@ -51,8 +52,26 @@ impl CalendarApp {
 impl CalendarApp {
     pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Login> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::Login(login) = p.get_type_mut() {
-                Some(login)
+            if let PopupType::Login(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut EventInput> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::NewEvent(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn get_update_event_popup<'a>(&'a mut self) -> Option<&'a mut EventInput> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::UpdateEvent(v) = p.get_type_mut() {
+                Some(v)
             } else {
                 None
             }
@@ -69,6 +88,21 @@ impl CalendarApp {
 
     pub fn is_open_new_event(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_new_event())
+    }
+
+    pub fn open_login(&mut self) {
+        self.popups.push(PopupType::Login(Login::new()).popup());
+    }
+    pub fn open_sign_up(&mut self) {
+        self.popups.push(PopupType::SignUp(SignUp::new()).popup());
+    }
+    pub fn open_new_event(&mut self) {
+        self.popups
+            .push(PopupType::NewEvent(EventInput::new()).popup());
+    }
+    pub fn open_change_event(&mut self, event: &Event) {
+        self.popups
+            .push(PopupType::UpdateEvent(EventInput::change(event)).popup());
     }
 }
 
@@ -111,13 +145,13 @@ impl eframe::App for CalendarApp {
                             .add_enabled(!self.is_open_login(), egui::Button::new("Login"))
                             .clicked()
                         {
-                            self.popups.push(PopupType::Login(Login::new()).popup());
+                            self.open_login();
                         }
                         if ui
                             .add_enabled(!self.is_open_sign_up(), egui::Button::new("Sign Up"))
                             .clicked()
                         {
-                            self.popups.push(PopupType::SignUp(SignUp::new()).popup());
+                            self.open_sign_up();
                         }
                     }
 
@@ -129,14 +163,24 @@ impl eframe::App for CalendarApp {
             });
             ui.separator();
 
+            if let Some(popup) = self.get_login_popup() {
+                if polled.has_login() {
+                    popup.closed = true;
+                }
+            }
+            if let Some(popup) = self.get_new_event_popup() {
+                if polled.has_insert_event() {
+                    popup.closed = true;
+                }
+            }
+            if let Some(popup) = self.get_update_event_popup() {
+                if polled.has_update_event() {
+                    popup.closed = true;
+                }
+            }
+
             // CALENDAR
             if let Some(_me) = &self.state.me {
-                if let Some(login) = self.get_login_popup() {
-                    if polled.has_login() {
-                        login.closed = true;
-                    }
-                }
-
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         ui.heading("Events");
@@ -144,12 +188,11 @@ impl eframe::App for CalendarApp {
                             if ui
                                 .add_enabled(
                                     !self.is_open_new_event(),
-                                    egui::Button::new("New Event"),
+                                    egui::Button::new("Add Event"),
                                 )
                                 .clicked()
                             {
-                                self.popups
-                                    .push(PopupType::NewEvent(EventInput::new()).popup());
+                                self.open_new_event();
                             }
                         });
                     });
@@ -173,7 +216,7 @@ impl eframe::App for CalendarApp {
                             .for_each(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events.into_iter().for_each(|event| {
-                                        ui.add(EventCard::new(&mut self.state, &event));
+                                        ui.add(EventCard::new(self, &event));
                                     });
                                 });
                             });

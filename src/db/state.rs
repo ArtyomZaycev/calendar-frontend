@@ -121,6 +121,22 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
+    pub fn update_event(&self, upd_event: UpdateEvent) {
+        dbg!(&upd_event);
+        let request = self
+            .make_request_authorized(Method::PATCH, "event")
+            .query(&events::update::Args {})
+            .json(&events::update::Body { upd_event })
+            .build()
+            .unwrap();
+
+        dbg!(String::from_utf8_lossy(request.body().unwrap().as_bytes().unwrap()));
+
+        let parser = self.make_parser(|r| StateAction::UpdateEvent(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+
     pub fn delete_event(&self, id: i32) {
         let request = self
             .make_request_authorized(Method::DELETE, "event")
@@ -158,6 +174,9 @@ impl State {
                 self.events = res.array;
             }
             StateAction::InsertEvent(_) => {
+                self.load_events();
+            }
+            StateAction::UpdateEvent(_) => {
                 self.load_events();
             }
             StateAction::DeleteEvent(_) => {

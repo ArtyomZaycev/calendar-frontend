@@ -1,17 +1,17 @@
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
-use crate::db::{aliases::Event, state::State};
+use crate::{app::CalendarApp, db::aliases::Event};
 
 pub struct EventCard<'a> {
-    state: &'a mut State,
+    app: &'a mut CalendarApp,
     max_size: Vec2,
     event: &'a Event,
 }
 
 impl<'a> EventCard<'a> {
-    pub fn new(state: &'a mut State, event: &'a Event) -> Self {
+    pub fn new(app: &'a mut CalendarApp, event: &'a Event) -> Self {
         Self {
-            state,
+            app,
             max_size: Vec2::new(100., 100.),
             event,
         }
@@ -42,8 +42,12 @@ impl<'a> Widget for EventCard<'a> {
                     ui.separator();
                     ui.label(format!("{start} - {end}"));
                     ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                        // RTL
+                        if ui.button("Change").clicked() {
+                            self.app.open_change_event(self.event);
+                        }
                         if ui.button("Delete").clicked() {
-                            self.state.delete_event(*id);
+                            self.app.state.delete_event(*id);
                         }
                     });
                 })
