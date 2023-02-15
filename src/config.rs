@@ -1,4 +1,4 @@
-use std::{path::Path, fs};
+use std::{fs, path::Path};
 
 use serde::Deserialize;
 
@@ -18,16 +18,14 @@ impl Default for Config {
 impl Config {
     pub fn load(path: &Path) -> Self {
         match fs::read_to_string(path) {
-            Ok(content) => {
-                serde_json::from_str(&content).unwrap_or_else(|err| {
-                    println!("Error deserializing config: {err:?}, using fallback");
-                    Default::default()
-                })
-            },
+            Ok(content) => serde_json::from_str(&content).unwrap_or_else(|err| {
+                println!("Error deserializing config: {err:?}, using fallback");
+                Default::default()
+            }),
             Err(err) => {
                 println!("Error reading config: {err:?}, using fallback");
                 Default::default()
-            },
+            }
         }
     }
 }

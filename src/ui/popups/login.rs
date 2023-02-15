@@ -40,6 +40,8 @@ impl WidgetBuilder for Login {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     if ui.button("Login").clicked() {
                         state.login(&self.email, &self.password);
+                    }
+                    if ui.button("Close").clicked() {
                         self.closed = true;
                     }
                 });

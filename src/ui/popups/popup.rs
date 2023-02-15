@@ -52,4 +52,7 @@ impl Popup {
     pub fn get_type(&self) -> &PopupType {
         &self.t
     }
+    pub fn get_type_mut(&mut self) -> &mut PopupType {
+        &mut self.t
+    }
 }

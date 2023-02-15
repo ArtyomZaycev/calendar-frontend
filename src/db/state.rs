@@ -1,5 +1,5 @@
-use calendar_lib::api::{auth::login, user_roles, events};
-use reqwest::{Method, RequestBuilder, StatusCode};
+use calendar_lib::api::{auth::login, events, user_roles};
+use reqwest::{Method, RequestBuilder};
 use serde::de::DeserializeOwned;
 
 use crate::config::Config;
@@ -8,20 +8,8 @@ use super::{
     aliases::*,
     connector::{Connector, RequestDescriptor},
     request_parser::RequestParser,
+    state_action::StateAction,
 };
-
-#[derive(Clone)]
-pub enum StateAction {
-    Login(login::Response),
-    LoadUserRoles(user_roles::load_array::Response),
-    LoadEvents(events::load_array::Response),
-    InsertEvent(events::insert::Response),
-    DeleteEvent(events::delete::Response),
-
-    #[allow(dead_code)]
-    None,   // for debug only
-    Error(StatusCode, String),
-}
 
 pub struct State {
     connector: Connector<StateAction>,
@@ -54,9 +42,10 @@ impl State {
 
     pub fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
         if let Some(me) = &self.me {
-            self.connector
-                .make_request(method, op)
-                .basic_auth(me.user.id, Some(std::str::from_utf8(&me.key).expect("parse error")))
+            self.connector.make_request(method, op).basic_auth(
+                me.user.id,
+                Some(std::str::from_utf8(&me.key).expect("parse error")),
+            )
         } else {
             todo!()
         }
@@ -66,20 +55,15 @@ impl State {
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
     fn make_empty_parser(&self) -> RequestParser<StateAction> {
-        RequestParser::new_split(
-            |_| StateAction::None, 
-            |_, _| StateAction::None
-        )
+        RequestParser::new_split(|_| StateAction::None, |_, _| StateAction::None)
     }
 
-    fn make_parser<U, F>(&self, on_success: F) -> RequestParser<StateAction> where
+    fn make_parser<U, F>(&self, on_success: F) -> RequestParser<StateAction>
+    where
         U: DeserializeOwned,
-        F: FnOnce(U) -> StateAction + 'static
+        F: FnOnce(U) -> StateAction + 'static,
     {
-        RequestParser::new_complex(
-            on_success,
-            |code, s| StateAction::Error(code, s)
-        )
+        RequestParser::new_complex(on_success, |code, s| StateAction::Error(code, s))
     }
 }
 
@@ -92,7 +76,8 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::LoadUserRoles(r));
-        self.connector.request(request, RequestDescriptor::new(parser));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
     }
 
     pub fn login(&self, email: &str, pass: &str) {
@@ -107,7 +92,8 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::Login(r));
-        self.connector.request(request, RequestDescriptor::new(parser));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
     }
 
     pub fn load_events(&self) {
@@ -118,7 +104,8 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::LoadEvents(r));
-        self.connector.request(request, RequestDescriptor::new(parser));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
     }
 
     pub fn insert_event(&self, new_event: NewEvent) {
@@ -130,7 +117,8 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::InsertEvent(r));
-        self.connector.request(request, RequestDescriptor::new(parser));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
     }
 
     pub fn delete_event(&self, id: i32) {
@@ -142,7 +130,8 @@ impl State {
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::DeleteEvent(r));
-        self.connector.request(request, RequestDescriptor::new(parser));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
     }
 }
 
@@ -170,10 +159,10 @@ impl State {
             }
             StateAction::InsertEvent(_) => {
                 self.load_events();
-            },
+            }
             StateAction::DeleteEvent(_) => {
                 self.load_events();
-            },
+            }
             StateAction::None => {
                 println!("none");
             }
@@ -185,7 +174,10 @@ impl State {
 
     pub fn poll(&mut self) -> Vec<StateAction> {
         let actions = self.connector.poll();
-        actions.clone().into_iter().for_each(|a| self.parse_action(a));
+        actions
+            .clone()
+            .into_iter()
+            .for_each(|a| self.parse_action(a));
         actions
     }
 

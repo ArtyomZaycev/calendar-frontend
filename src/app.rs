@@ -4,7 +4,8 @@ use egui::{Align, Layout};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    db::state::State,
+    config::Config,
+    db::{state::State, state_action::HasStateAction},
     ui::{
         event_card::EventCard,
         popups::{
@@ -14,7 +15,7 @@ use crate::{
             sign_up::SignUp,
         },
         widget_builder::WidgetBuilder,
-    }, config::Config,
+    },
 };
 
 #[derive(Deserialize, Serialize)]
@@ -48,6 +49,16 @@ impl CalendarApp {
 }
 
 impl CalendarApp {
+    pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Login> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::Login(login) = p.get_type_mut() {
+                Some(login)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn is_open_login(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_login())
     }
@@ -67,7 +78,7 @@ impl eframe::App for CalendarApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        self.state.poll();
+        let polled = self.state.poll();
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(16.0, 8.0);
@@ -111,6 +122,7 @@ impl eframe::App for CalendarApp {
                     }
 
                     if self.state.get_active_requests_descriptions().len() > 0 {
+                        // TODO: icon
                         ui.label("xxx");
                     }
                 });
@@ -118,7 +130,13 @@ impl eframe::App for CalendarApp {
             ui.separator();
 
             // CALENDAR
-            if let Some(_) = &self.state.me {
+            if let Some(_me) = &self.state.me {
+                if let Some(login) = self.get_login_popup() {
+                    if polled.has_login() {
+                        login.closed = true;
+                    }
+                }
+
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         ui.heading("Events");

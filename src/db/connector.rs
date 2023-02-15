@@ -1,4 +1,7 @@
-use std::{collections::HashMap, cell::{Cell, RefCell}};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+};
 
 use bytes::Bytes;
 use reqwest::StatusCode;
@@ -10,19 +13,15 @@ use super::request_parser::RequestParser;
 
 type RequestIndex = u16;
 
-
 pub struct RequestDescriptor<T> {
     parser: RequestParser<T>,
 }
 
 impl<T> RequestDescriptor<T> {
     pub fn new(parser: RequestParser<T>) -> Self {
-        Self {
-            parser,
-        }
+        Self { parser }
     }
 }
-
 
 #[derive(Debug)]
 struct RequestResult {
@@ -31,10 +30,7 @@ struct RequestResult {
 }
 impl RequestResult {
     fn new(id: RequestIndex, result: reqwest::Result<(StatusCode, Bytes)>) -> Self {
-        Self {
-            id,
-            result,
-        }
+        Self { id, result }
     }
 }
 
@@ -66,9 +62,11 @@ impl<T> RequestCounter<T> {
     }
 
     fn get_requests_descriptions(&self) -> Vec<()> {
-        self.requests.borrow().iter().map(|(_, _descriptor)| {
-            ()
-        }).collect()
+        self.requests
+            .borrow()
+            .iter()
+            .map(|(_, _descriptor)| ())
+            .collect()
     }
 }
 
@@ -115,14 +113,17 @@ impl<T> Connector<T> {
                     let status_code = res.status();
                     // TODO: Investigate unwrap
                     let bytes = res.bytes().await.unwrap();
-                    sender.send(RequestResult::new(
-                        request_id,
-                        Ok((status_code, bytes))
-                    )).await.expect("Unable to send success response");
-                },
+                    sender
+                        .send(RequestResult::new(request_id, Ok((status_code, bytes))))
+                        .await
+                        .expect("Unable to send success response");
+                }
                 Err(err) => {
-                    sender.send(RequestResult::new(request_id, Err(err))).await.expect("Unable to send error response");
-                },
+                    sender
+                        .send(RequestResult::new(request_id, Err(err)))
+                        .await
+                        .expect("Unable to send error response");
+                }
             };
         });
     }
@@ -133,7 +134,9 @@ impl<T> Connector<T> {
             let descriptor = self.requests.take(&res.id).expect("Parser not found");
 
             match res.result {
-                Ok((status_code, bytes)) => polled.push(descriptor.parser.parse(status_code, bytes)),
+                Ok((status_code, bytes)) => {
+                    polled.push(descriptor.parser.parse(status_code, bytes))
+                }
                 Err(error) => (self.error_handler)(error),
             }
         }
