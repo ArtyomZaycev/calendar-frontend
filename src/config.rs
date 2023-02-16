@@ -10,7 +10,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            api_url: "http://127.0.0.1:8080/".to_owned(),
+            api_url: "http://127.0.0.1:8081/".to_owned(),
         }
     }
 }

@@ -5,7 +5,7 @@ use std::{
 
 use bytes::Bytes;
 use reqwest::StatusCode;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::config::Config;
 
@@ -83,7 +83,7 @@ pub struct Connector<T> {
 
 impl<T> Connector<T> {
     pub fn new(config: &Config) -> Self {
-        let (sender, reciever) = channel(5);
+        let (sender, reciever) = channel();
         Self {
             client: reqwest::Client::new(),
             server_url: config.api_url.clone(),
@@ -96,16 +96,20 @@ impl<T> Connector<T> {
 
     pub fn make_request(&self, method: reqwest::Method, op: &str) -> reqwest::RequestBuilder {
         let client = self.client.clone();
-        client.request(method, self.server_url.clone() + op)
+        client.request(method, self.server_url.clone() + op).header("Access-Control-Allow-Origin", "*")
     }
 
     pub fn request(&self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {
+        use crate::utils::easy_spawn;
+
+        println!("{request:?}");
+
         let client = self.client.clone();
         let sender = self.sender.clone();
 
         let request_id = self.requests.put(descriptor);
 
-        tokio::spawn(async move {
+        easy_spawn(async move {
             let res = client.execute(request).await;
 
             match res {
@@ -115,13 +119,13 @@ impl<T> Connector<T> {
                     let bytes = res.bytes().await.unwrap();
                     sender
                         .send(RequestResult::new(request_id, Ok((status_code, bytes))))
-                        .await
+                        //.await
                         .expect("Unable to send success response");
                 }
                 Err(err) => {
                     sender
                         .send(RequestResult::new(request_id, Err(err)))
-                        .await
+                        //.await
                         .expect("Unable to send error response");
                 }
             };
