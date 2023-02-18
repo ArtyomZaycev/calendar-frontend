@@ -12,10 +12,10 @@ use app::CalendarApp;
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
+    dotenv::dotenv().ok();
+
     let rt = tokio::runtime::Runtime::new().expect("Unable to create Runtime");
     let _enter = rt.enter();
-
-    // Log to stdout (if you run with `RUST_LOG=debug`).
 
     tracing_subscriber::fmt::init();
 

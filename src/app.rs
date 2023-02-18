@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use calendar_lib::api::events::types::Event;
 use egui::{Align, Layout};
 use serde::{Deserialize, Serialize};
@@ -31,7 +29,7 @@ pub struct CalendarApp {
 
 impl Default for CalendarApp {
     fn default() -> Self {
-        let config = Config::load(&Path::new("./config.json"));
+        let config = Config::load();
         Self {
             state: State::new(&config),
             popups: Vec::default(),
