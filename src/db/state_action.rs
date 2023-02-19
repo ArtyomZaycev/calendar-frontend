@@ -1,4 +1,7 @@
-use calendar_lib::api::{auth::{login, register}, events, user_roles};
+use calendar_lib::api::{
+    auth::{login, register},
+    events, user_roles,
+};
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 
@@ -6,6 +9,7 @@ use reqwest::StatusCode;
 pub enum StateAction {
     Login(login::Response),
     Register(register::Response),
+    RegisterError(String),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),

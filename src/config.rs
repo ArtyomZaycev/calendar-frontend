@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use url::Url;
 
 #[derive(Clone, Deserialize)]
 pub struct Config {
@@ -15,7 +14,7 @@ impl Config {
             api_url: std::env::var("API_URL").expect("Error loading API_URL for env"),
         }
     }
-    
+
     #[cfg(target_arch = "wasm32")]
     pub fn load() -> Self {
         let location = web_sys::window().unwrap().location();
@@ -29,7 +28,7 @@ impl Config {
         }
 
         let api_url = format!("http://api.{hostname}:{port}/");
-        
+
         Self {
             is_localhost,
             api_url,

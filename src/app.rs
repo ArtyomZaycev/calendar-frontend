@@ -12,7 +12,8 @@ use crate::{
             login::Login,
             popup::{Popup, PopupType},
             sign_up::SignUp,
-        }, widget_builder::AppWidgetBuilder,
+        },
+        widget_builder::AppWidgetBuilder,
     },
 };
 

@@ -52,23 +52,24 @@ impl EventInput {
 impl<'a> AppWidgetBuilder<'a> for EventInput {
     type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
 
-    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output
-        where Self::Output: egui::Widget + 'a
+    fn build(&'a mut self, state: &'a mut State, _ctx: &'a egui::Context) -> Self::Output
+    where
+        Self::Output: egui::Widget + 'a,
     {
         Box::new(|ui| {
             ui.vertical(|ui| {
                 ui.text_edit_singleline(&mut self.name);
                 ui.checkbox(&mut self.description_enabled, "Description");
-    
+
                 if self.description_enabled {
                     ui.text_edit_multiline(&mut self.description);
                 }
-    
+
                 ui.add(egui::Slider::new(
                     &mut self.access_level,
                     RangeInclusive::new(0, state.me.as_ref().unwrap().access_level),
                 ));
-    
+
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
@@ -101,7 +102,8 @@ impl<'a> AppWidgetBuilder<'a> for EventInput {
                         }
                     }
                 });
-            }).response
+            })
+            .response
         })
     }
 }

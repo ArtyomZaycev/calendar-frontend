@@ -1,6 +1,6 @@
 use egui::{Align, Layout};
 
-use crate::{ui::widget_builder::AppWidgetBuilder, db::state::State};
+use crate::{db::state::State, ui::widget_builder::AppWidgetBuilder};
 
 pub struct Login {
     pub email: String,
@@ -22,7 +22,7 @@ impl Login {
 impl<'a> AppWidgetBuilder<'a> for Login {
     type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
 
-    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output {
+    fn build(&'a mut self, state: &'a mut State, _ctx: &'a egui::Context) -> Self::Output {
         Box::new(|ui: &mut egui::Ui| {
             ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                 egui::Grid::new("login")
@@ -47,7 +47,8 @@ impl<'a> AppWidgetBuilder<'a> for Login {
                         self.closed = true;
                     }
                 });
-            }).response
+            })
+            .response
         })
     }
 }

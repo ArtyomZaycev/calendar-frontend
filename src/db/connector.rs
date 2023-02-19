@@ -96,7 +96,9 @@ impl<T> Connector<T> {
 
     pub fn make_request(&self, method: reqwest::Method, op: &str) -> reqwest::RequestBuilder {
         let client = self.client.clone();
-        client.request(method, self.server_url.clone() + op).header("Access-Control-Allow-Origin", "*")
+        client
+            .request(method, self.server_url.clone() + op)
+            .header("Access-Control-Allow-Origin", "*")
     }
 
     pub fn request(&self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {

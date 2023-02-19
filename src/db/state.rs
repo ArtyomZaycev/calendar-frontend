@@ -1,5 +1,8 @@
-use calendar_lib::api::{auth::{login, register}, events, user_roles};
-use reqwest::{Method, RequestBuilder};
+use calendar_lib::api::{
+    auth::{login, register},
+    events, user_roles,
+};
+use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
 use crate::config::Config;
@@ -14,9 +17,8 @@ use super::{
 pub struct State {
     connector: Connector<StateAction>,
 
-    pub me: Option<UserInfo>,
-
     // Should not be modified manually, use requests
+    pub me: Option<UserInfo>,
     pub users: Vec<User>,
     pub events: Vec<Event>,
 
@@ -54,16 +56,34 @@ impl State {
     // Use for testing only
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
-    fn make_empty_parser(&self) -> RequestParser<StateAction> {
+    fn make_empty_parser() -> RequestParser<StateAction> {
         RequestParser::new_split(|_| StateAction::None, |_, _| StateAction::None)
     }
 
-    fn make_parser<U, F>(&self, on_success: F) -> RequestParser<StateAction>
+    fn make_parser<U, F>(on_success: F) -> RequestParser<StateAction>
     where
         U: DeserializeOwned,
         F: FnOnce(U) -> StateAction + 'static,
     {
         RequestParser::new_complex(on_success, |code, s| StateAction::Error(code, s))
+    }
+
+    fn make_bad_request_parser<U, F1, F2>(
+        on_success: F1,
+        on_bad_request: F2,
+    ) -> RequestParser<StateAction>
+    where
+        U: DeserializeOwned,
+        F1: FnOnce(U) -> StateAction + 'static,
+        F2: FnOnce(String) -> StateAction + 'static,
+    {
+        RequestParser::new_complex(on_success, |code, msg| {
+            if code == StatusCode::BAD_REQUEST {
+                on_bad_request(msg)
+            } else {
+                StateAction::Error(code, msg)
+            }
+        })
     }
 }
 
@@ -75,7 +95,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::LoadUserRoles(r));
+        let parser = Self::make_parser(|r| StateAction::LoadUserRoles(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -91,7 +111,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::Login(r));
+        let parser = Self::make_parser(|r| StateAction::Login(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -108,7 +128,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::Register(r));
+        let parser = Self::make_bad_request_parser(
+            |r| StateAction::Register(r),
+            |msg| StateAction::RegisterError(msg),
+        );
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -120,7 +143,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::LoadEvents(r));
+        let parser = Self::make_parser(|r| StateAction::LoadEvents(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -133,7 +156,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::InsertEvent(r));
+        let parser = Self::make_parser(|r| StateAction::InsertEvent(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -147,9 +170,11 @@ impl State {
             .build()
             .unwrap();
 
-        dbg!(String::from_utf8_lossy(request.body().unwrap().as_bytes().unwrap()));
+        dbg!(String::from_utf8_lossy(
+            request.body().unwrap().as_bytes().unwrap()
+        ));
 
-        let parser = self.make_parser(|r| StateAction::UpdateEvent(r));
+        let parser = Self::make_parser(|r| StateAction::UpdateEvent(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -162,7 +187,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = self.make_parser(|r| StateAction::DeleteEvent(r));
+        let parser = Self::make_parser(|r| StateAction::DeleteEvent(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -182,9 +207,8 @@ impl State {
                 self.load_events();
                 self.load_user_roles();
             }
-            StateAction::Register(res) => {
-                println!("Success");
-            }
+            StateAction::Register(_) => {}
+            StateAction::RegisterError(_) => {}
             StateAction::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
                     me.roles = res.array;
@@ -202,9 +226,7 @@ impl State {
             StateAction::DeleteEvent(_) => {
                 self.load_events();
             }
-            StateAction::None => {
-                println!("none");
-            }
+            StateAction::None => {}
             StateAction::Error(status, s) => {
                 println!("smth went wrong: {status:?}=>{s:?}");
             }

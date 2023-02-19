@@ -1,7 +1,7 @@
 use derive_is_enum_variant::is_enum_variant;
 use egui::Vec2;
 
-use crate::{ui::widget_builder::AppWidgetBuilder, db::state::State};
+use crate::{db::state::State, ui::widget_builder::AppWidgetBuilder};
 
 use super::{event_input::EventInput, login::Login, sign_up::SignUp};
 
@@ -28,7 +28,8 @@ impl<'a> AppWidgetBuilder<'a> for Popup {
     type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
 
     fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output
-        where Self::Output: egui::Widget + 'a
+    where
+        Self::Output: egui::Widget + 'a,
     {
         Box::new(|_| {
             egui::Window::new("")
