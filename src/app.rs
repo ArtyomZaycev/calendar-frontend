@@ -12,8 +12,7 @@ use crate::{
             login::Login,
             popup::{Popup, PopupType},
             sign_up::SignUp,
-        },
-        widget_builder::WidgetBuilder,
+        }, widget_builder::AppWidgetBuilder,
     },
 };
 
@@ -127,7 +126,10 @@ impl eframe::App for CalendarApp {
             self.popups
                 .iter_mut()
                 .enumerate()
-                .filter_map(|(i, popup)| (!popup.show(&mut self.state, ctx, ui)).then_some(i))
+                .filter_map(|(i, popup)| {
+                    ui.add(popup.build(&mut self.state, ctx));
+                    popup.is_closed().then_some(i)
+                })
                 .collect::<Vec<_>>()
                 .iter()
                 .rev()

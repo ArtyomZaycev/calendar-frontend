@@ -1,6 +1,6 @@
 use egui::{Align, Layout};
 
-use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
+use crate::{ui::widget_builder::AppWidgetBuilder, db::state::State};
 
 pub struct Login {
     pub email: String,
@@ -19,11 +19,12 @@ impl Login {
     }
 }
 
-impl WidgetBuilder for Login {
-    fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
-        if !self.closed {
+impl<'a> AppWidgetBuilder<'a> for Login {
+    type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+
+    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output {
+        Box::new(|ui: &mut egui::Ui| {
             ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                // TODO: Unique id
                 egui::Grid::new("login")
                     .max_col_width(ui.available_width())
                     .show(ui, |ui| {
@@ -38,15 +39,15 @@ impl WidgetBuilder for Login {
                         ui.end_row();
                     });
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    // RTL
                     if ui.button("Login").clicked() {
                         state.login(&self.email, &self.password);
                     }
-                    if ui.button("Close").clicked() {
+                    if ui.button("Cancel").clicked() {
                         self.closed = true;
                     }
                 });
-            });
-        }
-        !self.closed
+            }).response
+        })
     }
 }

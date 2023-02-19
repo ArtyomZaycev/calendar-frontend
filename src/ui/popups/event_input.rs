@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
 use chrono::{Duration, NaiveDateTime};
 
-use crate::{db::state::State, ui::widget_builder::WidgetBuilder};
+use crate::{db::state::State, ui::widget_builder::AppWidgetBuilder};
 
 pub struct EventInput {
     pub id: Option<i32>,
@@ -49,22 +49,26 @@ impl EventInput {
     }
 }
 
-impl WidgetBuilder for EventInput {
-    fn show(&mut self, state: &mut State, _ctx: &egui::Context, ui: &mut egui::Ui) -> bool {
-        if !self.closed {
+impl<'a> AppWidgetBuilder<'a> for EventInput {
+    type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+
+    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output
+        where Self::Output: egui::Widget + 'a
+    {
+        Box::new(|ui| {
             ui.vertical(|ui| {
                 ui.text_edit_singleline(&mut self.name);
                 ui.checkbox(&mut self.description_enabled, "Description");
-
+    
                 if self.description_enabled {
                     ui.text_edit_multiline(&mut self.description);
                 }
-
+    
                 ui.add(egui::Slider::new(
                     &mut self.access_level,
                     RangeInclusive::new(0, state.me.as_ref().unwrap().access_level),
                 ));
-
+    
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
@@ -97,8 +101,7 @@ impl WidgetBuilder for EventInput {
                         }
                     }
                 });
-            });
-        }
-        !self.closed
+            }).response
+        })
     }
 }

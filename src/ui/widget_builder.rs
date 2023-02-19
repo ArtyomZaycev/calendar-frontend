@@ -1,6 +1,8 @@
 use crate::db::state::State;
 
-pub trait WidgetBuilder {
-    // Returns false if this widget is closed and no longer needs to be drawn
-    fn show(&mut self, state: &mut State, ctx: &egui::Context, ui: &mut egui::Ui) -> bool;
+pub trait AppWidgetBuilder<'a> {
+    type Output;
+
+    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output
+        where Self::Output: egui::Widget + 'a;
 }
