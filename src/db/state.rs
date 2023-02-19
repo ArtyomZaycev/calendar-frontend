@@ -1,4 +1,4 @@
-use calendar_lib::api::{auth::login, events, user_roles};
+use calendar_lib::api::{auth::{login, register}, events, user_roles};
 use reqwest::{Method, RequestBuilder};
 use serde::de::DeserializeOwned;
 
@@ -80,18 +80,35 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn login(&self, email: &str, pass: &str) {
+    pub fn login(&self, email: &str, password: &str) {
         let request = self
             .make_request(Method::POST, "auth/login")
             .query(&login::Args {})
             .json(&login::Body {
-                email: email.to_string(),
-                password: pass.to_string(),
+                email: email.to_owned(),
+                password: password.to_owned(),
             })
             .build()
             .unwrap();
 
         let parser = self.make_parser(|r| StateAction::Login(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+
+    pub fn register(&self, name: &str, email: &str, password: &str) {
+        let request = self
+            .make_request(Method::POST, "auth/register")
+            .query(&register::Args {})
+            .json(&register::Body {
+                name: name.to_owned(),
+                email: email.to_owned(),
+                password: password.to_owned(),
+            })
+            .build()
+            .unwrap();
+
+        let parser = self.make_parser(|r| StateAction::Register(r));
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
@@ -164,6 +181,9 @@ impl State {
                 });
                 self.load_events();
                 self.load_user_roles();
+            }
+            StateAction::Register(res) => {
+                println!("Success");
             }
             StateAction::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {

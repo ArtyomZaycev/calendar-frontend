@@ -57,6 +57,15 @@ impl CalendarApp {
             }
         })
     }
+    pub fn get_sign_up_popup<'a>(&'a mut self) -> Option<&'a mut SignUp> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::SignUp(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
     pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut EventInput> {
         self.popups.iter_mut().find_map(|p| {
             if let PopupType::NewEvent(v) = p.get_type_mut() {
@@ -163,6 +172,11 @@ impl eframe::App for CalendarApp {
 
             if let Some(popup) = self.get_login_popup() {
                 if polled.has_login() {
+                    popup.closed = true;
+                }
+            }
+            if let Some(popup) = self.get_sign_up_popup() {
+                if polled.has_register() {
                     popup.closed = true;
                 }
             }

@@ -1,10 +1,11 @@
-use calendar_lib::api::{auth::login, events, user_roles};
+use calendar_lib::api::{auth::{login, register}, events, user_roles};
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 
 #[derive(Clone, Debug, is_enum_variant)]
 pub enum StateAction {
     Login(login::Response),
+    Register(register::Response),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),
@@ -19,6 +20,7 @@ pub enum StateAction {
 // TODO: macro
 pub trait HasStateAction {
     fn has_login(&self) -> bool;
+    fn has_register(&self) -> bool;
     fn has_load_user_roles(&self) -> bool;
     fn has_load_events(&self) -> bool;
     fn has_insert_event(&self) -> bool;
@@ -51,6 +53,9 @@ pub trait GetMutStateAction {
 impl HasStateAction for Vec<StateAction> {
     fn has_login(&self) -> bool {
         self.iter().any(|x| x.is_login())
+    }
+    fn has_register(&self) -> bool {
+        self.iter().any(|x| x.is_register())
     }
     fn has_load_user_roles(&self) -> bool {
         self.iter().any(|x| x.is_load_user_roles())
