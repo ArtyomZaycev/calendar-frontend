@@ -90,7 +90,7 @@ impl State {
 impl State {
     pub fn load_user_roles(&self) {
         let request = self
-            .make_request_authorized(Method::GET, "user_roles")
+            .make_request_authorized(user_roles::load_array::METHOD.clone(), "user_roles")
             .query(&user_roles::load_array::Args { user_id: None })
             .build()
             .unwrap();
@@ -102,7 +102,7 @@ impl State {
 
     pub fn login(&self, email: &str, password: &str) {
         let request = self
-            .make_request(Method::POST, "auth/login")
+            .make_request(auth::login::METHOD.clone(), "auth/login")
             .query(&login::Args {})
             .json(&login::Body {
                 email: email.to_owned(),
@@ -118,7 +118,7 @@ impl State {
 
     pub fn register(&self, name: &str, email: &str, password: &str) {
         let request = self
-            .make_request(Method::POST, "auth/register")
+            .make_request(auth::register::METHOD.clone(), "auth/register")
             .query(&register::Args {})
             .json(&register::Body {
                 name: name.to_owned(),
@@ -138,7 +138,7 @@ impl State {
 
     pub fn load_events(&self) {
         let request = self
-            .make_request_authorized(Method::GET, "events")
+            .make_request_authorized(events::load_array::METHOD.clone(), "events")
             .query(&events::load_array::Args {})
             .build()
             .unwrap();
@@ -150,7 +150,7 @@ impl State {
 
     pub fn insert_event(&self, new_event: NewEvent) {
         let request = self
-            .make_request_authorized(Method::POST, "event")
+            .make_request_authorized(events::insert::METHOD.clone(), "event")
             .query(&events::insert::Args {})
             .json(&events::insert::Body { new_event })
             .build()
@@ -164,7 +164,7 @@ impl State {
     pub fn update_event(&self, upd_event: UpdateEvent) {
         dbg!(&upd_event);
         let request = self
-            .make_request_authorized(Method::PATCH, "event")
+            .make_request_authorized(events::update::METHOD.clone(), "event")
             .query(&events::update::Args {})
             .json(&events::update::Body { upd_event })
             .build()
@@ -181,7 +181,7 @@ impl State {
 
     pub fn delete_event(&self, id: i32) {
         let request = self
-            .make_request_authorized(Method::DELETE, "event")
+            .make_request_authorized(events::delete::METHOD.clone(), "event")
             .query(&events::delete::Args { id })
             .json(&events::delete::Body {})
             .build()
