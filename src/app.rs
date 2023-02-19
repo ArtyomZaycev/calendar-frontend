@@ -1,10 +1,10 @@
-use calendar_lib::api::events::types::Event;
+use calendar_lib::api::{events::types::Event, auth::register};
 use egui::{Align, Layout};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
-    db::{state::State, state_action::HasStateAction},
+    db::{state::State, state_action::{HasStateAction, GetStateAction}},
     ui::{
         event_card::EventCard,
         popups::{
@@ -143,8 +143,7 @@ impl eframe::App for CalendarApp {
                 ui.heading("Calendar");
 
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    // RTL, so add widgets in the reversed order
-
+                    // RTL
                     if let Some(me) = &self.state.me {
                         ui.label(me.user.id.to_string());
                         if ui.button("Logout").clicked() {
@@ -181,6 +180,12 @@ impl eframe::App for CalendarApp {
             if let Some(popup) = self.get_sign_up_popup() {
                 if polled.has_register() {
                     popup.closed = true;
+                } else if let Some(error) = polled.get_register_error() {
+                    match error {
+                        register::BadRequestResponse::EmailAlreadyUsed => {
+                            popup.email_taken = true;
+                        },
+                    }
                 }
             }
             if let Some(popup) = self.get_new_event_popup() {

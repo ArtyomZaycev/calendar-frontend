@@ -68,18 +68,37 @@ impl State {
         RequestParser::new_complex(on_success, |code, s| StateAction::Error(code, s))
     }
 
-    fn make_bad_request_parser<U, F1, F2>(
+    fn make_bad_request_parser<T, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
     ) -> RequestParser<StateAction>
     where
-        U: DeserializeOwned,
-        F1: FnOnce(U) -> StateAction + 'static,
+        T: DeserializeOwned,
+        F1: FnOnce(T) -> StateAction + 'static,
         F2: FnOnce(String) -> StateAction + 'static,
     {
         RequestParser::new_complex(on_success, |code, msg| {
             if code == StatusCode::BAD_REQUEST {
                 on_bad_request(msg)
+            } else {
+                StateAction::Error(code, msg)
+            }
+        })
+    }
+
+    fn make_typed_bad_request_parser<T, U, F1, F2>(
+        on_success: F1,
+        on_bad_request: F2,
+    ) -> RequestParser<StateAction>
+    where
+        T: DeserializeOwned,
+        U: DeserializeOwned,
+        F1: FnOnce(T) -> StateAction + 'static,
+        F2: FnOnce(U) -> StateAction + 'static,
+    {
+        RequestParser::new_complex(on_success, |code, msg| {
+            if code == StatusCode::BAD_REQUEST {
+                on_bad_request(serde_json::from_str(&msg).unwrap())
             } else {
                 StateAction::Error(code, msg)
             }
@@ -128,9 +147,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_bad_request_parser(
+        let parser = Self::make_typed_bad_request_parser(
             |r| StateAction::Register(r),
-            |msg| StateAction::RegisterError(msg),
+            |r| StateAction::RegisterError(r),
         );
         self.connector
             .request(request, RequestDescriptor::new(parser));

@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 pub enum StateAction {
     Login(login::Response),
     Register(register::Response),
-    RegisterError(String),
+    RegisterError(register::BadRequestResponse),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),
@@ -25,6 +25,7 @@ pub enum StateAction {
 pub trait HasStateAction {
     fn has_login(&self) -> bool;
     fn has_register(&self) -> bool;
+    fn has_register_error(&self) -> bool;
     fn has_load_user_roles(&self) -> bool;
     fn has_load_events(&self) -> bool;
     fn has_insert_event(&self) -> bool;
@@ -36,6 +37,7 @@ pub trait HasStateAction {
 
 pub trait GetStateAction {
     fn get_login(&self) -> Option<&login::Response>;
+    fn get_register_error(&self) -> Option<&register::BadRequestResponse>;
     fn get_load_user_roles(&self) -> Option<&user_roles::load_array::Response>;
     fn get_load_events(&self) -> Option<&events::load_array::Response>;
     fn get_insert_event(&self) -> Option<&events::insert::Response>;
@@ -60,6 +62,9 @@ impl HasStateAction for Vec<StateAction> {
     }
     fn has_register(&self) -> bool {
         self.iter().any(|x| x.is_register())
+    }
+    fn has_register_error(&self) -> bool {
+        self.iter().any(|x| x.is_register_error())
     }
     fn has_load_user_roles(&self) -> bool {
         self.iter().any(|x| x.is_load_user_roles())
@@ -88,6 +93,16 @@ impl GetStateAction for Vec<StateAction> {
     fn get_login(&self) -> Option<&login::Response> {
         self.iter().find_map(|x| {
             if let StateAction::Login(d) = x {
+                Some(d)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn get_register_error(&self) -> Option<&register::BadRequestResponse> {
+        self.iter().find_map(|x| {
+            if let StateAction::RegisterError(d) = x {
                 Some(d)
             } else {
                 None
