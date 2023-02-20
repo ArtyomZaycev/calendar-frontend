@@ -1,10 +1,13 @@
-use calendar_lib::api::{events::types::Event, auth::register};
-use egui::{Align, Layout};
+use calendar_lib::api::{auth::register, events::types::Event};
+use egui::{Align, Layout, PointerButton, Sense};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
-    db::{state::State, state_action::{HasStateAction, GetStateAction}},
+    db::{
+        state::State,
+        state_action::{GetStateAction, HasStateAction},
+    },
     ui::{
         event_card::EventCard,
         popups::{
@@ -14,6 +17,7 @@ use crate::{
             sign_up::SignUp,
         },
         widget_builder::AppWidgetBuilder,
+        widget_signal::AppSignal,
     },
 };
 
@@ -104,12 +108,40 @@ impl CalendarApp {
         self.popups.push(PopupType::SignUp(SignUp::new()).popup());
     }
     pub fn open_new_event(&mut self) {
-        self.popups
-            .push(PopupType::NewEvent(EventInput::new()).popup());
+        self.popups.push(
+            PopupType::NewEvent(EventInput::new(
+                self.state.me.as_ref().unwrap().access_level,
+            ))
+            .popup(),
+        );
     }
     pub fn open_change_event(&mut self, event: &Event) {
-        self.popups
-            .push(PopupType::UpdateEvent(EventInput::change(event)).popup());
+        self.popups.push(
+            PopupType::UpdateEvent(EventInput::change(
+                self.state.me.as_ref().unwrap().access_level,
+                event,
+            ))
+            .popup(),
+        );
+    }
+}
+
+impl CalendarApp {
+    fn parse_signal(&mut self, signal: AppSignal) {
+        match signal {
+            AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
+            AppSignal::ChangeEvent(event_id) => {
+                if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
+                    self.open_change_event(&event.clone());
+                }
+            }
+        }
+    }
+
+    fn parse_signals(&mut self, signals: Vec<AppSignal>) {
+        signals
+            .into_iter()
+            .for_each(|signal| self.parse_signal(signal));
     }
 }
 
@@ -122,15 +154,20 @@ impl eframe::App for CalendarApp {
         let polled = self.state.poll();
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(16.0, 8.0);
+            let signals = self
+                .popups
+                .iter_mut()
+                .flat_map(|popup| {
+                    ui.add(popup.build(ctx));
+                    popup.signals()
+                })
+                .collect::<Vec<_>>();
+            self.parse_signals(signals);
 
             self.popups
                 .iter_mut()
                 .enumerate()
-                .filter_map(|(i, popup)| {
-                    ui.add(popup.build(&mut self.state, ctx));
-                    popup.is_closed().then_some(i)
-                })
+                .filter_map(|(i, popup)| popup.is_closed().then_some(i))
                 .collect::<Vec<_>>()
                 .iter()
                 .rev()
@@ -184,7 +221,7 @@ impl eframe::App for CalendarApp {
                     match error {
                         register::BadRequestResponse::EmailAlreadyUsed => {
                             popup.email_taken = true;
-                        },
+                        }
                     }
                 }
             }
@@ -218,12 +255,15 @@ impl eframe::App for CalendarApp {
                     });
 
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        // TODO: Remove clone somehow
-                        let events = self.state.events.clone();
+                        // TODO: Propper size
+                        let desired_width = ui.available_width() / 8.;
+
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
-                        events
-                            .into_iter()
+                        let responses = self
+                            .state
+                            .events
+                            .iter()
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
                                 if i % 7 == 0 {
@@ -233,13 +273,40 @@ impl eframe::App for CalendarApp {
                                 acc
                             })
                             .into_iter()
-                            .for_each(|events| {
+                            .flat_map(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                                    events.into_iter().for_each(|event| {
-                                        ui.add(EventCard::new(self, &event));
-                                    });
-                                });
-                            });
+                                    events
+                                        .into_iter()
+                                        .map(|event| {
+                                            let response = ui.add(EventCard::new(
+                                                egui::Vec2::new(desired_width, 200.),
+                                                &event,
+                                            ));
+                                            (
+                                                event,
+                                                ui.interact(
+                                                    response.rect,
+                                                    egui::Id::new(format!(
+                                                        "{}_event_card",
+                                                        event.id
+                                                    )),
+                                                    Sense::click(),
+                                                ),
+                                            )
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .inner
+                            })
+                            .collect::<Vec<_>>();
+                        let open_context = responses.into_iter().find_map(|(event, response)| {
+                            response.clicked_by(PointerButton::Secondary).then(|| {
+                                (
+                                    response.interact_pointer_pos().unwrap_or_default(),
+                                    event.clone(),
+                                )
+                            })
+                        });
                     });
                 });
             }

@@ -1,12 +1,16 @@
 use egui::{Align, Layout};
 
-use crate::{db::state::State, ui::widget_builder::AppWidgetBuilder};
+use crate::ui::{
+    widget_builder::AppWidgetBuilder,
+    widget_signal::{AppSignal, StateSignal},
+};
 
 pub struct Login {
     pub email: String,
     pub password: String,
 
     pub closed: bool,
+    pub signals: Vec<AppSignal>,
 }
 
 impl Login {
@@ -15,14 +19,17 @@ impl Login {
             email: String::default(),
             password: String::default(),
             closed: false,
+            signals: vec![],
         }
     }
 }
 
 impl<'a> AppWidgetBuilder<'a> for Login {
-    type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+    type Signal = AppSignal;
 
-    fn build(&'a mut self, state: &'a mut State, _ctx: &'a egui::Context) -> Self::Output {
+    fn build(&'a mut self, _ctx: &'a egui::Context) -> Self::OutputWidget {
+        self.signals.clear();
         Box::new(|ui: &mut egui::Ui| {
             ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                 egui::Grid::new("login")
@@ -41,7 +48,9 @@ impl<'a> AppWidgetBuilder<'a> for Login {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     // RTL
                     if ui.button("Login").clicked() {
-                        state.login(&self.email, &self.password);
+                        self.signals.push(
+                            StateSignal::Login(self.email.clone(), self.password.clone()).into(),
+                        );
                     }
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
@@ -50,5 +59,13 @@ impl<'a> AppWidgetBuilder<'a> for Login {
             })
             .response
         })
+    }
+
+    fn signals(&'a self) -> Vec<Self::Signal> {
+        self.signals.clone()
+    }
+
+    fn is_closed(&'a self) -> bool {
+        self.closed
     }
 }

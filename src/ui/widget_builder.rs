@@ -1,9 +1,12 @@
-use crate::db::state::State;
-
 pub trait AppWidgetBuilder<'a> {
-    type Output;
+    type OutputWidget;
+    type Signal;
 
-    fn build(&'a mut self, state: &'a mut State, ctx: &'a egui::Context) -> Self::Output
+    fn build(&'a mut self, ctx: &'a egui::Context) -> Self::OutputWidget
     where
-        Self::Output: egui::Widget + 'a;
+        Self::OutputWidget: egui::Widget + 'a;
+
+    fn signals(&'a self) -> Vec<Self::Signal>;
+
+    fn is_closed(&'a self) -> bool;
 }

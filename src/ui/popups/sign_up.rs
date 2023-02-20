@@ -1,8 +1,10 @@
 use egui::{Align, Color32, Layout, RichText};
 
 use crate::{
-    db::state::State,
-    ui::widget_builder::AppWidgetBuilder,
+    ui::{
+        widget_builder::AppWidgetBuilder,
+        widget_signal::{AppSignal, StateSignal},
+    },
     utils::{is_strong_enough_password, is_valid_email, is_valid_password},
 };
 
@@ -15,6 +17,7 @@ pub struct SignUp {
     pub email_taken: bool,
 
     pub closed: bool,
+    pub signals: Vec<AppSignal>,
 }
 
 impl SignUp {
@@ -26,17 +29,20 @@ impl SignUp {
             password2: String::default(),
             email_taken: false,
             closed: false,
+            signals: vec![],
         }
     }
 }
 
 impl<'a> AppWidgetBuilder<'a> for SignUp {
-    type Output = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
+    type Signal = AppSignal;
 
-    fn build(&'a mut self, state: &'a mut State, _ctx: &'a egui::Context) -> Self::Output
+    fn build(&'a mut self, _ctx: &'a egui::Context) -> Self::OutputWidget
     where
-        Self::Output: egui::Widget + 'a,
+        Self::OutputWidget: egui::Widget + 'a,
     {
+        self.signals.clear();
         Box::new(|ui| {
             let name_error =
                 { (self.name.len() < 6).then_some("Name must be at least 6 symbols".to_owned()) };
@@ -88,7 +94,14 @@ impl<'a> AppWidgetBuilder<'a> for SignUp {
                             .add_enabled(error.is_none(), egui::Button::new("Sign Up"))
                             .clicked()
                         {
-                            state.register(&self.name, &self.email, &self.password);
+                            self.signals.push(
+                                StateSignal::Register(
+                                    self.name.clone(),
+                                    self.email.clone(),
+                                    self.password.clone(),
+                                )
+                                .into(),
+                            );
                         }
                         if ui.button("Cancel").clicked() {
                             self.closed = true;
@@ -98,5 +111,13 @@ impl<'a> AppWidgetBuilder<'a> for SignUp {
             })
             .response
         })
+    }
+
+    fn signals(&'a self) -> Vec<Self::Signal> {
+        self.signals.clone()
+    }
+
+    fn is_closed(&'a self) -> bool {
+        self.closed
     }
 }

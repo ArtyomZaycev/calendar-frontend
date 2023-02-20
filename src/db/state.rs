@@ -5,7 +5,7 @@ use calendar_lib::api::{
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
-use crate::config::Config;
+use crate::{config::Config, ui::widget_signal::StateSignal};
 
 use super::{
     aliases::*,
@@ -33,6 +33,18 @@ impl State {
             users: Vec::default(),
             events: Vec::default(),
             errors: Vec::default(),
+        }
+    }
+}
+
+impl State {
+    pub fn parse_signal(&mut self, signal: StateSignal) {
+        match signal {
+            StateSignal::Login(email, password) => self.login(&email, &password),
+            StateSignal::Register(name, email, password) => self.register(&name, &email, &password),
+            StateSignal::InsertEvent(new_event) => self.insert_event(new_event),
+            StateSignal::UpdateEvent(upd_event) => self.update_event(upd_event),
+            StateSignal::DeleteEvent(id) => self.delete_event(id),
         }
     }
 }
