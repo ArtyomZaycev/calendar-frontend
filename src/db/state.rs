@@ -1,5 +1,5 @@
 use calendar_lib::api::{
-    auth::{login, register},
+    auth::{logout, login, register},
     events, user_roles,
 };
 use reqwest::{Method, RequestBuilder, StatusCode};
@@ -127,6 +127,23 @@ impl State {
             .unwrap();
 
         let parser = Self::make_parser(|r| StateAction::LoadUserRoles(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+
+    pub fn logout(&mut self) {
+        self.me = None;
+        self.users = vec![];
+        self.events = vec![];
+
+        let request = self
+            .make_request_authorized(logout::METHOD.clone(), "logout")
+            .query(&logout::Args {})
+            .json(&logout::Body {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_empty_parser();
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
