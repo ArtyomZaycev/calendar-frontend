@@ -120,9 +120,11 @@ impl State {
 
 impl State {
     pub fn load_user_roles(&self) {
+        use user_roles::load_array::*;
+
         let request = self
-            .make_request_authorized(user_roles::load_array::METHOD.clone(), "user_roles")
-            .query(&user_roles::load_array::Args { user_id: None })
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { user_id: None })
             .build()
             .unwrap();
 
@@ -132,14 +134,16 @@ impl State {
     }
 
     pub fn logout(&mut self) {
+        use auth::logout::*;
+        
         self.me = None;
         self.users = vec![];
         self.events = vec![];
 
         let request = self
-            .make_request_authorized(logout::METHOD.clone(), "logout")
-            .query(&logout::Args {})
-            .json(&logout::Body {})
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body {})
             .build()
             .unwrap();
 
@@ -149,8 +153,10 @@ impl State {
     }
 
     pub fn login(&self, email: &str, password: &str) {
+        use auth::login::*;
+
         let request = self
-            .make_request(auth::login::METHOD.clone(), "auth/login")
+            .make_request(METHOD.clone(), PATH)
             .query(&login::Args {})
             .json(&login::Body {
                 email: email.to_owned(),
@@ -165,10 +171,12 @@ impl State {
     }
 
     pub fn register(&self, name: &str, email: &str, password: &str) {
+        use auth::register::*;
+
         let request = self
-            .make_request(auth::register::METHOD.clone(), "auth/register")
-            .query(&register::Args {})
-            .json(&register::Body {
+            .make_request(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body {
                 name: name.to_owned(),
                 email: email.to_owned(),
                 password: password.to_owned(),
@@ -185,9 +193,11 @@ impl State {
     }
 
     pub fn load_events(&self) {
+        use events::load_array::*;
+
         let request = self
-            .make_request_authorized(events::load_array::METHOD.clone(), "events")
-            .query(&events::load_array::Args {})
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
             .build()
             .unwrap();
 
@@ -197,10 +207,12 @@ impl State {
     }
 
     pub fn insert_event(&self, new_event: NewEvent) {
+        use events::insert::*;
+
         let request = self
-            .make_request_authorized(events::insert::METHOD.clone(), "event")
-            .query(&events::insert::Args {})
-            .json(&events::insert::Body { new_event })
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { new_event })
             .build()
             .unwrap();
 
@@ -210,17 +222,14 @@ impl State {
     }
 
     pub fn update_event(&self, upd_event: UpdateEvent) {
-        dbg!(&upd_event);
+        use events::update::*;
+
         let request = self
-            .make_request_authorized(events::update::METHOD.clone(), "event")
-            .query(&events::update::Args {})
-            .json(&events::update::Body { upd_event })
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { upd_event })
             .build()
             .unwrap();
-
-        dbg!(String::from_utf8_lossy(
-            request.body().unwrap().as_bytes().unwrap()
-        ));
 
         let parser = Self::make_parser(|r| StateAction::UpdateEvent(r));
         self.connector
@@ -228,10 +237,12 @@ impl State {
     }
 
     pub fn delete_event(&self, id: i32) {
+        use events::delete::*;
+
         let request = self
-            .make_request_authorized(events::delete::METHOD.clone(), "event")
-            .query(&events::delete::Args { id })
-            .json(&events::delete::Body {})
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .json(&Body {})
             .build()
             .unwrap();
 
