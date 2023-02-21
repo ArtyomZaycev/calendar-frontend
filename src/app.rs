@@ -201,7 +201,7 @@ impl eframe::App for CalendarApp {
                             }
                         }
                         if ui.button("Logout").clicked() {
-                            println!("Not implemented");
+                            self.state.logout();
                         }
                     } else {
                         if ui
