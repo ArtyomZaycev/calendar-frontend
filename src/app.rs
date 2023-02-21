@@ -90,21 +90,22 @@ impl CalendarApp {
         })
     }
 
+    pub fn is_open_profile(&self) -> bool {
+        self.popups.iter().any(|p| p.get_type().is_profile())
+    }
     pub fn is_open_login(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_login())
     }
-
     pub fn is_open_sign_up(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_sign_up())
     }
-
     pub fn is_open_new_event(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_new_event())
     }
 
     pub fn open_profile(&mut self) {
         self.popups.push(
-            PopupType::Profile(Profile::new(self.state.me.as_ref().unwrap().user.clone())).popup(),
+            PopupType::Profile(Profile::new(self.state.me.as_ref().unwrap().clone())).popup(),
         );
     }
     pub fn open_login(&mut self) {
@@ -188,11 +189,16 @@ impl eframe::App for CalendarApp {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     // RTL
                     if let Some(me) = &self.state.me {
-                        if ui
-                            .add(egui::Label::new(&me.user.name).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.open_profile();
+                        let profile = egui::Label::new(&me.user.name);
+                        if self.is_open_profile() {
+                            ui.add(profile);
+                        } else {
+                            if ui
+                                .add(profile.sense(Sense::click()))
+                                .clicked()
+                            {
+                                self.open_profile();
+                            }
                         }
                         if ui.button("Logout").clicked() {
                             println!("Not implemented");
