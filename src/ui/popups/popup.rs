@@ -88,9 +88,7 @@ impl<'a> WidgetBuilder<'a> for Popup {
                 .collapsible(false)
                 .resizable(false)
                 .default_size(Vec2::new(320., 0.))
-                .show(ctx, |ui| {
-                    ui.add(self.t.build(ctx))
-                })
+                .show(ctx, |ui| ui.add(self.t.build(ctx)))
                 .unwrap()
                 .inner
                 .unwrap()

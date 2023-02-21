@@ -193,10 +193,7 @@ impl eframe::App for CalendarApp {
                         if self.is_open_profile() {
                             ui.add(profile);
                         } else {
-                            if ui
-                                .add(profile.sense(Sense::click()))
-                                .clicked()
-                            {
+                            if ui.add(profile.sense(Sense::click())).clicked() {
                                 self.open_profile();
                             }
                         }

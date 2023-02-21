@@ -1,7 +1,4 @@
-use calendar_lib::api::{
-    auth,
-    events, user_roles,
-};
+use calendar_lib::api::{auth, events, user_roles};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
@@ -142,7 +139,7 @@ impl State {
             .json(&Body {})
             .build()
             .unwrap();
-        
+
         self.me = None;
         self.users = vec![];
         self.events = vec![];

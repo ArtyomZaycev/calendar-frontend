@@ -1,6 +1,6 @@
 use egui::{Align, Layout, Vec2};
 
-use crate::{ui::widget_signal::AppSignal, db::aliases::UserInfo};
+use crate::{db::aliases::UserInfo, ui::widget_signal::AppSignal};
 
 use super::popup_builder::PopupBuilder;
 
@@ -54,7 +54,7 @@ impl<'a> PopupBuilder<'a> for Profile {
                     });
                 }
             })
-                .response
+            .response
         })
     }
 
