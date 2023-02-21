@@ -1,12 +1,16 @@
 use derive_is_enum_variant::is_enum_variant;
 use egui::Vec2;
 
-use crate::ui::{widget_builder::AppWidgetBuilder, widget_signal::AppSignal};
+use crate::ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal};
 
-use super::{event_input::EventInput, login::Login, sign_up::SignUp};
+use super::{
+    event_input::EventInput, login::Login, popup_builder::PopupBuilder, profile::Profile,
+    sign_up::SignUp,
+};
 
 #[derive(is_enum_variant)]
 pub enum PopupType {
+    Profile(Profile),
     Login(Login),
     SignUp(SignUp),
     NewEvent(EventInput),
@@ -24,9 +28,8 @@ pub struct Popup {
     t: PopupType,
 }
 
-impl<'a> AppWidgetBuilder<'a> for Popup {
+impl<'a> WidgetBuilder<'a> for Popup {
     type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-    type Signal = AppSignal;
 
     fn build(&'a mut self, ctx: &'a egui::Context) -> Self::OutputWidget
     where
@@ -41,6 +44,7 @@ impl<'a> AppWidgetBuilder<'a> for Popup {
                 .show(ctx, |ui| {
                     // TODO: enum_dispatch?
                     match &mut self.t {
+                        PopupType::Profile(w) => ui.add(w.build(ctx)),
                         PopupType::Login(w) => ui.add(w.build(ctx)),
                         PopupType::SignUp(w) => ui.add(w.build(ctx)),
                         PopupType::NewEvent(w) => ui.add(w.build(ctx)),
@@ -52,24 +56,6 @@ impl<'a> AppWidgetBuilder<'a> for Popup {
                 .unwrap()
         })
     }
-
-    fn signals(&'a self) -> Vec<Self::Signal> {
-        match &self.t {
-            PopupType::Login(w) => w.signals(),
-            PopupType::SignUp(w) => w.signals(),
-            PopupType::NewEvent(w) => w.signals(),
-            PopupType::UpdateEvent(w) => w.signals(),
-        }
-    }
-
-    fn is_closed(&self) -> bool {
-        match &self.t {
-            PopupType::Login(w) => w.is_closed(),
-            PopupType::SignUp(w) => w.is_closed(),
-            PopupType::NewEvent(w) => w.is_closed(),
-            PopupType::UpdateEvent(w) => w.is_closed(),
-        }
-    }
 }
 
 impl Popup {
@@ -77,6 +63,26 @@ impl Popup {
         Self {
             id: egui::Id::new(rand::random::<i64>()),
             t: popup,
+        }
+    }
+
+    pub fn is_closed(&self) -> bool {
+        match &self.t {
+            PopupType::Profile(w) => w.is_closed(),
+            PopupType::Login(w) => w.is_closed(),
+            PopupType::SignUp(w) => w.is_closed(),
+            PopupType::NewEvent(w) => w.is_closed(),
+            PopupType::UpdateEvent(w) => w.is_closed(),
+        }
+    }
+
+    pub fn signals(&self) -> Vec<AppSignal> {
+        match &self.t {
+            PopupType::Profile(w) => w.signals(),
+            PopupType::Login(w) => w.signals(),
+            PopupType::SignUp(w) => w.signals(),
+            PopupType::NewEvent(w) => w.signals(),
+            PopupType::UpdateEvent(w) => w.signals(),
         }
     }
 

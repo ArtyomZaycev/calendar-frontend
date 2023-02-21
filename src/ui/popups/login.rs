@@ -1,9 +1,8 @@
 use egui::{Align, Layout};
 
-use crate::ui::{
-    widget_builder::AppWidgetBuilder,
-    widget_signal::{AppSignal, StateSignal},
-};
+use crate::ui::widget_signal::{AppSignal, StateSignal};
+
+use super::popup_builder::PopupBuilder;
 
 pub struct Login {
     pub email: String,
@@ -24,11 +23,11 @@ impl Login {
     }
 }
 
-impl<'a> AppWidgetBuilder<'a> for Login {
-    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-    type Signal = AppSignal;
-
-    fn build(&'a mut self, _ctx: &'a egui::Context) -> Self::OutputWidget {
+impl<'a> PopupBuilder<'a> for Login {
+    fn build(
+        &'a mut self,
+        _ctx: &'a egui::Context,
+    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui: &mut egui::Ui| {
             ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
@@ -61,7 +60,7 @@ impl<'a> AppWidgetBuilder<'a> for Login {
         })
     }
 
-    fn signals(&'a self) -> Vec<Self::Signal> {
+    fn signals(&'a self) -> Vec<AppSignal> {
         self.signals.clone()
     }
 

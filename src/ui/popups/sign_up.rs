@@ -1,12 +1,11 @@
 use egui::{Align, Color32, Layout, RichText};
 
 use crate::{
-    ui::{
-        widget_builder::AppWidgetBuilder,
-        widget_signal::{AppSignal, StateSignal},
-    },
+    ui::widget_signal::{AppSignal, StateSignal},
     utils::{is_strong_enough_password, is_valid_email, is_valid_password},
 };
+
+use super::popup_builder::PopupBuilder;
 
 pub struct SignUp {
     pub name: String,
@@ -34,14 +33,11 @@ impl SignUp {
     }
 }
 
-impl<'a> AppWidgetBuilder<'a> for SignUp {
-    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-    type Signal = AppSignal;
-
-    fn build(&'a mut self, _ctx: &'a egui::Context) -> Self::OutputWidget
-    where
-        Self::OutputWidget: egui::Widget + 'a,
-    {
+impl<'a> PopupBuilder<'a> for SignUp {
+    fn build(
+        &'a mut self,
+        _ctx: &'a egui::Context,
+    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {
             let name_error =
@@ -113,7 +109,7 @@ impl<'a> AppWidgetBuilder<'a> for SignUp {
         })
     }
 
-    fn signals(&'a self) -> Vec<Self::Signal> {
+    fn signals(&'a self) -> Vec<AppSignal> {
         self.signals.clone()
     }
 

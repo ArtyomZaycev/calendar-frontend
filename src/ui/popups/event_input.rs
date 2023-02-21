@@ -3,10 +3,9 @@ use std::ops::RangeInclusive;
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
 use chrono::{Duration, NaiveDateTime};
 
-use crate::ui::{
-    widget_builder::AppWidgetBuilder,
-    widget_signal::{AppSignal, StateSignal},
-};
+use crate::ui::widget_signal::{AppSignal, StateSignal};
+
+use super::popup_builder::PopupBuilder;
 
 pub struct EventInput {
     pub max_access_level: i32,
@@ -56,14 +55,11 @@ impl EventInput {
     }
 }
 
-impl<'a> AppWidgetBuilder<'a> for EventInput {
-    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-    type Signal = AppSignal;
-
-    fn build(&'a mut self, _ctx: &'a egui::Context) -> Self::OutputWidget
-    where
-        Self::OutputWidget: egui::Widget + 'a,
-    {
+impl<'a> PopupBuilder<'a> for EventInput {
+    fn build(
+        &'a mut self,
+        _ctx: &'a egui::Context,
+    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {
             ui.vertical(|ui| {
@@ -121,7 +117,7 @@ impl<'a> AppWidgetBuilder<'a> for EventInput {
         })
     }
 
-    fn signals(&'a self) -> Vec<Self::Signal> {
+    fn signals(&'a self) -> Vec<AppSignal> {
         self.signals.clone()
     }
 

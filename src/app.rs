@@ -1,5 +1,5 @@
 use calendar_lib::api::{auth::register, events::types::Event};
-use egui::{Align, Layout};
+use egui::{Align, Layout, Sense};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -14,9 +14,10 @@ use crate::{
             event_input::EventInput,
             login::Login,
             popup::{Popup, PopupType},
+            profile::Profile,
             sign_up::SignUp,
         },
-        widget_builder::AppWidgetBuilder,
+        widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
 };
@@ -101,6 +102,11 @@ impl CalendarApp {
         self.popups.iter().any(|p| p.get_type().is_new_event())
     }
 
+    pub fn open_profile(&mut self) {
+        self.popups.push(
+            PopupType::Profile(Profile::new(self.state.me.as_ref().unwrap().user.clone())).popup(),
+        );
+    }
     pub fn open_login(&mut self) {
         self.popups.push(PopupType::Login(Login::new()).popup());
     }
@@ -182,7 +188,12 @@ impl eframe::App for CalendarApp {
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     // RTL
                     if let Some(me) = &self.state.me {
-                        ui.label(me.user.id.to_string());
+                        if ui
+                            .add(egui::Label::new(&me.user.name).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.open_profile();
+                        }
                         if ui.button("Logout").clicked() {
                             println!("Not implemented");
                         }
