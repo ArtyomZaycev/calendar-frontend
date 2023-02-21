@@ -17,6 +17,51 @@ pub enum PopupType {
     UpdateEvent(EventInput),
 }
 
+impl<'a> PopupBuilder<'a> for PopupType {
+    fn build(
+        &'a mut self,
+        ctx: &'a egui::Context,
+    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
+        match self {
+            PopupType::Profile(w) => w.build(ctx),
+            PopupType::Login(w) => w.build(ctx),
+            PopupType::SignUp(w) => w.build(ctx),
+            PopupType::NewEvent(w) => w.build(ctx),
+            PopupType::UpdateEvent(w) => w.build(ctx),
+        }
+    }
+
+    fn title(&'a self) -> Option<String> {
+        match self {
+            PopupType::Profile(w) => w.title(),
+            PopupType::Login(w) => w.title(),
+            PopupType::SignUp(w) => w.title(),
+            PopupType::NewEvent(w) => w.title(),
+            PopupType::UpdateEvent(w) => w.title(),
+        }
+    }
+
+    fn signals(&'a self) -> Vec<AppSignal> {
+        match self {
+            PopupType::Profile(w) => w.signals(),
+            PopupType::Login(w) => w.signals(),
+            PopupType::SignUp(w) => w.signals(),
+            PopupType::NewEvent(w) => w.signals(),
+            PopupType::UpdateEvent(w) => w.signals(),
+        }
+    }
+
+    fn is_closed(&'a self) -> bool {
+        match self {
+            PopupType::Profile(w) => w.is_closed(),
+            PopupType::Login(w) => w.is_closed(),
+            PopupType::SignUp(w) => w.is_closed(),
+            PopupType::NewEvent(w) => w.is_closed(),
+            PopupType::UpdateEvent(w) => w.is_closed(),
+        }
+    }
+}
+
 impl PopupType {
     pub fn popup(self) -> Popup {
         Popup::new(self)
@@ -36,20 +81,15 @@ impl<'a> WidgetBuilder<'a> for Popup {
         Self::OutputWidget: egui::Widget + 'a,
     {
         Box::new(|_| {
-            egui::Window::new("")
+            let title = self.t.title();
+            egui::Window::new(title.clone().unwrap_or_default())
                 .id(self.id)
-                .title_bar(false)
+                .title_bar(title.is_some())
+                .collapsible(false)
                 .resizable(false)
                 .default_size(Vec2::new(320., 0.))
                 .show(ctx, |ui| {
-                    // TODO: enum_dispatch?
-                    match &mut self.t {
-                        PopupType::Profile(w) => ui.add(w.build(ctx)),
-                        PopupType::Login(w) => ui.add(w.build(ctx)),
-                        PopupType::SignUp(w) => ui.add(w.build(ctx)),
-                        PopupType::NewEvent(w) => ui.add(w.build(ctx)),
-                        PopupType::UpdateEvent(w) => ui.add(w.build(ctx)),
-                    }
+                    ui.add(self.t.build(ctx))
                 })
                 .unwrap()
                 .inner
@@ -67,23 +107,11 @@ impl Popup {
     }
 
     pub fn is_closed(&self) -> bool {
-        match &self.t {
-            PopupType::Profile(w) => w.is_closed(),
-            PopupType::Login(w) => w.is_closed(),
-            PopupType::SignUp(w) => w.is_closed(),
-            PopupType::NewEvent(w) => w.is_closed(),
-            PopupType::UpdateEvent(w) => w.is_closed(),
-        }
+        self.t.is_closed()
     }
 
     pub fn signals(&self) -> Vec<AppSignal> {
-        match &self.t {
-            PopupType::Profile(w) => w.signals(),
-            PopupType::Login(w) => w.signals(),
-            PopupType::SignUp(w) => w.signals(),
-            PopupType::NewEvent(w) => w.signals(),
-            PopupType::UpdateEvent(w) => w.signals(),
-        }
+        self.t.signals()
     }
 
     pub fn get_type(&self) -> &PopupType {

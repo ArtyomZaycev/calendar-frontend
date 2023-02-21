@@ -6,7 +6,7 @@ pub trait PopupBuilder<'a> {
         ctx: &'a egui::Context,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
 
-    fn header(&'a self) -> Option<String> {
+    fn title(&'a self) -> Option<String> {
         None
     }
 

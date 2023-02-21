@@ -1,21 +1,20 @@
-use calendar_lib::api::utils::User;
-use egui::{Align, Layout};
+use egui::{Align, Layout, Vec2};
 
-use crate::ui::widget_signal::{AppSignal, StateSignal};
+use crate::{ui::widget_signal::AppSignal, db::aliases::UserInfo};
 
 use super::popup_builder::PopupBuilder;
 
 pub struct Profile {
-    pub user: User,
+    pub user_info: UserInfo,
 
     pub closed: bool,
     pub signals: Vec<AppSignal>,
 }
 
 impl Profile {
-    pub fn new(user: User) -> Self {
+    pub fn new(user_info: UserInfo) -> Self {
         Self {
-            user,
+            user_info,
             closed: false,
             signals: vec![],
         }
@@ -29,7 +28,32 @@ impl<'a> PopupBuilder<'a> for Profile {
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui: &mut egui::Ui| {
-            ui.with_layout(Layout::top_down(Align::LEFT), |ui| {})
+            ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
+                    if ui.small_button("X").clicked() {
+                        self.closed = true;
+                    }
+                    if ui.small_button("E").clicked() {
+                        println!("Not implemented");
+                        //self.signals.push(AppSignal::ChangeProfile());
+                    }
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        ui.heading(&self.user_info.user.name);
+                    });
+                });
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.label("Email: ");
+                    ui.label(&self.user_info.user.email);
+                });
+                if let Some(phone) = &self.user_info.user.phone {
+                    ui.horizontal(|ui| {
+                        ui.label("Phone: ");
+                        ui.label(phone);
+                    });
+                }
+            })
                 .response
         })
     }
