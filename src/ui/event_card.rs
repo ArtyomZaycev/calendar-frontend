@@ -39,7 +39,8 @@ impl<'a> Widget for EventCard<'a> {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
                             if ui.small_button("X").clicked() {
-                                self.signals.push(StateSignal::DeleteEvent(self.event.id).into());
+                                self.signals
+                                    .push(StateSignal::DeleteEvent(self.event.id).into());
                             }
                             if ui.small_button("E").clicked() {
                                 self.signals.push(AppSignal::ChangeEvent(self.event.id));

@@ -1,5 +1,5 @@
 use calendar_lib::api::{auth::register, events::types::Event};
-use egui::{Align, Layout, PointerButton, Sense};
+use egui::{Align, Layout};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -262,8 +262,7 @@ impl eframe::App for CalendarApp {
 
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
-                        self
-                            .state
+                        self.state
                             .events
                             .iter()
                             .enumerate()
@@ -277,18 +276,16 @@ impl eframe::App for CalendarApp {
                             .into_iter()
                             .for_each(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                                    events
-                                        .into_iter()
-                                        .for_each(|event| {
-                                            ui.add(EventCard::new(
-                                                &mut signals,
-                                                egui::Vec2::new(desired_width, 200.),
-                                                &event,
-                                            ));
-                                        });
+                                    events.into_iter().for_each(|event| {
+                                        ui.add(EventCard::new(
+                                            &mut signals,
+                                            egui::Vec2::new(desired_width, 200.),
+                                            &event,
+                                        ));
+                                    });
                                 });
                             });
-                        
+
                         self.parse_signals(signals);
                     });
                 });
