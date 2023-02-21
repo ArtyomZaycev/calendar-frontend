@@ -258,9 +258,11 @@ impl eframe::App for CalendarApp {
                         // TODO: Propper size
                         let desired_width = ui.available_width() / 8.;
 
+                        let mut signals = vec![];
+
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
-                        let responses = self
+                        self
                             .state
                             .events
                             .iter()
@@ -273,40 +275,21 @@ impl eframe::App for CalendarApp {
                                 acc
                             })
                             .into_iter()
-                            .flat_map(|events| {
+                            .for_each(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events
                                         .into_iter()
-                                        .map(|event| {
-                                            let response = ui.add(EventCard::new(
+                                        .for_each(|event| {
+                                            ui.add(EventCard::new(
+                                                &mut signals,
                                                 egui::Vec2::new(desired_width, 200.),
                                                 &event,
                                             ));
-                                            (
-                                                event,
-                                                ui.interact(
-                                                    response.rect,
-                                                    egui::Id::new(format!(
-                                                        "{}_event_card",
-                                                        event.id
-                                                    )),
-                                                    Sense::click(),
-                                                ),
-                                            )
-                                        })
-                                        .collect::<Vec<_>>()
-                                })
-                                .inner
-                            })
-                            .collect::<Vec<_>>();
-                        let open_context = responses.into_iter().find_map(|(event, response)| {
-                            response.clicked_by(PointerButton::Secondary).then(|| {
-                                (
-                                    response.interact_pointer_pos().unwrap_or_default(),
-                                    event.clone(),
-                                )
-                            })
-                        });
+                                        });
+                                });
+                            });
+                        
+                        self.parse_signals(signals);
                     });
                 });
             }
