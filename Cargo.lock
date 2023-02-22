@@ -196,6 +196,7 @@ dependencies = [
  "egui",
  "encoding_rs",
  "getrandom",
+ "num-traits",
  "rand",
  "reqwest",
  "serde",

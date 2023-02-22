@@ -1,9 +1,12 @@
 use std::ops::RangeInclusive;
 
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
-use chrono::{Duration, NaiveDateTime};
+use chrono::{DateTime, Duration, Local, NaiveDateTime, NaiveTime, TimeZone};
 
-use crate::ui::widget_signal::{AppSignal, StateSignal};
+use crate::ui::{
+    date_picker::DatePicker,
+    widget_signal::{AppSignal, StateSignal},
+};
 
 use super::popup_builder::PopupBuilder;
 
@@ -15,8 +18,10 @@ pub struct EventInput {
     pub description_enabled: bool,
     pub description: String,
     pub access_level: i32,
-    pub start: NaiveDateTime,
-    pub end: NaiveDateTime,
+
+    pub date: DateTime<Local>, // only date
+    pub start: NaiveTime,
+    pub end: NaiveTime,
 
     pub closed: bool,
     pub signals: Vec<AppSignal>,
@@ -24,7 +29,7 @@ pub struct EventInput {
 
 impl EventInput {
     pub fn new(max_access_level: i32) -> Self {
-        let now = chrono::offset::Local::now().naive_local();
+        let now = Local::now();
         Self {
             max_access_level,
             id: None,
@@ -32,8 +37,9 @@ impl EventInput {
             description_enabled: false,
             description: String::default(),
             access_level: 0,
-            start: now,
-            end: now + Duration::minutes(30),
+            date: now,
+            start: now.time(),
+            end: now.time() + Duration::minutes(30),
             closed: false,
             signals: vec![],
         }
@@ -47,8 +53,9 @@ impl EventInput {
             description_enabled: event.description.is_some(),
             description: event.description.clone().unwrap_or_default(),
             access_level: event.access_level,
-            start: event.start,
-            end: event.end,
+            date: Local.from_local_datetime(&event.start).unwrap(),
+            start: event.start.time(),
+            end: event.end.time(),
             closed: false,
             signals: vec![],
         }
@@ -75,12 +82,18 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     RangeInclusive::new(0, self.max_access_level),
                 ));
 
+                ui.add(DatePicker::<'_, Local>::new(
+                    "date_picker_id",
+                    &mut self.date,
+                ));
+
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
                     }
                     if let Some(id) = self.id {
                         if ui.button("Update").clicked() {
+                            let date = self.date.naive_utc().date();
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
@@ -91,22 +104,23 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                             self.description_enabled
                                                 .then_some(self.description.clone()),
                                         ),
-                                        start: Some(self.start),
-                                        end: Some(self.end),
+                                        start: Some(NaiveDateTime::new(date, self.start)),
+                                        end: Some(NaiveDateTime::new(date, self.end)),
                                         access_level: Some(self.access_level),
                                     },
                                 )));
                         }
                     } else {
                         if ui.button("Create").clicked() {
+                            let date = self.date.naive_utc().date();
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
                                     name: self.name.clone(),
                                     description: self
                                         .description_enabled
                                         .then_some(self.description.clone()),
-                                    start: self.start,
-                                    end: self.end,
+                                    start: NaiveDateTime::new(date, self.start),
+                                    end: NaiveDateTime::new(date, self.end),
                                     access_level: self.access_level,
                                 })));
                         }

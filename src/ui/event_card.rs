@@ -8,6 +8,9 @@ pub struct EventCard<'a> {
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     event: &'a Event,
+    show_description: bool,
+    show_date: bool,
+    show_time: bool,
 }
 
 impl<'a> EventCard<'a> {
@@ -16,6 +19,30 @@ impl<'a> EventCard<'a> {
             signals,
             desired_size,
             event,
+            show_description: true,
+            show_date: true,
+            show_time: true,
+        }
+    }
+
+    pub fn hide_description(self) -> Self {
+        Self {
+            show_description: false,
+            ..self
+        }
+    }
+
+    pub fn hide_date(self) -> Self {
+        Self {
+            show_date: false,
+            ..self
+        }
+    }
+
+    pub fn hide_time(self) -> Self {
+        Self {
+            show_time: false,
+            ..self
         }
     }
 }
@@ -53,23 +80,29 @@ impl<'a> Widget for EventCard<'a> {
                             ui.separator();
                             ui.label(description);
                         }
-                        ui.separator();
-                        if start.date() == end.date() {
-                            let date = start.date();
-                            let start = start.time();
-                            let end = end.time();
-                            ui.label(date.format("%Y-%m-%d").to_string());
-                            ui.label(format!(
-                                "{} - {}",
-                                start.format("%H:%M").to_string(),
-                                end.format("%H:%M").to_string()
-                            ));
-                        } else {
-                            ui.add(egui::Label::new(
-                                egui::RichText::new("Unsupported date format")
-                                    .color(Color32::RED)
-                                    .small(),
-                            ));
+                        if self.show_date || self.show_time {
+                            ui.separator();
+                            if start.date() == end.date() {
+                                let date = start.date();
+                                let start = start.time();
+                                let end = end.time();
+                                if self.show_date {
+                                    ui.label(date.format("%Y-%m-%d").to_string());
+                                }
+                                if self.show_time {
+                                    ui.label(format!(
+                                        "{} - {}",
+                                        start.format("%H:%M").to_string(),
+                                        end.format("%H:%M").to_string()
+                                    ));
+                                }
+                            } else {
+                                ui.add(egui::Label::new(
+                                    egui::RichText::new("Unsupported date format")
+                                        .color(Color32::RED)
+                                        .small(),
+                                ));
+                            }
                         }
                     })
                 })

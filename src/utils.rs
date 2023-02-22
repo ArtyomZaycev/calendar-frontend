@@ -1,5 +1,7 @@
 use std::future::Future;
 
+use chrono::Weekday;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn easy_spawn<F>(f: F)
 where
@@ -24,4 +26,16 @@ pub fn is_valid_password(password: &str) -> bool {
 }
 pub fn is_strong_enough_password(password: &str) -> bool {
     is_valid_password(password) && password.len() >= 8
+}
+
+pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
+    match weekday {
+        chrono::Weekday::Mon => "Monday",
+        chrono::Weekday::Tue => "Tuesday",
+        chrono::Weekday::Wed => "Wednesday",
+        chrono::Weekday::Thu => "Thursday",
+        chrono::Weekday::Fri => "Friday",
+        chrono::Weekday::Sat => "Saturday",
+        chrono::Weekday::Sun => "Sunday",
+    }
 }

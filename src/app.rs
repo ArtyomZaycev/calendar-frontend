@@ -1,12 +1,14 @@
 use calendar_lib::api::{auth::register, events::types::Event};
-use egui::{Align, Layout, Sense};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use egui::{Align, Label, Layout, RichText, Sense, Vec2};
+use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
     db::{
         state::State,
-        state_action::{GetStateAction, HasStateAction},
+        state_action::{GetStateAction, HasStateAction, StateAction},
     },
     ui::{
         event_card::EventCard,
@@ -20,13 +22,23 @@ use crate::{
         widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
+    utils::weekday_human_name,
 };
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+enum CalendarView {
+    Month,
+    Week(NaiveDate),
+    Events,
+}
 
 #[derive(Deserialize, Serialize)]
 #[serde(default)]
 pub struct CalendarApp {
     #[serde(skip)]
-    pub state: State,
+    state: State,
+
+    view: CalendarView,
 
     #[serde(skip)]
     popups: Vec<Popup>,
@@ -37,6 +49,7 @@ impl Default for CalendarApp {
         let config = Config::load();
         Self {
             state: State::new(&config),
+            view: CalendarView::Events,
             popups: Vec::default(),
         }
     }
@@ -150,6 +163,155 @@ impl CalendarApp {
             .into_iter()
             .for_each(|signal| self.parse_signal(signal));
     }
+
+    fn parse_polled(&mut self, polled: Vec<StateAction>) {
+        if let Some(popup) = self.get_login_popup() {
+            if polled.has_login() {
+                popup.closed = true;
+            }
+        }
+        if let Some(popup) = self.get_sign_up_popup() {
+            if polled.has_register() {
+                popup.closed = true;
+            } else if let Some(error) = polled.get_register_error() {
+                match error {
+                    register::BadRequestResponse::EmailAlreadyUsed => {
+                        popup.email_taken = true;
+                    }
+                }
+            }
+        }
+        if let Some(popup) = self.get_new_event_popup() {
+            if polled.has_insert_event() {
+                popup.closed = true;
+            }
+        }
+        if let Some(popup) = self.get_update_event_popup() {
+            if polled.has_update_event() {
+                popup.closed = true;
+            }
+        }
+    }
+}
+
+impl CalendarApp {
+    fn top_panel(&mut self, ui: &mut egui::Ui) {
+        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+            ui.heading("Calendar");
+
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                // RTL
+                if let Some(me) = &self.state.me {
+                    let profile = egui::Label::new(&me.user.name);
+                    if self.is_open_profile() {
+                        ui.add(profile);
+                    } else {
+                        if ui.add(profile.sense(Sense::click())).clicked() {
+                            self.open_profile();
+                        }
+                    }
+                    if ui.button("Logout").clicked() {
+                        self.state.logout();
+                    }
+                } else {
+                    if ui
+                        .add_enabled(!self.is_open_login(), egui::Button::new("Login"))
+                        .clicked()
+                    {
+                        self.open_login();
+                    }
+                    if ui
+                        .add_enabled(!self.is_open_sign_up(), egui::Button::new("Sign Up"))
+                        .clicked()
+                    {
+                        self.open_sign_up();
+                    }
+                }
+
+                if self.state.get_active_requests_descriptions().len() > 0 {
+                    // TODO: icon
+                    ui.label("xxx");
+                }
+            });
+        });
+    }
+
+    fn month_view(&mut self, ui: &mut egui::Ui) {
+        todo!()
+    }
+    fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+        let date = date
+            .checked_sub_days(chrono::Days::new(
+                (date.weekday().num_days_from_monday()) as u64,
+            ))
+            .unwrap();
+        let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+        ui.horizontal_top(|ui| {
+            let mut signals = vec![];
+            (0..=6).for_each(|weekday| {
+                let date = date + chrono::Days::new(weekday);
+                let weekday = chrono::Weekday::from_u64(weekday).unwrap();
+
+                let weekday_name = weekday_human_name(&weekday);
+
+                ui.vertical(|ui| {
+                    ui.set_width(column_width);
+                    ui.vertical_centered(|ui| ui.heading(weekday_name));
+                    ui.add_space(4.);
+                    self.state
+                        .events
+                        .iter()
+                        .filter(|e| e.start.date() == date)
+                        .for_each(|event| {
+                            ui.add(
+                                EventCard::new(
+                                    &mut signals,
+                                    egui::Vec2::new(column_width, 200.),
+                                    &event,
+                                )
+                                .hide_date(),
+                            );
+                        });
+                });
+            });
+            self.parse_signals(signals);
+        });
+    }
+    fn events_view(&mut self, ui: &mut egui::Ui) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+
+            let mut signals = vec![];
+
+            // TODO: Use array_chunks, once it becomes stable
+            // https://github.com/rust-lang/rust/issues/100450
+            self.state
+                .events
+                .iter()
+                .enumerate()
+                .fold(Vec::default(), |mut acc, (i, event)| {
+                    if i % 7 == 0 {
+                        acc.push(Vec::default());
+                    }
+                    acc.last_mut().unwrap().push(event);
+                    acc
+                })
+                .into_iter()
+                .for_each(|events| {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        events.into_iter().for_each(|event| {
+                            ui.add(EventCard::new(
+                                &mut signals,
+                                egui::Vec2::new(column_width, 200.),
+                                &event,
+                            ));
+                        });
+                    });
+                });
+
+            self.parse_signals(signals);
+        });
+    }
 }
 
 impl eframe::App for CalendarApp {
@@ -182,79 +344,43 @@ impl eframe::App for CalendarApp {
                     self.popups.swap_remove(i);
                 });
 
-            // TOP PANEL
-            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                ui.heading("Calendar");
-
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    // RTL
-                    if let Some(me) = &self.state.me {
-                        let profile = egui::Label::new(&me.user.name);
-                        if self.is_open_profile() {
-                            ui.add(profile);
-                        } else {
-                            if ui.add(profile.sense(Sense::click())).clicked() {
-                                self.open_profile();
-                            }
-                        }
-                        if ui.button("Logout").clicked() {
-                            self.state.logout();
-                        }
-                    } else {
-                        if ui
-                            .add_enabled(!self.is_open_login(), egui::Button::new("Login"))
-                            .clicked()
-                        {
-                            self.open_login();
-                        }
-                        if ui
-                            .add_enabled(!self.is_open_sign_up(), egui::Button::new("Sign Up"))
-                            .clicked()
-                        {
-                            self.open_sign_up();
-                        }
-                    }
-
-                    if self.state.get_active_requests_descriptions().len() > 0 {
-                        // TODO: icon
-                        ui.label("xxx");
-                    }
-                });
-            });
+            self.top_panel(ui);
             ui.separator();
 
-            if let Some(popup) = self.get_login_popup() {
-                if polled.has_login() {
-                    popup.closed = true;
-                }
-            }
-            if let Some(popup) = self.get_sign_up_popup() {
-                if polled.has_register() {
-                    popup.closed = true;
-                } else if let Some(error) = polled.get_register_error() {
-                    match error {
-                        register::BadRequestResponse::EmailAlreadyUsed => {
-                            popup.email_taken = true;
-                        }
-                    }
-                }
-            }
-            if let Some(popup) = self.get_new_event_popup() {
-                if polled.has_insert_event() {
-                    popup.closed = true;
-                }
-            }
-            if let Some(popup) = self.get_update_event_popup() {
-                if polled.has_update_event() {
-                    popup.closed = true;
-                }
-            }
+            self.parse_polled(polled);
 
             // CALENDAR
             if let Some(_me) = &self.state.me {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        ui.heading("Events");
+                        let mut month_text = RichText::new("Month").heading();
+                        let mut week_text = RichText::new("Week").heading();
+                        let mut events_text = RichText::new("Events").heading();
+                        match self.view {
+                            // This is pathetic
+                            CalendarView::Month => month_text = month_text.underline(),
+                            CalendarView::Week(_) => week_text = week_text.underline(),
+                            CalendarView::Events => events_text = events_text.underline(),
+                        };
+                        if ui
+                            .add(egui::Label::new(month_text).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.view = CalendarView::Month;
+                        }
+                        if ui
+                            .add(egui::Label::new(week_text).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.view =
+                                CalendarView::Week(chrono::Local::now().naive_local().date());
+                        }
+                        if ui
+                            .add(egui::Label::new(events_text).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.view = CalendarView::Events;
+                        }
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             if ui
                                 .add_enabled(
@@ -267,41 +393,13 @@ impl eframe::App for CalendarApp {
                             }
                         });
                     });
+                    ui.add_space(8.);
 
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        // TODO: Propper size
-                        let desired_width = ui.available_width() / 8.;
-
-                        let mut signals = vec![];
-
-                        // TODO: Use array_chunks, once it becomes stable
-                        // https://github.com/rust-lang/rust/issues/100450
-                        self.state
-                            .events
-                            .iter()
-                            .enumerate()
-                            .fold(Vec::default(), |mut acc, (i, event)| {
-                                if i % 7 == 0 {
-                                    acc.push(Vec::default());
-                                }
-                                acc.last_mut().unwrap().push(event);
-                                acc
-                            })
-                            .into_iter()
-                            .for_each(|events| {
-                                ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                                    events.into_iter().for_each(|event| {
-                                        ui.add(EventCard::new(
-                                            &mut signals,
-                                            egui::Vec2::new(desired_width, 200.),
-                                            &event,
-                                        ));
-                                    });
-                                });
-                            });
-
-                        self.parse_signals(signals);
-                    });
+                    match self.view {
+                        CalendarView::Month => self.month_view(ui),
+                        CalendarView::Week(date) => self.week_view(ui, date),
+                        CalendarView::Events => self.events_view(ui),
+                    }
                 });
             }
         });
