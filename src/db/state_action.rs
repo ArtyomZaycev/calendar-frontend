@@ -1,5 +1,5 @@
 use calendar_lib::api::{
-    auth::{login, register},
+    auth::{login, register, self},
     events, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
@@ -10,6 +10,7 @@ pub enum StateAction {
     Login(login::Response),
     Register(register::Response),
     RegisterError(register::BadRequestResponse),
+    LoadAccessLevels(auth::load_access_levels::Response),
     LoadUserRoles(user_roles::load_array::Response),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),

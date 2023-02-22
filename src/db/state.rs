@@ -116,6 +116,20 @@ impl State {
 }
 
 impl State {
+    pub fn load_access_levels(&self) {
+        use auth::load_access_levels::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::LoadAccessLevels(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+
     pub fn load_user_roles(&self) {
         use user_roles::load_array::*;
 
@@ -255,16 +269,23 @@ impl State {
             StateAction::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
-                    access_level: res.access_level,
-                    edit_rights: res.edit_rights,
+                    current_access_level: res.access_level.level,
+                    access_levels: vec![res.access_level],
                     key: res.key,
                     roles: vec![],
                 });
+                self.load_access_levels();
                 self.load_events();
                 self.load_user_roles();
             }
             StateAction::Register(_) => {}
             StateAction::RegisterError(_) => {}
+            StateAction::LoadAccessLevels(mut r) => {
+                if let Some(me) = &mut self.me {
+                    r.array.sort_by(|a, b| a.level.cmp(&b.level));
+                    me.access_levels = r.array;
+                }
+            }
             StateAction::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
                     me.roles = res.array;
