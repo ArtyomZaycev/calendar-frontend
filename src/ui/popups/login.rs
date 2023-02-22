@@ -1,6 +1,9 @@
-use egui::{Align, Layout, RichText, Color32};
+use egui::{Align, Color32, Layout, RichText};
 
-use crate::{ui::widget_signal::{AppSignal, StateSignal}, utils::is_valid_email};
+use crate::{
+    ui::widget_signal::{AppSignal, StateSignal},
+    utils::is_valid_email,
+};
 
 use super::popup_builder::PopupBuilder;
 
@@ -36,14 +39,13 @@ impl<'a> PopupBuilder<'a> for Login {
             };
             let password_error: Option<String> = {
                 /*(!is_valid_password(&self.password))
-                    .then_some("Invalid password".to_owned())
-                    .or((!is_strong_enough_password(&self.password))
-                        .then_some("Password is not strong enough".to_string()))*/
+                .then_some("Invalid password".to_owned())
+                .or((!is_strong_enough_password(&self.password))
+                    .then_some("Password is not strong enough".to_string()))*/
                 None
             };
 
-            let error = email_error.as_ref()
-                .or(password_error.as_ref());
+            let error = email_error.as_ref().or(password_error.as_ref());
 
             let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str| {
                 ui.add(
@@ -69,7 +71,8 @@ impl<'a> PopupBuilder<'a> for Login {
                             .clicked()
                         {
                             self.signals.push(
-                                StateSignal::Login(self.email.clone(), self.password.clone()).into(),
+                                StateSignal::Login(self.email.clone(), self.password.clone())
+                                    .into(),
                             );
                         }
                         if ui.button("Cancel").clicked() {

@@ -374,7 +374,9 @@ impl CalendarApp {
             let mut signals = vec![];
 
             (-1i64..4).for_each(|day| {
-                let date = date.checked_add_signed(chrono::Duration::days(day)).unwrap();
+                let date = date
+                    .checked_add_signed(chrono::Duration::days(day))
+                    .unwrap();
 
                 let header_text = match day {
                     -1 => date.format("Yesterday (%A %Y-%m-%d)").to_string(),
@@ -383,34 +385,36 @@ impl CalendarApp {
                     _ => date.format("%A %Y-%m-%d").to_string(),
                 };
 
-                egui::CollapsingHeader::new(RichText::new(header_text).heading()).default_open(day >= 0).show_unindented(ui, |ui| {
-                    // TODO: Use array_chunks, once it becomes stable
-                    // https://github.com/rust-lang/rust/issues/100450
-                    self.state
-                    .events
-                    .iter()
-                    .filter(|e| e.start.date() == date)
-                    .enumerate()
-                    .fold(Vec::default(), |mut acc, (i, event)| {
-                        if i % num_columns == 0 {
-                            acc.push(Vec::default());
-                        }
-                        acc.last_mut().unwrap().push(event);
-                        acc
-                    })
-                    .into_iter()
-                    .for_each(|events| {
-                        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                            events.into_iter().for_each(|event| {
-                                ui.add(EventCard::new(
-                                    &mut signals,
-                                    egui::Vec2::new(column_width, 200.),
-                                    &event,
-                                ));
+                egui::CollapsingHeader::new(RichText::new(header_text).heading())
+                    .default_open(day >= 0)
+                    .show_unindented(ui, |ui| {
+                        // TODO: Use array_chunks, once it becomes stable
+                        // https://github.com/rust-lang/rust/issues/100450
+                        self.state
+                            .events
+                            .iter()
+                            .filter(|e| e.start.date() == date)
+                            .enumerate()
+                            .fold(Vec::default(), |mut acc, (i, event)| {
+                                if i % num_columns == 0 {
+                                    acc.push(Vec::default());
+                                }
+                                acc.last_mut().unwrap().push(event);
+                                acc
+                            })
+                            .into_iter()
+                            .for_each(|events| {
+                                ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                                    events.into_iter().for_each(|event| {
+                                        ui.add(EventCard::new(
+                                            &mut signals,
+                                            egui::Vec2::new(column_width, 200.),
+                                            &event,
+                                        ));
+                                    });
+                                });
                             });
-                        });
                     });
-                });
             });
 
             self.parse_signals(signals);
