@@ -364,37 +364,54 @@ impl CalendarApp {
         });
     }
 
-    fn events_view(&mut self, ui: &mut egui::Ui) {
+    fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+            let num_columns = 7usize;
+            let column_width = (ui.available_width()
+                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
+                / num_columns as f32;
 
             let mut signals = vec![];
 
-            // TODO: Use array_chunks, once it becomes stable
-            // https://github.com/rust-lang/rust/issues/100450
-            self.state
-                .events
-                .iter()
-                .enumerate()
-                .fold(Vec::default(), |mut acc, (i, event)| {
-                    if i % 7 == 0 {
-                        acc.push(Vec::default());
-                    }
-                    acc.last_mut().unwrap().push(event);
-                    acc
-                })
-                .into_iter()
-                .for_each(|events| {
-                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        events.into_iter().for_each(|event| {
-                            ui.add(EventCard::new(
-                                &mut signals,
-                                egui::Vec2::new(column_width, 200.),
-                                &event,
-                            ));
+            (-1i64..4).for_each(|day| {
+                let date = date.checked_add_signed(chrono::Duration::days(day)).unwrap();
+
+                let header_text = match day {
+                    -1 => date.format("Yesterday (%A %Y-%m-%d)").to_string(),
+                    0 => date.format("Today (%A %Y-%m-%d)").to_string(),
+                    1 => date.format("Tomorrow (%A %Y-%m-%d)").to_string(),
+                    _ => date.format("%A %Y-%m-%d").to_string(),
+                };
+
+                egui::CollapsingHeader::new(RichText::new(header_text).heading()).default_open(day >= 0).show_unindented(ui, |ui| {
+                    // TODO: Use array_chunks, once it becomes stable
+                    // https://github.com/rust-lang/rust/issues/100450
+                    self.state
+                    .events
+                    .iter()
+                    .filter(|e| e.start.date() == date)
+                    .enumerate()
+                    .fold(Vec::default(), |mut acc, (i, event)| {
+                        if i % num_columns == 0 {
+                            acc.push(Vec::default());
+                        }
+                        acc.last_mut().unwrap().push(event);
+                        acc
+                    })
+                    .into_iter()
+                    .for_each(|events| {
+                        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                            events.into_iter().for_each(|event| {
+                                ui.add(EventCard::new(
+                                    &mut signals,
+                                    egui::Vec2::new(column_width, 200.),
+                                    &event,
+                                ));
+                            });
                         });
                     });
                 });
+            });
 
             self.parse_signals(signals);
         });
@@ -497,7 +514,7 @@ impl eframe::App for CalendarApp {
                         CalendarView::Month(date) => self.month_view(ui, date),
                         CalendarView::Week(date) => self.week_view(ui, date),
                         CalendarView::Day(date) => self.day_view(ui, date),
-                        CalendarView::Events(_) => self.events_view(ui),
+                        CalendarView::Events(date) => self.events_view(ui, date),
                     }
                 });
             }
