@@ -29,7 +29,8 @@ use crate::{
 enum CalendarView {
     Month(NaiveDate),
     Week(NaiveDate),
-    Events,
+    Day(NaiveDate),
+    Events(NaiveDate),
 }
 
 #[derive(Deserialize, Serialize)]
@@ -49,7 +50,7 @@ impl Default for CalendarApp {
         let config = Config::load();
         Self {
             state: State::new(&config),
-            view: CalendarView::Events,
+            view: CalendarView::Events(chrono::Local::now().naive_local().date()),
             popups: Vec::default(),
         }
     }
@@ -242,68 +243,127 @@ impl CalendarApp {
         let first_monday = get_monday(&first_day);
         let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
 
-        egui::Grid::new("month")
-            .num_columns(7)
-            .min_col_width(column_width)
-            .max_col_width(column_width)
-            .show(ui, |ui| {
-                (0..5).for_each(|week| {
-                    let monday = first_monday + chrono::Days::new(7 * week);
-                    (0..7).for_each(|weekday| {
-                        let date = monday + chrono::Days::new(weekday);
-                        let events = self
-                            .state
-                            .events
-                            .iter()
-                            .filter(|e| e.start.date() == date)
-                            .count();
-                        ui.vertical(|ui| {
-                            ui.label(date.to_string());
-                            if first_day <= date && date <= last_day {
-                                ui.label(events.to_string());
-                            } else {
-                                ui.add_space(0.);
-                            }
-                        });
-                    });
-                    ui.end_row();
-                });
-            });
-    }
-    fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
-        let monday = get_monday(&date);
-        let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
-        ui.horizontal_top(|ui| {
-            let mut signals = vec![];
+        let mut signals = vec![];
+        ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
-                let date = monday + chrono::Days::new(weekday);
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
-
                 let weekday_name = weekday_human_name(&weekday);
 
                 ui.vertical(|ui| {
                     ui.set_width(column_width);
                     ui.vertical_centered(|ui| ui.heading(weekday_name));
-                    ui.add_space(4.);
-                    self.state
-                        .events
-                        .iter()
-                        .filter(|e| e.start.date() == date)
-                        .for_each(|event| {
-                            ui.add(
-                                EventCard::new(
-                                    &mut signals,
-                                    egui::Vec2::new(column_width, 200.),
-                                    &event,
-                                )
-                                .hide_date(),
-                            );
-                        });
                 });
             });
+        });
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::Grid::new("month")
+                .num_columns(7)
+                .min_col_width(column_width)
+                .max_col_width(column_width)
+                .show(ui, |ui| {
+                    (0..5).for_each(|week| {
+                        let monday = first_monday + chrono::Days::new(7 * week);
+                        (0..7).for_each(|weekday| {
+                            let date = monday + chrono::Days::new(weekday);
+                            let events = self
+                                .state
+                                .events
+                                .iter()
+                                .filter(|e| e.start.date() == date)
+                                .count();
+                            ui.vertical(|ui| {
+                                ui.label(date.to_string());
+                                if first_day <= date && date <= last_day {
+                                    ui.label(events.to_string());
+                                } else {
+                                    ui.add_space(0.);
+                                }
+                            });
+                        });
+                        ui.end_row();
+                    });
+                });
+        });
+        self.parse_signals(signals);
+    }
+
+    fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let monday = get_monday(&date);
+            let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+            ui.horizontal_top(|ui| {
+                let mut signals = vec![];
+                (0..7).for_each(|weekday| {
+                    let date = monday + chrono::Days::new(weekday);
+                    let weekday = chrono::Weekday::from_u64(weekday).unwrap();
+
+                    let weekday_name = weekday_human_name(&weekday);
+
+                    ui.vertical(|ui| {
+                        ui.set_width(column_width);
+                        ui.vertical_centered(|ui| ui.heading(weekday_name));
+                        ui.add_space(4.);
+                        self.state
+                            .events
+                            .iter()
+                            .filter(|e| e.start.date() == date)
+                            .for_each(|event| {
+                                ui.add(
+                                    EventCard::new(
+                                        &mut signals,
+                                        egui::Vec2::new(column_width, 200.),
+                                        &event,
+                                    )
+                                    .hide_date(),
+                                );
+                            });
+                    });
+                });
+                self.parse_signals(signals);
+            });
+        });
+    }
+
+    fn day_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let num_columns = 7usize;
+            let column_width = (ui.available_width()
+                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
+                / num_columns as f32;
+
+            let mut signals = vec![];
+
+            // TODO: Use array_chunks, once it becomes stable
+            // https://github.com/rust-lang/rust/issues/100450
+            self.state
+                .events
+                .iter()
+                .filter(|e| e.start.date() == date)
+                .enumerate()
+                .fold(Vec::default(), |mut acc, (i, event)| {
+                    if i % num_columns == 0 {
+                        acc.push(Vec::default());
+                    }
+                    acc.last_mut().unwrap().push(event);
+                    acc
+                })
+                .into_iter()
+                .for_each(|events| {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        events.into_iter().for_each(|event| {
+                            ui.add(EventCard::new(
+                                &mut signals,
+                                egui::Vec2::new(column_width, 200.),
+                                &event,
+                            ));
+                        });
+                    });
+                });
+
             self.parse_signals(signals);
         });
     }
+
     fn events_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
@@ -382,12 +442,14 @@ impl eframe::App for CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         let mut month_text = RichText::new("Month").heading();
                         let mut week_text = RichText::new("Week").heading();
+                        let mut day_text = RichText::new("Day").heading();
                         let mut events_text = RichText::new("Events").heading();
                         match self.view {
                             // This is pathetic
                             CalendarView::Month(_) => month_text = month_text.underline(),
                             CalendarView::Week(_) => week_text = week_text.underline(),
-                            CalendarView::Events => events_text = events_text.underline(),
+                            CalendarView::Day(_) => day_text = day_text.underline(),
+                            CalendarView::Events(_) => events_text = events_text.underline(),
                         };
                         if ui
                             .add(egui::Label::new(month_text).sense(Sense::click()))
@@ -404,10 +466,18 @@ impl eframe::App for CalendarApp {
                                 CalendarView::Week(chrono::Local::now().naive_local().date());
                         }
                         if ui
+                            .add(egui::Label::new(day_text).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.view =
+                                CalendarView::Day(chrono::Local::now().naive_local().date());
+                        }
+                        if ui
                             .add(egui::Label::new(events_text).sense(Sense::click()))
                             .clicked()
                         {
-                            self.view = CalendarView::Events;
+                            self.view =
+                                CalendarView::Events(chrono::Local::now().naive_local().date());
                         }
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             if ui
@@ -426,7 +496,8 @@ impl eframe::App for CalendarApp {
                     match self.view {
                         CalendarView::Month(date) => self.month_view(ui, date),
                         CalendarView::Week(date) => self.week_view(ui, date),
-                        CalendarView::Events => self.events_view(ui),
+                        CalendarView::Day(date) => self.day_view(ui, date),
+                        CalendarView::Events(_) => self.events_view(ui),
                     }
                 });
             }
