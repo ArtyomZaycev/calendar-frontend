@@ -76,9 +76,11 @@ impl<'a> Widget for EventCard<'a> {
                                 ui.add(egui::Label::new(name).wrap(true));
                             });
                         });
-                        if let Some(description) = description {
-                            ui.separator();
-                            ui.label(description);
+                        if self.show_description {
+                            if let Some(description) = description {
+                                ui.separator();
+                                ui.label(description);
+                            }
                         }
                         if self.show_date || self.show_time {
                             ui.separator();

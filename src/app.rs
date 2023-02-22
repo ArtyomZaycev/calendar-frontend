@@ -1,6 +1,6 @@
 use calendar_lib::api::{auth::register, events::types::Event};
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
-use egui::{Align, Label, Layout, RichText, Sense, Vec2};
+use chrono::NaiveDate;
+use egui::{Align, Layout, RichText, Sense};
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -22,12 +22,12 @@ use crate::{
         widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
-    utils::weekday_human_name,
+    utils::{get_first_month_day_date, get_last_month_day_date, get_monday, weekday_human_name},
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 enum CalendarView {
-    Month,
+    Month(NaiveDate),
     Week(NaiveDate),
     Events,
 }
@@ -236,20 +236,47 @@ impl CalendarApp {
         });
     }
 
-    fn month_view(&mut self, ui: &mut egui::Ui) {
-        todo!()
+    fn month_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+        let first_day = get_first_month_day_date(&date);
+        let last_day = get_last_month_day_date(&date);
+        let first_monday = get_monday(&first_day);
+        let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+
+        egui::Grid::new("month")
+            .num_columns(7)
+            .min_col_width(column_width)
+            .max_col_width(column_width)
+            .show(ui, |ui| {
+                (0..5).for_each(|week| {
+                    let monday = first_monday + chrono::Days::new(7 * week);
+                    (0..7).for_each(|weekday| {
+                        let date = monday + chrono::Days::new(weekday);
+                        let events = self
+                            .state
+                            .events
+                            .iter()
+                            .filter(|e| e.start.date() == date)
+                            .count();
+                        ui.vertical(|ui| {
+                            ui.label(date.to_string());
+                            if first_day <= date && date <= last_day {
+                                ui.label(events.to_string());
+                            } else {
+                                ui.add_space(0.);
+                            }
+                        });
+                    });
+                    ui.end_row();
+                });
+            });
     }
     fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
-        let date = date
-            .checked_sub_days(chrono::Days::new(
-                (date.weekday().num_days_from_monday()) as u64,
-            ))
-            .unwrap();
+        let monday = get_monday(&date);
         let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
         ui.horizontal_top(|ui| {
             let mut signals = vec![];
-            (0..=6).for_each(|weekday| {
-                let date = date + chrono::Days::new(weekday);
+            (0..7).for_each(|weekday| {
+                let date = monday + chrono::Days::new(weekday);
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
 
                 let weekday_name = weekday_human_name(&weekday);
@@ -358,7 +385,7 @@ impl eframe::App for CalendarApp {
                         let mut events_text = RichText::new("Events").heading();
                         match self.view {
                             // This is pathetic
-                            CalendarView::Month => month_text = month_text.underline(),
+                            CalendarView::Month(_) => month_text = month_text.underline(),
                             CalendarView::Week(_) => week_text = week_text.underline(),
                             CalendarView::Events => events_text = events_text.underline(),
                         };
@@ -366,7 +393,8 @@ impl eframe::App for CalendarApp {
                             .add(egui::Label::new(month_text).sense(Sense::click()))
                             .clicked()
                         {
-                            self.view = CalendarView::Month;
+                            self.view =
+                                CalendarView::Month(chrono::Local::now().naive_local().date());
                         }
                         if ui
                             .add(egui::Label::new(week_text).sense(Sense::click()))
@@ -396,7 +424,7 @@ impl eframe::App for CalendarApp {
                     ui.add_space(8.);
 
                     match self.view {
-                        CalendarView::Month => self.month_view(ui),
+                        CalendarView::Month(date) => self.month_view(ui, date),
                         CalendarView::Week(date) => self.week_view(ui, date),
                         CalendarView::Events => self.events_view(ui),
                     }
