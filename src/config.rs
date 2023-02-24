@@ -21,9 +21,9 @@ impl Config {
         let mut hostname = location.hostname().unwrap();
         let mut port = location.port().unwrap();
 
-        let is_localhost = hostname.eq("locahost") || hostname.eq("127.0.0.1");
+        let is_localhost = hostname.eq("localhost") || hostname.eq("127.0.0.1");
         if is_localhost {
-            hostname = "locahost".to_owned();
+            hostname = "localhost".to_owned();
             port = "8081".to_owned();
         }
 
