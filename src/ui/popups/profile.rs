@@ -1,4 +1,4 @@
-use egui::{Align, Layout, Vec2, RichText};
+use egui::{Align, Layout, RichText, Vec2};
 
 use crate::{db::aliases::UserInfo, ui::widget_signal::AppSignal};
 
@@ -57,11 +57,17 @@ impl<'a> PopupBuilder<'a> for Profile {
                             egui::ComboBox::from_id_source("profile_access_level_list")
                                 .selected_text(self.user_info.get_access_level().name)
                                 .show_ui(ui, |ui| {
-                                    self.user_info.access_levels.iter().for_each(|access_level| {
-                                        ui.selectable_value(&mut self.user_info.current_access_level, access_level.level, &access_level.name);
-                                    });
-                                }
-                            );
+                                    self.user_info
+                                        .access_levels
+                                        .iter()
+                                        .for_each(|access_level| {
+                                            ui.selectable_value(
+                                                &mut self.user_info.current_access_level,
+                                                access_level.level,
+                                                &access_level.name,
+                                            );
+                                        });
+                                });
                         } else {
                             ui.label(self.user_info.get_access_level().name);
                         }

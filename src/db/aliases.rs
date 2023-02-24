@@ -1,5 +1,5 @@
-use calendar_lib::api::{utils, auth::types::AccessLevel};
 pub use calendar_lib::api::*;
+use calendar_lib::api::{auth::types::AccessLevel, utils};
 use serde::{Deserialize, Serialize};
 
 pub use events::types::*;
@@ -22,6 +22,10 @@ pub struct UserInfo {
 
 impl UserInfo {
     pub fn get_access_level(&self) -> AccessLevel {
-        self.access_levels.iter().find(|l| l.level == self.current_access_level).cloned().unwrap_or(self.access_levels.last().cloned().unwrap())
+        self.access_levels
+            .iter()
+            .find(|l| l.level == self.current_access_level)
+            .cloned()
+            .unwrap_or(self.access_levels.last().cloned().unwrap())
     }
 }

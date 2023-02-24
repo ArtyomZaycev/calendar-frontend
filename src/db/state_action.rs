@@ -1,5 +1,5 @@
 use calendar_lib::api::{
-    auth::{login, register, self},
+    auth::{self, login, register},
     events, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
