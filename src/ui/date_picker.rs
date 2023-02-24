@@ -199,6 +199,7 @@ where
 
         if ui.memory().is_popup_open(self.id) {
             let area = Area::new(self.id)
+                .movable(false)
                 .order(Order::Foreground)
                 .current_pos(button_response.rect.left_bottom());
             let area_response = area

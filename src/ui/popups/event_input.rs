@@ -5,6 +5,7 @@ use chrono::{DateTime, Duration, Local, NaiveDateTime, NaiveTime, TimeZone};
 
 use crate::ui::{
     date_picker::DatePicker,
+    time_picker::TimePicker,
     widget_signal::{AppSignal, StateSignal},
 };
 
@@ -82,10 +83,10 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     RangeInclusive::new(0, self.max_access_level),
                 ));
 
-                ui.add(DatePicker::<'_, Local>::new(
-                    "date_picker_id",
-                    &mut self.date,
-                ));
+                ui.add(DatePicker::new("date_picker_id", &mut self.date));
+
+                ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
+                ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
 
                 ui.horizontal(|ui| {
                     if ui.button("Cancel").clicked() {

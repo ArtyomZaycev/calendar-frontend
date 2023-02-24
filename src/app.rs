@@ -39,6 +39,7 @@ pub struct CalendarApp {
     #[serde(skip)]
     state: State,
 
+    #[serde(skip)]
     view: CalendarView,
 
     #[serde(skip)]
