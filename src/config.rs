@@ -27,7 +27,7 @@ impl Config {
             port = "8081".to_owned();
         }
 
-        let api_url = format!("http://api.{hostname}:{port}/");
+        let api_url = format!("http://{hostname}:{port}/api/");
 
         Self {
             is_localhost,
