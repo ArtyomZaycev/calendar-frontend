@@ -1,2 +1,6 @@
 [build]
 filehash = false
+dist = "../assets"
+
+[watch]
+watch = []
