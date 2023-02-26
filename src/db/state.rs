@@ -158,7 +158,10 @@ impl State {
         self.users = vec![];
         self.events = vec![];
 
-        let parser = Self::make_empty_parser();
+        let parser = RequestParser::new_split(
+            |_| StateAction::None, 
+            |code, _| StateAction::Error(code, "Logout error".to_owned())
+        );
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
