@@ -213,6 +213,7 @@ dependencies = [
 [[package]]
 name = "calendar-lib"
 version = "0.1.0"
+source = "git+https://github.com/ArtyomZaycev/calendar-lib.git#5128282f426e94f0f57980d5aa6b7735a5a70a2b"
 dependencies = [
  "chrono",
  "http",

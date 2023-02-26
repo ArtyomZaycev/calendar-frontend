@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-calendar-lib = { path = "../lib" }
+calendar-lib = { git = "https://github.com/ArtyomZaycev/calendar-lib.git" }
 chrono = { version = "0.4.23", features = ["serde"] }
 getrandom = { version = "0.2", features = ["js"] }
 rand = "0.8.5"
