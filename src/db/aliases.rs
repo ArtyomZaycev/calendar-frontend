@@ -2,8 +2,10 @@ pub use calendar_lib::api::*;
 use calendar_lib::api::{auth::types::AccessLevel, utils};
 use serde::{Deserialize, Serialize};
 
+pub use event_templates::types::*;
 pub use events::types::*;
 pub use roles::types::*;
+pub use schedules::types::*;
 pub use utils::User;
 
 #[derive(Debug, Deserialize)]

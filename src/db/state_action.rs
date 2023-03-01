@@ -1,6 +1,6 @@
 use calendar_lib::api::{
     auth::{self, login, register},
-    events, user_roles,
+    events, schedules, user_roles, event_templates,
 };
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
@@ -10,12 +10,23 @@ pub enum StateAction {
     Login(login::Response),
     Register(register::Response),
     RegisterError(register::BadRequestResponse),
+
     LoadAccessLevels(auth::load_access_levels::Response),
     LoadUserRoles(user_roles::load_array::Response),
+
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),
     UpdateEvent(events::update::Response),
     DeleteEvent(events::delete::Response),
+
+    LoadEventTemplates(event_templates::load_array::Response),
+    InsertEventTemplate(event_templates::insert::Response),
+    DeleteEventTemplate(event_templates::delete::Response),
+
+    LoadSchedules(schedules::load_array::Response),
+    InsertSchedule(schedules::insert::Response),
+    //UpdateSchedule(schedules::update::Response),
+    DeleteSchedule(schedules::delete::Response),
 
     #[allow(dead_code)]
     None, // for debug only

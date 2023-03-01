@@ -1,4 +1,5 @@
-use calendar_lib::api::{auth, events, user_roles};
+use calendar_lib::api::{auth, events, schedules, user_roles};
+use chrono::{Datelike, NaiveDateTime};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
@@ -17,7 +18,10 @@ pub struct State {
     // Should not be modified manually, use requests
     pub me: Option<UserInfo>,
     pub users: Vec<User>,
+    pub event_templates: Vec<EventTemplate>,
     pub events: Vec<Event>,
+    pub phantom_events: Vec<Event>, // Created from schedules, do not exist in the db
+    pub schedules: Vec<Schedule>,
 
     pub errors: Vec<()>,
 }
@@ -28,9 +32,56 @@ impl State {
             connector: Connector::new(config),
             me: None,
             users: Vec::default(),
+            event_templates: Vec::default(),
             events: Vec::default(),
+            phantom_events: Vec::default(),
+            schedules: Vec::default(),
             errors: Vec::default(),
         }
+    }
+
+    pub fn generate_scheduled_events(&mut self) {
+        let now = chrono::Local::now().naive_local();
+        dbg!(&now);
+
+        let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
+            self.events
+                .iter()
+                .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
+        };
+
+        self.phantom_events = self
+            .schedules
+            .iter()
+            .flat_map(|schedule| {
+                match self
+                    .event_templates
+                    .iter()
+                    .find(|template| template.id == schedule.template_id)
+                {
+                    Some(template) => schedule
+                        .events
+                        .iter()
+                        .filter_map(|event_plan| {
+                            let start = NaiveDateTime::new(now.date(), event_plan.time);
+                            (event_plan.weekday == now.date().weekday()
+                                && !event_exists(schedule, &start))
+                            .then(|| Event {
+                                id: -1,
+                                user_id: schedule.user_id,
+                                name: template.event_name.clone(),
+                                description: template.event_description.clone(),
+                                start,
+                                end: start + chrono::Duration::from_std(template.duration).unwrap(),
+                                access_level: schedule.access_level,
+                                plan_id: Some(event_plan.id),
+                            })
+                        })
+                        .collect(),
+                    None => vec![],
+                }
+            })
+            .collect();
     }
 }
 
@@ -39,9 +90,17 @@ impl State {
         match signal {
             StateSignal::Login(email, password) => self.login(&email, &password),
             StateSignal::Register(name, email, password) => self.register(&name, &email, &password),
+
             StateSignal::InsertEvent(new_event) => self.insert_event(new_event),
             StateSignal::UpdateEvent(upd_event) => self.update_event(upd_event),
             StateSignal::DeleteEvent(id) => self.delete_event(id),
+
+            StateSignal::InsertEventTemplate(new_event_template) => self.insert_event_template(new_event_template),
+            StateSignal::DeleteEventTemplate(id) => self.delete_event_template(id),
+
+            StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
+            //StateSignal::UpdateSchedule(upd_schedule) => self.update_schedule(upd_schedule),
+            StateSignal::DeleteSchedule(id) => self.delete_schedule(id),
         }
     }
 }
@@ -77,6 +136,7 @@ impl State {
         RequestParser::new_complex(on_success, |code, s| StateAction::Error(code, s))
     }
 
+    #[allow(dead_code)]
     fn make_bad_request_parser<T, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
@@ -159,8 +219,8 @@ impl State {
         self.events = vec![];
 
         let parser = RequestParser::new_split(
-            |_| StateAction::None, 
-            |code, _| StateAction::Error(code, "Logout error".to_owned())
+            |_| StateAction::None,
+            |code, _| StateAction::Error(code, "Logout error".to_owned()),
         );
         self.connector
             .request(request, RequestDescriptor::new(parser));
@@ -264,6 +324,105 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
+
+    pub fn load_event_templates(&self) {
+        use event_templates::load_array::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::LoadEventTemplates(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+    pub fn insert_event_template(&self, new_event_template: NewEventTemplate) {
+        use event_templates::insert::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { new_event_template })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::InsertEventTemplate(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+    pub fn delete_event_template(&self, id: i32) {
+        use event_templates::delete::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .json(&Body {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::DeleteEventTemplate(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+
+    pub fn load_schedules(&self) {
+        use schedules::load_array::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::LoadSchedules(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+    pub fn insert_schedule(&self, new_schedule: NewSchedule) {
+        use schedules::insert::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { new_schedule })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::InsertSchedule(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
+    /*
+    pub fn update_schedule(&self, upd_schedule: UpdateSchedule) {
+        use schedules::update::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { upd_schedule })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::UpdateSchedule(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    } */
+    pub fn delete_schedule(&self, id: i32) {
+        use schedules::delete::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .json(&Body {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| StateAction::DeleteSchedule(r));
+        self.connector
+            .request(request, RequestDescriptor::new(parser));
+    }
 }
 
 impl State {
@@ -280,6 +439,8 @@ impl State {
                 self.load_access_levels();
                 self.load_events();
                 self.load_user_roles();
+                self.load_event_templates();
+                self.load_schedules();
             }
             StateAction::Register(_) => {}
             StateAction::RegisterError(_) => {}
@@ -305,6 +466,28 @@ impl State {
             }
             StateAction::DeleteEvent(_) => {
                 self.load_events();
+            }
+            StateAction::LoadSchedules(res) => {
+                self.schedules = res.array;
+                self.generate_scheduled_events();
+            }
+            StateAction::LoadEventTemplates(res) => {
+                self.event_templates = res.array;
+            },
+            StateAction::InsertEventTemplate(_) => {
+                self.load_event_templates();
+            },
+            StateAction::DeleteEventTemplate(_) => {
+                self.load_event_templates();
+            },
+            StateAction::InsertSchedule(_) => {
+                self.load_schedules();
+            }
+            /*StateAction::UpdateSchedule(_) => {
+                self.load_schedules();
+            }*/
+            StateAction::DeleteSchedule(_) => {
+                self.load_schedules();
             }
             StateAction::None => {}
             StateAction::Error(status, s) => {

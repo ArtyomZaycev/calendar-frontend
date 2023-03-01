@@ -17,8 +17,10 @@ use crate::{
             login::Login,
             popup::{Popup, PopupType},
             profile::Profile,
+            schedule_input::ScheduleInput,
             sign_up::SignUp,
         },
+        schedule_card::ScheduleCard,
         widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
@@ -31,6 +33,7 @@ enum CalendarView {
     Week(NaiveDate),
     Day(NaiveDate),
     Events(NaiveDate),
+    Schedules,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -117,6 +120,9 @@ impl CalendarApp {
     pub fn is_open_new_event(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_new_event())
     }
+    pub fn is_open_new_schedule(&self) -> bool {
+        self.popups.iter().any(|p| p.get_type().is_new_schedule())
+    }
 
     pub fn open_profile(&mut self) {
         self.popups.push(
@@ -142,6 +148,17 @@ impl CalendarApp {
             PopupType::UpdateEvent(EventInput::change(
                 self.state.me.as_ref().unwrap().get_access_level().level,
                 event,
+            ))
+            .popup(),
+        );
+    }
+    pub fn open_new_schedule(&mut self) {
+        let me = self.state.me.as_ref().unwrap();
+        self.popups.push(
+            PopupType::NewSchedule(ScheduleInput::new(
+                me.user.id,
+                me.get_access_level().level,
+                vec![],
             ))
             .popup(),
         );
@@ -244,7 +261,7 @@ impl CalendarApp {
         let first_monday = get_monday(&first_day);
         let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
 
-        let mut signals = vec![];
+        let signals = vec![];
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
@@ -270,6 +287,7 @@ impl CalendarApp {
                                 .state
                                 .events
                                 .iter()
+                                .chain(self.state.phantom_events.iter())
                                 .filter(|e| e.start.date() == date)
                                 .count();
                             ui.vertical(|ui| {
@@ -307,6 +325,7 @@ impl CalendarApp {
                         self.state
                             .events
                             .iter()
+                            .chain(self.state.phantom_events.iter())
                             .filter(|e| e.start.date() == date)
                             .for_each(|event| {
                                 ui.add(
@@ -339,6 +358,7 @@ impl CalendarApp {
             self.state
                 .events
                 .iter()
+                .chain(self.state.phantom_events.iter())
                 .filter(|e| e.start.date() == date)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
@@ -394,6 +414,7 @@ impl CalendarApp {
                         self.state
                             .events
                             .iter()
+                            .chain(self.state.phantom_events.iter())
                             .filter(|e| e.start.date() == date)
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
@@ -417,6 +438,45 @@ impl CalendarApp {
                             });
                     });
             });
+
+            self.parse_signals(signals);
+        });
+    }
+
+    fn schedules_view(&mut self, ui: &mut egui::Ui) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let num_columns = 7usize;
+            let column_width = (ui.available_width()
+                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
+                / num_columns as f32;
+
+            let mut signals = vec![];
+
+            // TODO: Use array_chunks, once it becomes stable
+            // https://github.com/rust-lang/rust/issues/100450
+            self.state
+                .schedules
+                .iter()
+                .enumerate()
+                .fold(Vec::default(), |mut acc, (i, schedule)| {
+                    if i % num_columns == 0 {
+                        acc.push(Vec::default());
+                    }
+                    acc.last_mut().unwrap().push(schedule);
+                    acc
+                })
+                .into_iter()
+                .for_each(|schedules| {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        schedules.into_iter().for_each(|schedule| {
+                            ui.add(ScheduleCard::new(
+                                &mut signals,
+                                egui::Vec2::new(column_width, 200.),
+                                &schedule,
+                            ));
+                        });
+                    });
+                });
 
             self.parse_signals(signals);
         });
@@ -466,12 +526,14 @@ impl eframe::App for CalendarApp {
                         let mut week_text = RichText::new("Week").heading();
                         let mut day_text = RichText::new("Day").heading();
                         let mut events_text = RichText::new("Events").heading();
+                        let mut schedules_text = RichText::new("Schedules").heading();
                         match self.view {
                             // This is pathetic
                             CalendarView::Month(_) => month_text = month_text.underline(),
                             CalendarView::Week(_) => week_text = week_text.underline(),
                             CalendarView::Day(_) => day_text = day_text.underline(),
                             CalendarView::Events(_) => events_text = events_text.underline(),
+                            CalendarView::Schedules => schedules_text = schedules_text.underline(),
                         };
                         if ui
                             .add(egui::Label::new(month_text).sense(Sense::click()))
@@ -501,6 +563,13 @@ impl eframe::App for CalendarApp {
                             self.view =
                                 CalendarView::Events(chrono::Local::now().naive_local().date());
                         }
+                        ui.add_space(16.);
+                        if ui
+                            .add(egui::Label::new(schedules_text).sense(Sense::click()))
+                            .clicked()
+                        {
+                            self.view = CalendarView::Schedules;
+                        }
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             if ui
                                 .add_enabled(
@@ -511,6 +580,15 @@ impl eframe::App for CalendarApp {
                             {
                                 self.open_new_event();
                             }
+                            if ui
+                                .add_enabled(
+                                    !self.is_open_new_schedule(),
+                                    egui::Button::new("Add Schedule"),
+                                )
+                                .clicked()
+                            {
+                                self.open_new_schedule();
+                            }
                         });
                     });
                     ui.add_space(8.);
@@ -520,6 +598,7 @@ impl eframe::App for CalendarApp {
                         CalendarView::Week(date) => self.week_view(ui, date),
                         CalendarView::Day(date) => self.day_view(ui, date),
                         CalendarView::Events(date) => self.events_view(ui, date),
+                        CalendarView::Schedules => self.schedules_view(ui),
                     }
                 });
             }

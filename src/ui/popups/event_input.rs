@@ -108,7 +108,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                         start: Some(NaiveDateTime::new(date, self.start)),
                                         end: Some(NaiveDateTime::new(date, self.end)),
                                         access_level: Some(self.access_level),
-                                        schedule_id: None,
+                                        plan_id: None,
                                     },
                                 )));
                         }
@@ -124,7 +124,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     start: NaiveDateTime::new(date, self.start),
                                     end: NaiveDateTime::new(date, self.end),
                                     access_level: self.access_level,
-                                    schedule_id: None,
+                                    plan_id: None,
                                 })));
                         }
                     }

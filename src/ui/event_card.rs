@@ -50,27 +50,37 @@ impl<'a> EventCard<'a> {
 impl<'a> Widget for EventCard<'a> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ui.allocate_ui(self.desired_size, |ui| {
+            let Event {
+                id: event_id,
+                name,
+                description,
+                start,
+                end,
+                plan_id,
+                ..
+            } = self.event;
+
             egui::Frame::none()
                 .rounding(4.)
-                .stroke(Stroke::new(2., Color32::RED))
+                .stroke(Stroke::new(
+                    2.,
+                    if plan_id.is_some() {
+                        Color32::BLUE
+                    } else {
+                        Color32::RED
+                    },
+                ))
                 .inner_margin(4.)
                 .show(ui, |ui| {
-                    let Event {
-                        name,
-                        description,
-                        start,
-                        end,
-                        ..
-                    } = self.event;
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
                             if ui.small_button("X").clicked() {
                                 self.signals
-                                    .push(StateSignal::DeleteEvent(self.event.id).into());
+                                    .push(StateSignal::DeleteEvent(*event_id).into());
                             }
                             if ui.small_button("E").clicked() {
-                                self.signals.push(AppSignal::ChangeEvent(self.event.id));
+                                self.signals.push(AppSignal::ChangeEvent(*event_id));
                             }
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));

@@ -5,7 +5,7 @@ use crate::ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal};
 
 use super::{
     event_input::EventInput, login::Login, popup_builder::PopupBuilder, profile::Profile,
-    sign_up::SignUp,
+    schedule_input::ScheduleInput, sign_up::SignUp,
 };
 
 #[derive(is_enum_variant)]
@@ -15,6 +15,7 @@ pub enum PopupType {
     SignUp(SignUp),
     NewEvent(EventInput),
     UpdateEvent(EventInput),
+    NewSchedule(ScheduleInput),
 }
 
 impl<'a> PopupBuilder<'a> for PopupType {
@@ -28,6 +29,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.build(ctx),
             PopupType::NewEvent(w) => w.build(ctx),
             PopupType::UpdateEvent(w) => w.build(ctx),
+            PopupType::NewSchedule(w) => w.build(ctx),
         }
     }
 
@@ -38,6 +40,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.title(),
             PopupType::NewEvent(w) => w.title(),
             PopupType::UpdateEvent(w) => w.title(),
+            PopupType::NewSchedule(w) => w.title(),
         }
     }
 
@@ -48,6 +51,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.signals(),
             PopupType::NewEvent(w) => w.signals(),
             PopupType::UpdateEvent(w) => w.signals(),
+            PopupType::NewSchedule(w) => w.signals(),
         }
     }
 
@@ -58,6 +62,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.is_closed(),
             PopupType::NewEvent(w) => w.is_closed(),
             PopupType::UpdateEvent(w) => w.is_closed(),
+            PopupType::NewSchedule(w) => w.is_closed(),
         }
     }
 }

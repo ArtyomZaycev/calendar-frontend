@@ -1,4 +1,7 @@
-use std::{fmt::Display, hash::Hash};
+#![allow(dead_code)]
+// TODO: Move to lib
+
+use std::hash::Hash;
 
 pub use chrono::offset::{FixedOffset, Local, Utc};
 use chrono::prelude::*;
