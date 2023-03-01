@@ -14,6 +14,7 @@ use crate::{
         event_card::EventCard,
         popups::{
             event_input::EventInput,
+            event_template_input::EventTemplateInput,
             login::Login,
             popup::{Popup, PopupType},
             profile::Profile,
@@ -107,6 +108,24 @@ impl CalendarApp {
             }
         })
     }
+    pub fn get_new_schedule_popup<'a>(&'a mut self) -> Option<&'a mut ScheduleInput> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::NewSchedule(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
+    pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut EventTemplateInput> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::NewEventTemplate(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
 
     pub fn is_open_profile(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_profile())
@@ -122,6 +141,11 @@ impl CalendarApp {
     }
     pub fn is_open_new_schedule(&self) -> bool {
         self.popups.iter().any(|p| p.get_type().is_new_schedule())
+    }
+    pub fn is_open_new_event_template(&self) -> bool {
+        self.popups
+            .iter()
+            .any(|p| p.get_type().is_new_event_template())
     }
 
     pub fn open_profile(&mut self) {
@@ -159,6 +183,16 @@ impl CalendarApp {
                 me.user.id,
                 me.get_access_level().level,
                 vec![],
+            ))
+            .popup(),
+        );
+    }
+    pub fn open_new_event_template(&mut self) {
+        let me = self.state.me.as_ref().unwrap();
+        self.popups.push(
+            PopupType::NewEventTemplate(EventTemplateInput::new(
+                me.user.id,
+                me.get_access_level().level,
             ))
             .popup(),
         );
@@ -207,6 +241,16 @@ impl CalendarApp {
         }
         if let Some(popup) = self.get_update_event_popup() {
             if polled.has_update_event() {
+                popup.closed = true;
+            }
+        }
+        if let Some(popup) = self.get_new_schedule_popup() {
+            if polled.has_insert_schedule() {
+                popup.closed = true;
+            }
+        }
+        if let Some(popup) = self.get_new_event_template_popup() {
+            if polled.has_insert_event_template() {
                 popup.closed = true;
             }
         }
@@ -588,6 +632,15 @@ impl eframe::App for CalendarApp {
                                 .clicked()
                             {
                                 self.open_new_schedule();
+                            }
+                            if ui
+                                .add_enabled(
+                                    !self.is_open_new_event_template(),
+                                    egui::Button::new("Add Template"),
+                                )
+                                .clicked()
+                            {
+                                self.open_new_event_template();
                             }
                         });
                     });

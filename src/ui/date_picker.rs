@@ -17,8 +17,7 @@ use num_traits::FromPrimitive;
 /// - movable: `false`
 /// - format_string: `"%Y-%m-%d"`
 /// - weekend_func: `date.weekday() == Weekday::Sat || date.weekday() == Weekday::Sun`
-pub struct DatePicker<'a>
-{
+pub struct DatePicker<'a> {
     id: Id,
     date: &'a mut NaiveDate,
     format_string: String,
@@ -27,8 +26,7 @@ pub struct DatePicker<'a>
     highlight_weekend: bool,
 }
 
-impl<'a> DatePicker<'a>
-{
+impl<'a> DatePicker<'a> {
     /// Create new date picker with unique id and mutable reference to date.
     pub fn new<T: Hash>(id: T, date: &'a mut NaiveDate) -> Self {
         Self {
@@ -179,8 +177,7 @@ impl<'a> DatePicker<'a>
     }
 }
 
-impl<'a> Widget for DatePicker<'a>
-{
+impl<'a> Widget for DatePicker<'a> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let formated_date = self.date.format(&self.format_string);
         let button_response = ui.button(formated_date.to_string());

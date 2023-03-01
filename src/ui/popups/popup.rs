@@ -4,8 +4,8 @@ use egui::Vec2;
 use crate::ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal};
 
 use super::{
-    event_input::EventInput, login::Login, popup_builder::PopupBuilder, profile::Profile,
-    schedule_input::ScheduleInput, sign_up::SignUp,
+    event_input::EventInput, event_template_input::EventTemplateInput, login::Login,
+    popup_builder::PopupBuilder, profile::Profile, schedule_input::ScheduleInput, sign_up::SignUp,
 };
 
 #[derive(is_enum_variant)]
@@ -16,6 +16,7 @@ pub enum PopupType {
     NewEvent(EventInput),
     UpdateEvent(EventInput),
     NewSchedule(ScheduleInput),
+    NewEventTemplate(EventTemplateInput),
 }
 
 impl<'a> PopupBuilder<'a> for PopupType {
@@ -30,6 +31,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.build(ctx),
             PopupType::UpdateEvent(w) => w.build(ctx),
             PopupType::NewSchedule(w) => w.build(ctx),
+            PopupType::NewEventTemplate(w) => w.build(ctx),
         }
     }
 
@@ -41,6 +43,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.title(),
             PopupType::UpdateEvent(w) => w.title(),
             PopupType::NewSchedule(w) => w.title(),
+            PopupType::NewEventTemplate(w) => w.title(),
         }
     }
 
@@ -52,6 +55,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.signals(),
             PopupType::UpdateEvent(w) => w.signals(),
             PopupType::NewSchedule(w) => w.signals(),
+            PopupType::NewEventTemplate(w) => w.signals(),
         }
     }
 
@@ -63,6 +67,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.is_closed(),
             PopupType::UpdateEvent(w) => w.is_closed(),
             PopupType::NewSchedule(w) => w.is_closed(),
+            PopupType::NewEventTemplate(w) => w.is_closed(),
         }
     }
 }

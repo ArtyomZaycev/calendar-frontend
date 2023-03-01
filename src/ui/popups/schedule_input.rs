@@ -1,9 +1,15 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::{event_templates::types::EventTemplate, schedules::types::{NewSchedule, NewEventPlan}};
+use calendar_lib::api::{
+    event_templates::types::EventTemplate,
+    schedules::types::{NewEventPlan, NewSchedule},
+};
 use chrono::{Days, Local, NaiveDate};
 
-use crate::ui::{date_picker::DatePicker, time_picker::TimePicker, widget_signal::{AppSignal, StateSignal}};
+use crate::ui::{
+    date_picker::DatePicker,
+    widget_signal::{AppSignal, StateSignal},
+};
 
 use super::popup_builder::PopupBuilder;
 
@@ -81,21 +87,25 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
                     }
-                    if ui.add_enabled(
-                        self.template_id.is_some(),
-                        egui::Button::new("Create")
-                    ).clicked() {
+                    if ui
+                        .add_enabled(self.template_id.is_some(), egui::Button::new("Create"))
+                        .clicked()
+                    {
                         self.signals
-                            .push(AppSignal::StateSignal(StateSignal::InsertSchedule(NewSchedule {
-                                user_id: self.user_id, // TODO
-                                template_id: self.template_id.unwrap(),
-                                name: self.name.clone(),
-                                description: self.description_enabled.then(|| self.description.clone()),
-                                first_day: self.first_day,
-                                last_day: self.last_day_enabled.then_some(self.last_day),
-                                access_level: self.access_level,
-                                events: self.events.clone(),
-                            })));
+                            .push(AppSignal::StateSignal(StateSignal::InsertSchedule(
+                                NewSchedule {
+                                    user_id: self.user_id, // TODO
+                                    template_id: self.template_id.unwrap(),
+                                    name: self.name.clone(),
+                                    description: self
+                                        .description_enabled
+                                        .then(|| self.description.clone()),
+                                    first_day: self.first_day,
+                                    last_day: self.last_day_enabled.then_some(self.last_day),
+                                    access_level: self.access_level,
+                                    events: self.events.clone(),
+                                },
+                            )));
                     }
                 });
             })

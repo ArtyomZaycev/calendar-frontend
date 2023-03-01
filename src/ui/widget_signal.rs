@@ -1,6 +1,7 @@
 use calendar_lib::api::{
+    event_templates::types::NewEventTemplate,
     events::types::{NewEvent, UpdateEvent},
-    schedules::types::NewSchedule, event_templates::types::NewEventTemplate,
+    schedules::types::NewSchedule,
 };
 
 #[derive(Debug, Clone)]

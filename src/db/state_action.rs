@@ -1,6 +1,6 @@
 use calendar_lib::api::{
     auth::{self, login, register},
-    events, schedules, user_roles, event_templates,
+    event_templates, events, schedules, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
@@ -43,6 +43,8 @@ pub trait HasStateAction {
     fn has_insert_event(&self) -> bool;
     fn has_update_event(&self) -> bool;
     fn has_delete_events(&self) -> bool;
+    fn has_insert_schedule(&self) -> bool;
+    fn has_insert_event_template(&self) -> bool;
     fn has_none(&self) -> bool;
     fn has_error(&self) -> bool;
 }
@@ -92,6 +94,12 @@ impl HasStateAction for Vec<StateAction> {
     }
     fn has_delete_events(&self) -> bool {
         self.iter().any(|x| x.is_delete_event())
+    }
+    fn has_insert_schedule(&self) -> bool {
+        self.iter().any(|x| x.is_insert_schedule())
+    }
+    fn has_insert_event_template(&self) -> bool {
+        self.iter().any(|x| x.is_insert_event_template())
     }
     fn has_none(&self) -> bool {
         self.iter().any(|x| x.is_none())

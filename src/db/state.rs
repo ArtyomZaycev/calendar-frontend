@@ -95,7 +95,9 @@ impl State {
             StateSignal::UpdateEvent(upd_event) => self.update_event(upd_event),
             StateSignal::DeleteEvent(id) => self.delete_event(id),
 
-            StateSignal::InsertEventTemplate(new_event_template) => self.insert_event_template(new_event_template),
+            StateSignal::InsertEventTemplate(new_event_template) => {
+                self.insert_event_template(new_event_template)
+            }
             StateSignal::DeleteEventTemplate(id) => self.delete_event_template(id),
 
             StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
@@ -473,13 +475,13 @@ impl State {
             }
             StateAction::LoadEventTemplates(res) => {
                 self.event_templates = res.array;
-            },
+            }
             StateAction::InsertEventTemplate(_) => {
                 self.load_event_templates();
-            },
+            }
             StateAction::DeleteEventTemplate(_) => {
                 self.load_event_templates();
-            },
+            }
             StateAction::InsertSchedule(_) => {
                 self.load_schedules();
             }
