@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use calendar_lib::api::{event_templates::types::EventTemplate, schedules::types::{NewSchedule, NewEventPlan}};
-use chrono::{DateTime, Days, Local};
+use chrono::{Days, Local, NaiveDate};
 
 use crate::ui::{date_picker::DatePicker, time_picker::TimePicker, widget_signal::{AppSignal, StateSignal}};
 
@@ -16,9 +16,9 @@ pub struct ScheduleInput {
     pub name: String,
     pub description_enabled: bool,
     pub description: String,
-    pub first_day: DateTime<Local>,
+    pub first_day: NaiveDate,
     pub last_day_enabled: bool,
-    pub last_day: DateTime<Local>,
+    pub last_day: NaiveDate,
     pub access_level: i32,
     pub events: Vec<NewEventPlan>,
 
@@ -28,7 +28,7 @@ pub struct ScheduleInput {
 
 impl ScheduleInput {
     pub fn new(user_id: i32, max_access_level: i32, templates: Vec<EventTemplate>) -> Self {
-        let now = Local::now();
+        let now = Local::now().naive_local();
 
         Self {
             user_id,
@@ -38,9 +38,9 @@ impl ScheduleInput {
             name: String::default(),
             description_enabled: false,
             description: String::default(),
-            first_day: now,
+            first_day: now.date(),
             last_day_enabled: false,
-            last_day: now + Days::new(1),
+            last_day: now.date() + Days::new(1),
             access_level: 0,
             events: vec![],
             closed: false,
@@ -85,16 +85,14 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                         self.template_id.is_some(),
                         egui::Button::new("Create")
                     ).clicked() {
-                        let first_day = self.first_day.naive_local().date();
-                        let last_day = self.last_day.naive_local().date();
                         self.signals
                             .push(AppSignal::StateSignal(StateSignal::InsertSchedule(NewSchedule {
                                 user_id: self.user_id, // TODO
                                 template_id: self.template_id.unwrap(),
                                 name: self.name.clone(),
                                 description: self.description_enabled.then(|| self.description.clone()),
-                                first_day,
-                                last_day: self.last_day_enabled.then_some(last_day),
+                                first_day: self.first_day,
+                                last_day: self.last_day_enabled.then_some(self.last_day),
                                 access_level: self.access_level,
                                 events: self.events.clone(),
                             })));

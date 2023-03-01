@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
-use chrono::{DateTime, Duration, Local, NaiveDateTime, NaiveTime, TimeZone};
+use chrono::{Duration, Local, NaiveDateTime, NaiveTime, NaiveDate};
 
 use crate::ui::{
     date_picker::DatePicker,
@@ -20,7 +20,7 @@ pub struct EventInput {
     pub description: String,
     pub access_level: i32,
 
-    pub date: DateTime<Local>, // only date
+    pub date: NaiveDate,
     pub start: NaiveTime,
     pub end: NaiveTime,
 
@@ -30,7 +30,7 @@ pub struct EventInput {
 
 impl EventInput {
     pub fn new(max_access_level: i32) -> Self {
-        let now = Local::now();
+        let now = Local::now().naive_local();
         Self {
             max_access_level,
             id: None,
@@ -38,7 +38,7 @@ impl EventInput {
             description_enabled: false,
             description: String::default(),
             access_level: 0,
-            date: now,
+            date: now.date(),
             start: now.time(),
             end: now.time() + Duration::minutes(30),
             closed: false,
@@ -54,7 +54,7 @@ impl EventInput {
             description_enabled: event.description.is_some(),
             description: event.description.clone().unwrap_or_default(),
             access_level: event.access_level,
-            date: Local.from_local_datetime(&event.start).unwrap(),
+            date: event.start.date(),
             start: event.start.time(),
             end: event.end.time(),
             closed: false,
@@ -94,7 +94,6 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     }
                     if let Some(id) = self.id {
                         if ui.button("Update").clicked() {
-                            let date = self.date.naive_utc().date();
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
@@ -105,8 +104,8 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                             self.description_enabled
                                                 .then_some(self.description.clone()),
                                         ),
-                                        start: Some(NaiveDateTime::new(date, self.start)),
-                                        end: Some(NaiveDateTime::new(date, self.end)),
+                                        start: Some(NaiveDateTime::new(self.date, self.start)),
+                                        end: Some(NaiveDateTime::new(self.date, self.end)),
                                         access_level: Some(self.access_level),
                                         plan_id: None,
                                     },
@@ -114,15 +113,14 @@ impl<'a> PopupBuilder<'a> for EventInput {
                         }
                     } else {
                         if ui.button("Create").clicked() {
-                            let date = self.date.naive_utc().date();
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
                                     name: self.name.clone(),
                                     description: self
                                         .description_enabled
                                         .then_some(self.description.clone()),
-                                    start: NaiveDateTime::new(date, self.start),
-                                    end: NaiveDateTime::new(date, self.end),
+                                    start: NaiveDateTime::new(self.date, self.start),
+                                    end: NaiveDateTime::new(self.date, self.end),
                                     access_level: self.access_level,
                                     plan_id: None,
                                 })));

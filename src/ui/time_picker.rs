@@ -12,8 +12,8 @@ use eframe::{
 use egui::Id;
 
 pub struct TimePicker<'a> {
-    id: Id,
-    time: &'a mut NaiveTime,
+    pub id: Id,
+    pub time: &'a mut NaiveTime,
 }
 
 impl<'a> TimePicker<'a> {

@@ -2,7 +2,7 @@
 
 // From https://github.com/shadr/egui-datepicker
 
-use std::{fmt::Display, hash::Hash};
+use std::hash::Hash;
 
 pub use chrono::offset::{FixedOffset, Local, Utc};
 use chrono::{prelude::*, Duration};
@@ -17,26 +17,20 @@ use num_traits::FromPrimitive;
 /// - movable: `false`
 /// - format_string: `"%Y-%m-%d"`
 /// - weekend_func: `date.weekday() == Weekday::Sat || date.weekday() == Weekday::Sun`
-pub struct DatePicker<'a, Tz>
-where
-    Tz: TimeZone,
-    Tz::Offset: Display,
+pub struct DatePicker<'a>
 {
     id: Id,
-    date: &'a mut DateTime<Tz>,
+    date: &'a mut NaiveDate,
     format_string: String,
     weekend_color: Color32,
-    weekend_func: fn(&DateTime<Tz>) -> bool,
+    weekend_func: fn(&NaiveDate) -> bool,
     highlight_weekend: bool,
 }
 
-impl<'a, Tz> DatePicker<'a, Tz>
-where
-    Tz: TimeZone,
-    Tz::Offset: Display,
+impl<'a> DatePicker<'a>
 {
     /// Create new date picker with unique id and mutable reference to date.
-    pub fn new<T: Hash>(id: T, date: &'a mut DateTime<Tz>) -> Self {
+    pub fn new<T: Hash>(id: T, date: &'a mut NaiveDate) -> Self {
         Self {
             id: Id::new(id),
             date,
@@ -71,7 +65,7 @@ where
     }
 
     /// Set function, which will decide if date is a weekend day or not.
-    pub fn weekend_days(mut self, is_weekend: fn(&DateTime<Tz>) -> bool) -> Self {
+    pub fn weekend_days(mut self, is_weekend: fn(&NaiveDate) -> bool) -> Self {
         self.weekend_func = is_weekend;
         self
     }
@@ -87,13 +81,13 @@ where
 
     /// Get number of days between first day of the month and Monday ( or Sunday if field
     /// `sunday_first` is set to `true` )
-    fn get_start_offset_of_calendar(&self, first_day: &DateTime<Tz>) -> u32 {
+    fn get_start_offset_of_calendar(&self, first_day: &NaiveDate) -> u32 {
         first_day.weekday().num_days_from_monday()
     }
 
     /// Get number of days between first day of the next month and Monday ( or Sunday if field
     /// `sunday_first` is set to `true` )
-    fn get_end_offset_of_calendar(&self, first_day: &DateTime<Tz>) -> u32 {
+    fn get_end_offset_of_calendar(&self, first_day: &NaiveDate) -> u32 {
         (7 - (first_day).weekday().num_days_from_monday()) % 7
     }
 
@@ -117,7 +111,7 @@ where
         });
     }
 
-    fn show_day_button(&mut self, date: DateTime<Tz>, ui: &mut Ui) {
+    fn show_day_button(&mut self, date: NaiveDate, ui: &mut Ui) {
         ui.add_enabled_ui(self.date != &date, |ui| {
             ui.centered_and_justified(|ui| {
                 if self.date.month() != date.month() {
@@ -139,7 +133,7 @@ where
             self.show_month_control(ui);
             self.show_year_control(ui);
             if ui.button("Today").clicked() {
-                *self.date = Utc::now().with_timezone(&self.date.timezone());
+                *self.date = Local::now().date_naive();
             }
         });
     }
@@ -185,10 +179,7 @@ where
     }
 }
 
-impl<'a, Tz> Widget for DatePicker<'a, Tz>
-where
-    Tz: TimeZone,
-    Tz::Offset: Display,
+impl<'a> Widget for DatePicker<'a>
 {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let formated_date = self.date.format(&self.format_string);
