@@ -191,7 +191,7 @@ impl CalendarApp {
             PopupType::NewSchedule(ScheduleInput::new(
                 me.user.id,
                 me.get_access_level().level,
-                vec![],
+                self.state.event_templates.clone(),
             ))
             .popup(),
         );

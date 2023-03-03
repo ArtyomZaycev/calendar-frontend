@@ -2,6 +2,7 @@ use std::ops::RangeInclusive;
 
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
+use egui::{Layout, Align};
 
 use crate::ui::{
     date_picker::DatePicker,
@@ -88,10 +89,9 @@ impl<'a> PopupBuilder<'a> for EventInput {
                 ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
                 ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
 
-                ui.horizontal(|ui| {
-                    if ui.button("Cancel").clicked() {
-                        self.closed = true;
-                    }
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    // RTL
+
                     if let Some(id) = self.id {
                         if ui.button("Update").clicked() {
                             self.signals
@@ -125,6 +125,9 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     plan_id: None,
                                 })));
                         }
+                    }
+                    if ui.button("Cancel").clicked() {
+                        self.closed = true;
                     }
                 });
             })

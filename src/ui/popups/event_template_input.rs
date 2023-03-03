@@ -69,9 +69,8 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 ));
 
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    if ui.button("Cancel").clicked() {
-                        self.closed = true;
-                    }
+                    // RTL
+
                     if ui.button("Create").clicked() {
                         self.signals.push(AppSignal::StateSignal(
                             StateSignal::InsertEventTemplate(NewEventTemplate {
@@ -88,6 +87,9 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                                 access_level: self.access_level,
                             }),
                         ));
+                    }
+                    if ui.button("Cancel").clicked() {
+                        self.closed = true;
                     }
                 });
             })
