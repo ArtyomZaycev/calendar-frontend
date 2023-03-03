@@ -281,8 +281,12 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn insert_event(&self, new_event: NewEvent) {
+    pub fn insert_event(&self, mut new_event: NewEvent) {
         use events::insert::*;
+
+        if new_event.user_id == -1 {
+            new_event.user_id = self.me.as_ref().unwrap().user.id;
+        }
 
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
@@ -339,8 +343,12 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
-    pub fn insert_event_template(&self, new_event_template: NewEventTemplate) {
+    pub fn insert_event_template(&self, mut new_event_template: NewEventTemplate) {
         use event_templates::insert::*;
+
+        if new_event_template.user_id == -1 {
+            new_event_template.user_id = self.me.as_ref().unwrap().user.id;
+        }
 
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
@@ -381,8 +389,12 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
-    pub fn insert_schedule(&self, new_schedule: NewSchedule) {
+    pub fn insert_schedule(&self, mut new_schedule: NewSchedule) {
         use schedules::insert::*;
+
+        if new_schedule.user_id == -1 {
+            new_schedule.user_id = self.me.as_ref().unwrap().user.id;
+        }
 
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)

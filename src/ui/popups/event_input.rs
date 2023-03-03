@@ -115,6 +115,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                         if ui.button("Create").clicked() {
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
+                                    user_id: -1,
                                     name: self.name.clone(),
                                     description: self
                                         .description_enabled

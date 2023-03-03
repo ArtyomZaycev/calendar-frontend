@@ -189,7 +189,6 @@ impl CalendarApp {
         let me = self.state.me.as_ref().unwrap();
         self.popups.push(
             PopupType::NewSchedule(ScheduleInput::new(
-                me.user.id,
                 me.get_access_level().level,
                 self.state.event_templates.clone(),
             ))
@@ -200,7 +199,6 @@ impl CalendarApp {
         let me = self.state.me.as_ref().unwrap();
         self.popups.push(
             PopupType::NewEventTemplate(EventTemplateInput::new(
-                me.user.id,
                 me.get_access_level().level,
             ))
             .popup(),

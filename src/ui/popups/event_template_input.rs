@@ -13,7 +13,6 @@ use super::popup_builder::PopupBuilder;
 
 pub struct EventTemplateInput {
     pub max_access_level: i32,
-    pub user_id: i32,
 
     pub name: String,
     pub event_name: String,
@@ -26,10 +25,9 @@ pub struct EventTemplateInput {
 }
 
 impl EventTemplateInput {
-    pub fn new(user_id: i32, max_access_level: i32) -> Self {
+    pub fn new(max_access_level: i32) -> Self {
         Self {
             max_access_level,
-            user_id,
             name: String::default(),
             event_name: String::default(),
             event_description: String::default(),
@@ -74,7 +72,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                     if ui.button("Create").clicked() {
                         self.signals.push(AppSignal::StateSignal(
                             StateSignal::InsertEventTemplate(NewEventTemplate {
-                                user_id: self.user_id,
+                                user_id: -1,
                                 name: self.name.clone(),
                                 event_name: self.event_name.clone(),
                                 event_description: (!self.event_description.is_empty())

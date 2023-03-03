@@ -16,7 +16,6 @@ use crate::ui::{
 use super::popup_builder::PopupBuilder;
 
 pub struct ScheduleInput {
-    pub user_id: i32,
     pub max_access_level: i32,
     pub templates: Vec<EventTemplate>,
 
@@ -36,11 +35,10 @@ pub struct ScheduleInput {
 }
 
 impl ScheduleInput {
-    pub fn new(user_id: i32, max_access_level: i32, templates: Vec<EventTemplate>) -> Self {
+    pub fn new(max_access_level: i32, templates: Vec<EventTemplate>) -> Self {
         let now = Local::now().naive_local();
 
         Self {
-            user_id,
             max_access_level,
             templates,
             template_ind: None,
@@ -135,7 +133,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                         self.signals
                             .push(AppSignal::StateSignal(StateSignal::InsertSchedule(
                                 NewSchedule {
-                                    user_id: self.user_id,
+                                    user_id: -1,
                                     template_id: self.templates.get(self.template_ind.unwrap()).unwrap().id,
                                     name: self.name.clone(),
                                     description: (!self.description.is_empty())
