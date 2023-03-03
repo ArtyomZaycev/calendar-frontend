@@ -1,9 +1,13 @@
 use std::ops::RangeInclusive;
 
 use calendar_lib::api::event_templates::types::NewEventTemplate;
-use chrono::Duration;
+use chrono::NaiveTime;
+use egui::{Align, Layout, TextEdit};
 
-use crate::ui::widget_signal::{AppSignal, StateSignal};
+use crate::ui::{
+    time_picker::TimePicker,
+    widget_signal::{AppSignal, StateSignal},
+};
 
 use super::popup_builder::PopupBuilder;
 
@@ -13,9 +17,8 @@ pub struct EventTemplateInput {
 
     pub name: String,
     pub event_name: String,
-    pub event_description_enabled: bool,
     pub event_description: String,
-    pub duration: Duration,
+    pub duration: NaiveTime,
     pub access_level: i32,
 
     pub closed: bool,
@@ -29,9 +32,8 @@ impl EventTemplateInput {
             user_id,
             name: String::default(),
             event_name: String::default(),
-            event_description_enabled: false,
             event_description: String::default(),
-            duration: Duration::minutes(30),
+            duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             access_level: 0,
             closed: false,
             signals: vec![],
@@ -47,24 +49,26 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
         self.signals.clear();
         Box::new(|ui| {
             ui.vertical(|ui| {
-                ui.text_edit_singleline(&mut self.name);
-                ui.text_edit_singleline(&mut self.event_name);
+                ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
+                ui.separator();
 
-                ui.checkbox(&mut self.event_description_enabled, "Event Description");
-                if self.event_description_enabled {
-                    ui.text_edit_multiline(&mut self.event_description);
-                }
+                ui.add(TextEdit::singleline(&mut self.event_name).hint_text("Name"));
+                ui.add(TextEdit::multiline(&mut self.event_description).hint_text("Description"));
 
-                let mut dur = self.duration.num_minutes();
-                ui.add(egui::Slider::new(&mut dur, RangeInclusive::new(0, 180)));
-                self.duration = Duration::minutes(dur);
+                ui.horizontal(|ui| {
+                    ui.label("Duration: ");
+                    ui.add(TimePicker::new(
+                        "event_template_duration_picker",
+                        &mut self.duration,
+                    ));
+                });
 
                 ui.add(egui::Slider::new(
                     &mut self.access_level,
                     RangeInclusive::new(0, self.max_access_level),
                 ));
 
-                ui.horizontal(|ui| {
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     if ui.button("Cancel").clicked() {
                         self.closed = true;
                     }
@@ -74,10 +78,13 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                                 user_id: self.user_id,
                                 name: self.name.clone(),
                                 event_name: self.event_name.clone(),
-                                event_description: self
-                                    .event_description_enabled
+                                event_description: (!self.event_description.is_empty())
                                     .then_some(self.event_description.clone()),
-                                duration: self.duration.to_std().unwrap(),
+                                duration: self
+                                    .duration
+                                    .signed_duration_since(NaiveTime::default())
+                                    .to_std()
+                                    .unwrap(),
                                 access_level: self.access_level,
                             }),
                         ));

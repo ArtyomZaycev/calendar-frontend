@@ -1,5 +1,6 @@
 pub mod date_picker;
 pub mod event_card;
+pub mod event_template_card;
 pub mod popups;
 pub mod schedule_card;
 pub mod time_picker;

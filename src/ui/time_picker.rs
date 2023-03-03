@@ -30,20 +30,20 @@ impl<'a> Widget for TimePicker<'a> {
             let mut hours = self.time.hour();
             egui::ComboBox::from_id_source(self.id)
                 .width(50.)
-                .selected_text((hours + 1).to_string())
+                .selected_text(hours.to_string())
                 .show_ui(ui, |ui| {
                     (0..24).for_each(|hour| {
-                        ui.selectable_value(&mut hours, hour, (hour + 1).to_string());
+                        ui.selectable_value(&mut hours, hour, hour.to_string());
                     });
                 });
 
             let mut minutes = self.time.minute();
             egui::ComboBox::from_id_source(self.id.with(self.id.short_debug_format()))
                 .width(50.)
-                .selected_text((minutes + 1).to_string())
+                .selected_text(minutes.to_string())
                 .show_ui(ui, |ui| {
                     (0..60).for_each(|minute| {
-                        ui.selectable_value(&mut minutes, minute, (minute + 1).to_string());
+                        ui.selectable_value(&mut minutes, minute, minute.to_string());
                     });
                 });
 

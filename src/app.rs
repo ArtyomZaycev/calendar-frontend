@@ -13,6 +13,7 @@ use crate::{
     },
     ui::{
         event_card::EventCard,
+        event_template_card::EventTemplateCard,
         popups::{
             event_input::EventInput,
             event_template_input::EventTemplateInput,
@@ -617,7 +618,42 @@ impl CalendarApp {
     }
 
     fn event_templates_view(&mut self, ui: &mut egui::Ui) {
-        ui.label("In Development");
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let num_columns = 7usize;
+            let column_width = (ui.available_width()
+                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
+                / num_columns as f32;
+
+            let mut signals = vec![];
+
+            // TODO: Use array_chunks, once it becomes stable
+            // https://github.com/rust-lang/rust/issues/100450
+            self.state
+                .event_templates
+                .iter()
+                .enumerate()
+                .fold(Vec::default(), |mut acc, (i, schedule)| {
+                    if i % num_columns == 0 {
+                        acc.push(Vec::default());
+                    }
+                    acc.last_mut().unwrap().push(schedule);
+                    acc
+                })
+                .into_iter()
+                .for_each(|templates| {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        templates.into_iter().for_each(|template| {
+                            ui.add(EventTemplateCard::new(
+                                &mut signals,
+                                egui::Vec2::new(column_width, 200.),
+                                &template,
+                            ));
+                        });
+                    });
+                });
+
+            self.parse_signals(signals);
+        });
     }
 }
 
@@ -660,7 +696,6 @@ impl eframe::App for CalendarApp {
             if let Some(_me) = &self.state.me {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     self.view_picker(ui);
-                    ui.add_space(8.);
                     self.main_view(ui);
                 });
             }

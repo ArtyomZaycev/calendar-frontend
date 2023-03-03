@@ -63,7 +63,7 @@ impl<'a> Widget for EventCard<'a> {
             egui::Frame::none()
                 .rounding(4.)
                 .stroke(Stroke::new(
-                    2.,
+                    1.,
                     if plan_id.is_some() {
                         Color32::BLUE
                     } else {

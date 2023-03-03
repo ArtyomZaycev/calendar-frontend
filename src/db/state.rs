@@ -42,7 +42,6 @@ impl State {
 
     pub fn generate_scheduled_events(&mut self) {
         let now = chrono::Local::now().naive_local();
-        dbg!(&now);
 
         let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
             self.events
