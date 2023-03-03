@@ -72,7 +72,7 @@ impl Default for CalendarApp {
 
 impl CalendarApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        if let Some(storage) = cc.storage {
+        if let Some(_storage) = cc.storage {
             //return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
 
@@ -656,7 +656,7 @@ impl CalendarApp {
 }
 
 impl eframe::App for CalendarApp {
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
         //eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
