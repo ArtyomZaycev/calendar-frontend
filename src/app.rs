@@ -1,5 +1,6 @@
 use calendar_lib::api::{auth::register, events::types::Event};
 use chrono::NaiveDate;
+use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
@@ -22,19 +23,26 @@ use crate::{
             sign_up::SignUp,
         },
         schedule_card::ScheduleCard,
+        utils::UiUtils,
         widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
     utils::{get_first_month_day_date, get_last_month_day_date, get_monday, weekday_human_name},
 };
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-enum CalendarView {
+#[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
+enum EventsView {
     Month(NaiveDate),
     Week(NaiveDate),
     Day(NaiveDate),
-    Events(NaiveDate),
+    Days(NaiveDate),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
+enum CalendarView {
+    Events(EventsView),
     Schedules,
+    EventTemplates,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -55,7 +63,7 @@ impl Default for CalendarApp {
         let config = Config::load();
         Self {
             state: State::new(&config),
-            view: CalendarView::Events(chrono::Local::now().naive_local().date()),
+            view: CalendarView::Events(EventsView::Days(chrono::Local::now().naive_local().date())),
             popups: Vec::default(),
         }
     }
@@ -299,6 +307,88 @@ impl CalendarApp {
         });
     }
 
+    fn view_picker(&mut self, ui: &mut egui::Ui) {
+        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+            ui.selectable_header("Events", self.view.is_events(), || {
+                self.view = CalendarView::Events(EventsView::Days(
+                    chrono::Local::now().naive_local().date(),
+                ))
+            });
+            ui.selectable_header("Schedules", self.view.is_schedules(), || {
+                self.view = CalendarView::Schedules
+            });
+            ui.selectable_header("Templates", self.view.is_event_templates(), || {
+                self.view = CalendarView::EventTemplates
+            });
+
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| match self.view {
+                CalendarView::Events(_) => {
+                    if ui
+                        .add_enabled(!self.is_open_new_event(), egui::Button::new("Add Event"))
+                        .clicked()
+                    {
+                        self.open_new_event();
+                    }
+                }
+                CalendarView::Schedules => {
+                    if ui
+                        .add_enabled(
+                            !self.is_open_new_schedule(),
+                            egui::Button::new("Add Schedule"),
+                        )
+                        .clicked()
+                    {
+                        self.open_new_schedule();
+                    }
+                }
+                CalendarView::EventTemplates => {
+                    if ui
+                        .add_enabled(
+                            !self.is_open_new_event_template(),
+                            egui::Button::new("Add Template"),
+                        )
+                        .clicked()
+                    {
+                        self.open_new_event_template();
+                    }
+                }
+            });
+        });
+
+        match &self.view {
+            CalendarView::Events(_) => self.events_view_picker(ui),
+            _ => {}
+        }
+    }
+
+    fn events_view_picker(&mut self, ui: &mut egui::Ui) {
+        if let CalendarView::Events(view) = &mut self.view {
+            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                let today = chrono::Local::now().naive_local().date();
+                ui.selectable_header("Month", view.is_month(), || {
+                    *view = EventsView::Month(today)
+                });
+                ui.selectable_header("Week", view.is_week(), || *view = EventsView::Week(today));
+                ui.selectable_header("Day", view.is_day(), || *view = EventsView::Day(today));
+                ui.selectable_header("Events", view.is_days(), || *view = EventsView::Days(today));
+            });
+        }
+        ui.add_space(8.);
+    }
+
+    fn main_view(&mut self, ui: &mut egui::Ui) {
+        match &self.view {
+            CalendarView::Events(view) => match view {
+                EventsView::Month(date) => self.month_view(ui, *date),
+                EventsView::Week(date) => self.week_view(ui, *date),
+                EventsView::Day(date) => self.day_view(ui, *date),
+                EventsView::Days(date) => self.events_view(ui, *date),
+            },
+            CalendarView::Schedules => self.schedules_view(ui),
+            CalendarView::EventTemplates => self.event_templates_view(ui),
+        }
+    }
+
     fn month_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         let first_day = get_first_month_day_date(&date);
         let last_day = get_last_month_day_date(&date);
@@ -525,6 +615,10 @@ impl CalendarApp {
             self.parse_signals(signals);
         });
     }
+
+    fn event_templates_view(&mut self, ui: &mut egui::Ui) {
+        ui.label("In Development");
+    }
 }
 
 impl eframe::App for CalendarApp {
@@ -565,94 +659,9 @@ impl eframe::App for CalendarApp {
             // CALENDAR
             if let Some(_me) = &self.state.me {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        let mut month_text = RichText::new("Month").heading();
-                        let mut week_text = RichText::new("Week").heading();
-                        let mut day_text = RichText::new("Day").heading();
-                        let mut events_text = RichText::new("Events").heading();
-                        let mut schedules_text = RichText::new("Schedules").heading();
-                        match self.view {
-                            // This is pathetic
-                            CalendarView::Month(_) => month_text = month_text.underline(),
-                            CalendarView::Week(_) => week_text = week_text.underline(),
-                            CalendarView::Day(_) => day_text = day_text.underline(),
-                            CalendarView::Events(_) => events_text = events_text.underline(),
-                            CalendarView::Schedules => schedules_text = schedules_text.underline(),
-                        };
-                        if ui
-                            .add(egui::Label::new(month_text).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.view =
-                                CalendarView::Month(chrono::Local::now().naive_local().date());
-                        }
-                        if ui
-                            .add(egui::Label::new(week_text).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.view =
-                                CalendarView::Week(chrono::Local::now().naive_local().date());
-                        }
-                        if ui
-                            .add(egui::Label::new(day_text).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.view =
-                                CalendarView::Day(chrono::Local::now().naive_local().date());
-                        }
-                        if ui
-                            .add(egui::Label::new(events_text).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.view =
-                                CalendarView::Events(chrono::Local::now().naive_local().date());
-                        }
-                        ui.add_space(16.);
-                        if ui
-                            .add(egui::Label::new(schedules_text).sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.view = CalendarView::Schedules;
-                        }
-                        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            if ui
-                                .add_enabled(
-                                    !self.is_open_new_event(),
-                                    egui::Button::new("Add Event"),
-                                )
-                                .clicked()
-                            {
-                                self.open_new_event();
-                            }
-                            if ui
-                                .add_enabled(
-                                    !self.is_open_new_schedule(),
-                                    egui::Button::new("Add Schedule"),
-                                )
-                                .clicked()
-                            {
-                                self.open_new_schedule();
-                            }
-                            if ui
-                                .add_enabled(
-                                    !self.is_open_new_event_template(),
-                                    egui::Button::new("Add Template"),
-                                )
-                                .clicked()
-                            {
-                                self.open_new_event_template();
-                            }
-                        });
-                    });
+                    self.view_picker(ui);
                     ui.add_space(8.);
-
-                    match self.view {
-                        CalendarView::Month(date) => self.month_view(ui, date),
-                        CalendarView::Week(date) => self.week_view(ui, date),
-                        CalendarView::Day(date) => self.day_view(ui, date),
-                        CalendarView::Events(date) => self.events_view(ui, date),
-                        CalendarView::Schedules => self.schedules_view(ui),
-                    }
+                    self.main_view(ui);
                 });
             }
         });

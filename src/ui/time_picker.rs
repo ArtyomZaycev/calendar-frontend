@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 // TODO: Move to lib
 
 use std::hash::Hash;
