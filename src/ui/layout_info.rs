@@ -8,8 +8,8 @@ impl GridLayoutInfo {
         Self {
             num_of_columns,
             column_width: (ui.available_width()
-            - ui.spacing().item_spacing.x * (num_of_columns - 1) as f32)
-            / num_of_columns as f32
+                - ui.spacing().item_spacing.x * (num_of_columns - 1) as f32)
+                / num_of_columns as f32,
         }
     }
 

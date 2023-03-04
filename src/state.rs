@@ -3,14 +3,17 @@ use chrono::{Datelike, NaiveDateTime};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
-use crate::{config::Config, ui::widget_signal::StateSignal};
-
-use super::{
-    aliases::*,
-    connector::{Connector, RequestDescriptor},
-    request_parser::RequestParser,
-    state_action::StateAction,
+use crate::{
+    config::Config,
+    db::{
+        aliases::*,
+        connector::{Connector, RequestDescriptor},
+        request_parser::RequestParser,
+    },
+    ui::widget_signal::StateSignal,
 };
+
+use super::state_action::StateAction;
 
 pub struct State {
     connector: Connector<StateAction>,

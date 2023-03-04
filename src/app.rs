@@ -7,13 +7,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
-    db::{
-        state::State,
-        state_action::{GetStateAction, HasStateAction, StateAction},
-    },
+    state::State,
+    state_action::*,
     ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
+        layout_info::GridLayoutInfo,
         popups::{
             event_input::EventInput,
             event_template_input::EventTemplateInput,
@@ -26,9 +25,9 @@ use crate::{
         schedule_card::ScheduleCard,
         utils::UiUtils,
         widget_builder::WidgetBuilder,
-        widget_signal::AppSignal, layout_info::GridLayoutInfo,
+        widget_signal::AppSignal,
     },
-    utils::{get_first_month_day_date, get_last_month_day_date, get_monday, weekday_human_name},
+    utils::*,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
@@ -478,7 +477,10 @@ impl CalendarApp {
 
     fn day_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let GridLayoutInfo {
+                num_of_columns,
+                column_width,
+            } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -516,7 +518,10 @@ impl CalendarApp {
 
     fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let GridLayoutInfo {
+                num_of_columns,
+                column_width,
+            } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -571,7 +576,10 @@ impl CalendarApp {
 
     fn schedules_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let GridLayoutInfo {
+                num_of_columns,
+                column_width,
+            } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -607,7 +615,10 @@ impl CalendarApp {
 
     fn event_templates_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let GridLayoutInfo {
+                num_of_columns,
+                column_width,
+            } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
