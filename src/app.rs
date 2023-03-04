@@ -26,7 +26,7 @@ use crate::{
         schedule_card::ScheduleCard,
         utils::UiUtils,
         widget_builder::WidgetBuilder,
-        widget_signal::AppSignal,
+        widget_signal::AppSignal, layout_info::GridLayoutInfo,
     },
     utils::{get_first_month_day_date, get_last_month_day_date, get_monday, weekday_human_name},
 };
@@ -390,7 +390,8 @@ impl CalendarApp {
         let first_day = get_first_month_day_date(&date);
         let last_day = get_last_month_day_date(&date);
         let first_monday = get_monday(&first_day);
-        let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+
+        let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
 
         let signals = vec![];
         ui.horizontal(|ui| {
@@ -440,7 +441,7 @@ impl CalendarApp {
     fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let monday = get_monday(&date);
-            let column_width = (ui.available_width() - ui.spacing().item_spacing.x * 6.) / 7.;
+            let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
             ui.horizontal_top(|ui| {
                 let mut signals = vec![];
                 (0..7).for_each(|weekday| {
@@ -477,10 +478,7 @@ impl CalendarApp {
 
     fn day_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let num_columns = 7usize;
-            let column_width = (ui.available_width()
-                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
-                / num_columns as f32;
+            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -493,7 +491,7 @@ impl CalendarApp {
                 .filter(|e| e.start.date() == date)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
-                    if i % num_columns == 0 {
+                    if i % num_of_columns as usize == 0 {
                         acc.push(Vec::default());
                     }
                     acc.last_mut().unwrap().push(event);
@@ -518,10 +516,7 @@ impl CalendarApp {
 
     fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let num_columns = 7usize;
-            let column_width = (ui.available_width()
-                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
-                / num_columns as f32;
+            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -549,7 +544,7 @@ impl CalendarApp {
                             .filter(|e| e.start.date() == date)
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
-                                if i % num_columns == 0 {
+                                if i % num_of_columns as usize == 0 {
                                     acc.push(Vec::default());
                                 }
                                 acc.last_mut().unwrap().push(event);
@@ -576,10 +571,7 @@ impl CalendarApp {
 
     fn schedules_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let num_columns = 7usize;
-            let column_width = (ui.available_width()
-                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
-                / num_columns as f32;
+            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -590,7 +582,7 @@ impl CalendarApp {
                 .iter()
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, schedule)| {
-                    if i % num_columns == 0 {
+                    if i % num_of_columns as usize == 0 {
                         acc.push(Vec::default());
                     }
                     acc.last_mut().unwrap().push(schedule);
@@ -615,10 +607,7 @@ impl CalendarApp {
 
     fn event_templates_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let num_columns = 7usize;
-            let column_width = (ui.available_width()
-                - ui.spacing().item_spacing.x * (num_columns - 1) as f32)
-                / num_columns as f32;
+            let GridLayoutInfo { num_of_columns, column_width } = GridLayoutInfo::from_desired_width(ui, 200.);
 
             let mut signals = vec![];
 
@@ -629,7 +618,7 @@ impl CalendarApp {
                 .iter()
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, schedule)| {
-                    if i % num_columns == 0 {
+                    if i % num_of_columns as usize == 0 {
                         acc.push(Vec::default());
                     }
                     acc.last_mut().unwrap().push(schedule);

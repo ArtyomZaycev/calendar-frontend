@@ -1,3 +1,4 @@
+pub mod layout_info;
 pub mod date_picker;
 pub mod event_card;
 pub mod event_template_card;
