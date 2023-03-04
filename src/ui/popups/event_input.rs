@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use calendar_lib::api::events::types::*;
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
-use egui::{Align, Layout};
+use egui::InnerResponse;
 
 use crate::{
     state::State,
@@ -14,7 +14,7 @@ use crate::{
     utils::event_visibility_human_name,
 };
 
-use super::popup_builder::PopupBuilder;
+use super::popup_builder::{ContentInfo, PopupBuilder};
 
 pub struct EventInput {
     pub max_access_level: i32,
@@ -72,55 +72,69 @@ impl EventInput {
 }
 
 impl<'a> PopupBuilder<'a> for EventInput {
-    fn build(
+    fn content(
         &'a mut self,
+        ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         _state: &'a State,
-    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
+    ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
-        Box::new(|ui| {
-            ui.vertical(|ui| {
-                ui.text_edit_singleline(&mut self.name);
-                ui.checkbox(&mut self.description_enabled, "Description");
 
-                if self.description_enabled {
-                    ui.text_edit_multiline(&mut self.description);
-                }
+        ui.vertical(|ui| {
+            ui.text_edit_singleline(&mut self.name);
+            ui.checkbox(&mut self.description_enabled, "Description");
 
-                ui.add(egui::Slider::new(
-                    &mut self.access_level,
-                    RangeInclusive::new(0, self.max_access_level),
-                ));
-                egui::ComboBox::from_id_source(self.id)
-                    .selected_text(event_visibility_human_name(&self.visibility))
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.visibility,
-                            EventVisibility::HideName,
-                            event_visibility_human_name(&EventVisibility::HideName),
-                        );
-                        ui.selectable_value(
-                            &mut self.visibility,
-                            EventVisibility::HideDescription,
-                            event_visibility_human_name(&EventVisibility::HideDescription),
-                        );
-                        ui.selectable_value(
-                            &mut self.visibility,
-                            EventVisibility::HideAll,
-                            event_visibility_human_name(&EventVisibility::HideAll),
-                        );
-                    });
+            if self.description_enabled {
+                ui.text_edit_multiline(&mut self.description);
+            }
 
-                ui.add(DatePicker::new("date_picker_id", &mut self.date));
+            ui.add(egui::Slider::new(
+                &mut self.access_level,
+                RangeInclusive::new(0, self.max_access_level),
+            ));
+            egui::ComboBox::from_id_source(self.id)
+                .selected_text(event_visibility_human_name(&self.visibility))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(
+                        &mut self.visibility,
+                        EventVisibility::HideName,
+                        event_visibility_human_name(&EventVisibility::HideName),
+                    );
+                    ui.selectable_value(
+                        &mut self.visibility,
+                        EventVisibility::HideDescription,
+                        event_visibility_human_name(&EventVisibility::HideDescription),
+                    );
+                    ui.selectable_value(
+                        &mut self.visibility,
+                        EventVisibility::HideAll,
+                        event_visibility_human_name(&EventVisibility::HideAll),
+                    );
+                });
 
-                ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
-                ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
+            ui.add(DatePicker::new("date_picker_id", &mut self.date));
 
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    // RTL
+            ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
+            ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
 
+            ContentInfo::new()
+                .error(
+                    self.name
+                        .is_empty()
+                        .then_some("Name cannot be empty".to_owned()),
+                )
+                .error((self.start > self.end).then_some("End must be before the start".to_owned()))
+                .button(|ui, _| {
+                    let response = ui.button("Cancel");
+                    if response.clicked() {
+                        self.closed = true;
+                    }
+                    response
+                })
+                .button(|ui, is_error| {
                     if let Some(id) = self.id {
-                        if ui.button("Update").clicked() {
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
+                        if response.clicked() {
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
@@ -139,8 +153,10 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     },
                                 )));
                         }
+                        response
                     } else {
-                        if ui.button("Create").clicked() {
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
+                        if response.clicked() {
                             self.signals
                                 .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
                                     user_id: -1,
@@ -155,13 +171,9 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     plan_id: None,
                                 })));
                         }
+                        response
                     }
-                    if ui.button("Cancel").clicked() {
-                        self.closed = true;
-                    }
-                });
-            })
-            .response
+                })
         })
     }
 

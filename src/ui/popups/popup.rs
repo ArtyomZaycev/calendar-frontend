@@ -1,5 +1,5 @@
 use derive_is_enum_variant::is_enum_variant;
-use egui::Vec2;
+use egui::{InnerResponse, Vec2};
 
 use crate::{
     state::State,
@@ -7,8 +7,13 @@ use crate::{
 };
 
 use super::{
-    event_input::EventInput, event_template_input::EventTemplateInput, login::Login,
-    popup_builder::PopupBuilder, profile::Profile, schedule_input::ScheduleInput, sign_up::SignUp,
+    event_input::EventInput,
+    event_template_input::EventTemplateInput,
+    login::Login,
+    popup_builder::{ContentInfo, PopupBuilder},
+    profile::Profile,
+    schedule_input::ScheduleInput,
+    sign_up::SignUp,
 };
 
 #[derive(is_enum_variant)]
@@ -23,19 +28,20 @@ pub enum PopupType {
 }
 
 impl<'a> PopupBuilder<'a> for PopupType {
-    fn build(
+    fn content(
         &'a mut self,
+        ui: &mut egui::Ui,
         ctx: &'a egui::Context,
         state: &'a State,
-    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
+    ) -> InnerResponse<ContentInfo<'a>> {
         match self {
-            PopupType::Profile(w) => w.build(ctx, state),
-            PopupType::Login(w) => w.build(ctx, state),
-            PopupType::SignUp(w) => w.build(ctx, state),
-            PopupType::NewEvent(w) => w.build(ctx, state),
-            PopupType::UpdateEvent(w) => w.build(ctx, state),
-            PopupType::NewSchedule(w) => w.build(ctx, state),
-            PopupType::NewEventTemplate(w) => w.build(ctx, state),
+            PopupType::Profile(w) => w.content(ui, ctx, state),
+            PopupType::Login(w) => w.content(ui, ctx, state),
+            PopupType::SignUp(w) => w.content(ui, ctx, state),
+            PopupType::NewEvent(w) => w.content(ui, ctx, state),
+            PopupType::UpdateEvent(w) => w.content(ui, ctx, state),
+            PopupType::NewSchedule(w) => w.content(ui, ctx, state),
+            PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
         }
     }
 

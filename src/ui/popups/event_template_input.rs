@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use calendar_lib::api::event_templates::types::NewEventTemplate;
 use chrono::NaiveTime;
-use egui::{Align, Layout, TextEdit};
+use egui::{Align, InnerResponse, Layout, TextEdit};
 
 use crate::{
     state::State,
@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::PopupBuilder;
+use super::popup_builder::{ContentInfo, PopupBuilder};
 
 pub struct EventTemplateInput {
     pub max_access_level: i32,
@@ -43,37 +43,70 @@ impl EventTemplateInput {
 }
 
 impl<'a> PopupBuilder<'a> for EventTemplateInput {
-    fn build(
+    fn content(
         &'a mut self,
+        ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         _state: &'a State,
-    ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
+    ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
-        Box::new(|ui| {
-            ui.vertical(|ui| {
-                ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
-                ui.separator();
+        ui.vertical(|ui| {
+            ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
+            ui.separator();
 
-                ui.add(TextEdit::singleline(&mut self.event_name).hint_text("Name"));
-                ui.add(TextEdit::multiline(&mut self.event_description).hint_text("Description"));
+            ui.add(TextEdit::singleline(&mut self.event_name).hint_text("Name"));
+            ui.add(TextEdit::multiline(&mut self.event_description).hint_text("Description"));
 
-                ui.horizontal(|ui| {
-                    ui.label("Duration: ");
-                    ui.add(TimePicker::new(
-                        "event_template_duration_picker",
-                        &mut self.duration,
-                    ));
-                });
-
-                ui.add(egui::Slider::new(
-                    &mut self.access_level,
-                    RangeInclusive::new(0, self.max_access_level),
+            ui.horizontal(|ui| {
+                ui.label("Duration: ");
+                ui.add(TimePicker::new(
+                    "event_template_duration_picker",
+                    &mut self.duration,
                 ));
+            });
 
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    // RTL
+            ui.add(egui::Slider::new(
+                &mut self.access_level,
+                RangeInclusive::new(0, self.max_access_level),
+            ));
 
-                    if ui.button("Create").clicked() {
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                // RTL
+
+                if ui.button("Create").clicked() {
+                    self.signals
+                        .push(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
+                            NewEventTemplate {
+                                user_id: -1,
+                                name: self.name.clone(),
+                                event_name: self.event_name.clone(),
+                                event_description: (!self.event_description.is_empty())
+                                    .then_some(self.event_description.clone()),
+                                duration: self
+                                    .duration
+                                    .signed_duration_since(NaiveTime::default())
+                                    .to_std()
+                                    .unwrap(),
+                                access_level: self.access_level,
+                            },
+                        )));
+                }
+                if ui.button("Cancel").clicked() {
+                    self.closed = true;
+                }
+            });
+
+            ContentInfo::new()
+                .button(|ui, _| {
+                    let response = ui.button("Cancel");
+                    if response.clicked() {
+                        self.closed = true;
+                    }
+                    response
+                })
+                .button(|ui, is_error| {
+                    let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
+                    if response.clicked() {
                         self.signals.push(AppSignal::StateSignal(
                             StateSignal::InsertEventTemplate(NewEventTemplate {
                                 user_id: -1,
@@ -90,12 +123,8 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                             }),
                         ));
                     }
-                    if ui.button("Cancel").clicked() {
-                        self.closed = true;
-                    }
-                });
-            })
-            .response
+                    response
+                })
         })
     }
 
