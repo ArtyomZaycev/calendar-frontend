@@ -107,11 +107,15 @@ impl<'a> Widget for EventCard<'a> {
                                     ui.label(date.format("%Y-%m-%d").to_string());
                                 }
                                 if self.show_time {
-                                    ui.label(format!(
-                                        "{} - {}",
-                                        start.format("%H:%M").to_string(),
-                                        end.format("%H:%M").to_string()
-                                    ));
+                                    ui.label(if start == end {
+                                        start.format("%H:%M").to_string()
+                                    } else {
+                                        format!(
+                                            "{} - {}",
+                                            start.format("%H:%M").to_string(),
+                                            end.format("%H:%M").to_string()
+                                        )
+                                    });
                                 }
                             } else {
                                 ui.add(egui::Label::new(
