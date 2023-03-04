@@ -1,13 +1,16 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
+use calendar_lib::api::events::types::*;
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
 use egui::{Align, Layout};
 
-use crate::ui::{
-    date_picker::DatePicker,
-    time_picker::TimePicker,
-    widget_signal::{AppSignal, StateSignal},
+use crate::{
+    ui::{
+        date_picker::DatePicker,
+        time_picker::TimePicker,
+        widget_signal::{AppSignal, StateSignal},
+    },
+    utils::event_visibility_human_name,
 };
 
 use super::popup_builder::PopupBuilder;
@@ -20,6 +23,7 @@ pub struct EventInput {
     pub description_enabled: bool,
     pub description: String,
     pub access_level: i32,
+    pub visibility: EventVisibility,
 
     pub date: NaiveDate,
     pub start: NaiveTime,
@@ -39,6 +43,7 @@ impl EventInput {
             description_enabled: false,
             description: String::default(),
             access_level: 0,
+            visibility: EventVisibility::HideAll,
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::minutes(30),
@@ -55,6 +60,7 @@ impl EventInput {
             description_enabled: event.description.is_some(),
             description: event.description.clone().unwrap_or_default(),
             access_level: event.access_level,
+            visibility: event.visibility,
             date: event.start.date(),
             start: event.start.time(),
             end: event.end.time(),
@@ -83,6 +89,25 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     &mut self.access_level,
                     RangeInclusive::new(0, self.max_access_level),
                 ));
+                egui::ComboBox::from_id_source(self.id)
+                    .selected_text(event_visibility_human_name(&self.visibility))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(
+                            &mut self.visibility,
+                            EventVisibility::HideName,
+                            event_visibility_human_name(&EventVisibility::HideName),
+                        );
+                        ui.selectable_value(
+                            &mut self.visibility,
+                            EventVisibility::HideDescription,
+                            event_visibility_human_name(&EventVisibility::HideDescription),
+                        );
+                        ui.selectable_value(
+                            &mut self.visibility,
+                            EventVisibility::HideAll,
+                            event_visibility_human_name(&EventVisibility::HideAll),
+                        );
+                    });
 
                 ui.add(DatePicker::new("date_picker_id", &mut self.date));
 
@@ -107,6 +132,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                         start: Some(NaiveDateTime::new(self.date, self.start)),
                                         end: Some(NaiveDateTime::new(self.date, self.end)),
                                         access_level: Some(self.access_level),
+                                        visibility: Some(self.visibility),
                                         plan_id: None,
                                     },
                                 )));
@@ -123,6 +149,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     start: NaiveDateTime::new(self.date, self.start),
                                     end: NaiveDateTime::new(self.date, self.end),
                                     access_level: self.access_level,
+                                    visibility: self.visibility,
                                     plan_id: None,
                                 })));
                         }

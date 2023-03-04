@@ -73,6 +73,7 @@ impl State {
                                 start,
                                 end: start + chrono::Duration::from_std(template.duration).unwrap(),
                                 access_level: schedule.access_level,
+                                visibility: EventVisibility::HideAll,
                                 plan_id: Some(event_plan.id),
                             })
                         })

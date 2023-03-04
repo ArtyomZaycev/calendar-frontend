@@ -60,11 +60,14 @@ impl<'a> Widget for EventCard<'a> {
                 ..
             } = self.event;
 
+            let is_planned = plan_id.is_some();
+            let is_phantom = *event_id == -1;
+
             egui::Frame::none()
                 .rounding(4.)
                 .stroke(Stroke::new(
                     1.,
-                    if plan_id.is_some() {
+                    if is_planned {
                         Color32::BLUE
                     } else {
                         Color32::RED
@@ -74,13 +77,15 @@ impl<'a> Widget for EventCard<'a> {
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
-                            if ui.small_button("X").clicked() {
-                                self.signals
-                                    .push(StateSignal::DeleteEvent(*event_id).into());
-                            }
-                            if ui.small_button("E").clicked() {
-                                self.signals.push(AppSignal::ChangeEvent(*event_id));
+                            if !is_phantom {
+                                ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
+                                if ui.small_button("X").clicked() {
+                                    self.signals
+                                        .push(StateSignal::DeleteEvent(*event_id).into());
+                                }
+                                if ui.small_button("E").clicked() {
+                                    self.signals.push(AppSignal::ChangeEvent(*event_id));
+                                }
                             }
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));

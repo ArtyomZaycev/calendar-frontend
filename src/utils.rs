@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use calendar_lib::api::events::types::EventVisibility;
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -55,5 +56,14 @@ pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
         chrono::Weekday::Fri => "Friday",
         chrono::Weekday::Sat => "Saturday",
         chrono::Weekday::Sun => "Sunday",
+    }
+}
+
+pub fn event_visibility_human_name(visibility: &EventVisibility) -> &'static str {
+    match visibility {
+        EventVisibility::HideAll => "Hide completelly",
+        EventVisibility::HideName => "Hide name and description",
+        EventVisibility::HideDescription => "Hide description",
+        EventVisibility::Show => "Show",
     }
 }
