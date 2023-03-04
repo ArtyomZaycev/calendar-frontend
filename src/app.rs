@@ -198,10 +198,8 @@ impl CalendarApp {
     pub fn open_new_event_template(&mut self) {
         let me = self.state.me.as_ref().unwrap();
         self.popups.push(
-            PopupType::NewEventTemplate(EventTemplateInput::new(
-                me.get_access_level().level,
-            ))
-            .popup(),
+            PopupType::NewEventTemplate(EventTemplateInput::new(me.get_access_level().level))
+                .popup(),
         );
     }
 }

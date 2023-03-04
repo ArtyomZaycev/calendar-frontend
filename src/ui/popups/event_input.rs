@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use calendar_lib::api::events::types::{Event, NewEvent, UpdateEvent};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
-use egui::{Layout, Align};
+use egui::{Align, Layout};
 
 use crate::ui::{
     date_picker::DatePicker,

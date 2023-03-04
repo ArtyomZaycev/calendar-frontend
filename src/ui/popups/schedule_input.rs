@@ -5,12 +5,13 @@ use calendar_lib::api::{
     schedules::types::{NewEventPlan, NewSchedule},
 };
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{TextEdit, Layout, Align};
+use egui::{Align, Layout, TextEdit};
 use num_traits::FromPrimitive;
 
 use crate::ui::{
     date_picker::DatePicker,
-    widget_signal::{AppSignal, StateSignal}, time_picker::TimePicker,
+    time_picker::TimePicker,
+    widget_signal::{AppSignal, StateSignal},
 };
 
 use super::popup_builder::PopupBuilder;
@@ -70,21 +71,19 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
 
                 egui::ComboBox::from_id_source("schedule_template_list")
-                    .selected_text(match self.template_ind.and_then(|template_ind| self.templates.get(template_ind)) {
-                        Some(template) => &template.name,
-                        None => "Template",
-                    })
+                    .selected_text(
+                        match self
+                            .template_ind
+                            .and_then(|template_ind| self.templates.get(template_ind))
+                        {
+                            Some(template) => &template.name,
+                            None => "Template",
+                        },
+                    )
                     .show_ui(ui, |ui| {
-                        self.templates
-                            .iter()
-                            .enumerate()
-                            .for_each(|(i, template)| {
-                                ui.selectable_value(
-                                    &mut self.template_ind,
-                                    Some(i),
-                                    &template.name,
-                                );
-                            });
+                        self.templates.iter().enumerate().for_each(|(i, template)| {
+                            ui.selectable_value(&mut self.template_ind, Some(i), &template.name);
+                        });
                     });
 
                 ui.add(DatePicker::new("schedule_first_day", &mut self.first_day));
@@ -103,20 +102,32 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
 
                 ui.separator();
 
-                ui.add(TimePicker::new("schedule_event_start", &mut self.new_event_start));
+                ui.add(TimePicker::new(
+                    "schedule_event_start",
+                    &mut self.new_event_start,
+                ));
 
                 (0..7).for_each(|weekday| {
-                    let to_delete = ui.horizontal(|ui| {
-                        if ui.button("Add").clicked() {
-                            self.events[weekday].push(NewEventPlan { weekday: Weekday::from_usize(weekday).unwrap(), time: self.new_event_start });
-                        }
-                        ui.add_space(4.);
-                        self.events[weekday].iter().enumerate().filter_map(|(i, new_event_plan)| {
-                            ui.spacing_mut().item_spacing = egui::Vec2::default();
-                            ui.label(new_event_plan.time.format("%H:%M").to_string());
-                            ui.small_button("X").clicked().then_some(i)
-                        }).collect::<Vec<_>>()
-                    }).inner;
+                    let to_delete = ui
+                        .horizontal(|ui| {
+                            if ui.button("Add").clicked() {
+                                self.events[weekday].push(NewEventPlan {
+                                    weekday: Weekday::from_usize(weekday).unwrap(),
+                                    time: self.new_event_start,
+                                });
+                            }
+                            ui.add_space(4.);
+                            self.events[weekday]
+                                .iter()
+                                .enumerate()
+                                .filter_map(|(i, new_event_plan)| {
+                                    ui.spacing_mut().item_spacing = egui::Vec2::default();
+                                    ui.label(new_event_plan.time.format("%H:%M").to_string());
+                                    ui.small_button("X").clicked().then_some(i)
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .inner;
 
                     to_delete.into_iter().rev().for_each(|i| {
                         self.events[weekday].remove(i);
@@ -134,14 +145,23 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                             .push(AppSignal::StateSignal(StateSignal::InsertSchedule(
                                 NewSchedule {
                                     user_id: -1,
-                                    template_id: self.templates.get(self.template_ind.unwrap()).unwrap().id,
+                                    template_id: self
+                                        .templates
+                                        .get(self.template_ind.unwrap())
+                                        .unwrap()
+                                        .id,
                                     name: self.name.clone(),
                                     description: (!self.description.is_empty())
                                         .then_some(self.description.clone()),
                                     first_day: self.first_day,
                                     last_day: self.last_day_enabled.then_some(self.last_day),
                                     access_level: self.access_level,
-                                    events: self.events.clone().into_iter().flat_map(|v| v).collect(),
+                                    events: self
+                                        .events
+                                        .clone()
+                                        .into_iter()
+                                        .flat_map(|v| v)
+                                        .collect(),
                                 },
                             )));
                     }
