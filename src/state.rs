@@ -181,7 +181,7 @@ impl State {
 }
 
 impl State {
-    pub fn load_access_levels(&self) {
+    pub fn load_access_levels(&mut self) {
         use auth::load_access_levels::*;
 
         let request = self
@@ -195,7 +195,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn load_user_roles(&self) {
+    pub fn load_user_roles(&mut self) {
         use user_roles::load_array::*;
 
         let request = self
@@ -231,7 +231,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn login(&self, email: &str, password: &str) {
+    pub fn login(&mut self, email: &str, password: &str) {
         use auth::login::*;
 
         let request = self
@@ -249,7 +249,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn register(&self, name: &str, email: &str, password: &str) {
+    pub fn register(&mut self, name: &str, email: &str, password: &str) {
         use auth::register::*;
 
         let request = self
@@ -271,7 +271,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn load_events(&self) {
+    pub fn load_events(&mut self) {
         use events::load_array::*;
 
         let request = self
@@ -285,7 +285,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn insert_event(&self, mut new_event: NewEvent) {
+    pub fn insert_event(&mut self, mut new_event: NewEvent) {
         use events::insert::*;
 
         if new_event.user_id == -1 {
@@ -304,7 +304,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn update_event(&self, upd_event: UpdateEvent) {
+    pub fn update_event(&mut self, upd_event: UpdateEvent) {
         use events::update::*;
 
         let request = self
@@ -319,7 +319,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn delete_event(&self, id: i32) {
+    pub fn delete_event(&mut self, id: i32) {
         use events::delete::*;
 
         let request = self
@@ -334,7 +334,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn load_event_templates(&self) {
+    pub fn load_event_templates(&mut self) {
         use event_templates::load_array::*;
 
         let request = self
@@ -347,7 +347,7 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
-    pub fn insert_event_template(&self, mut new_event_template: NewEventTemplate) {
+    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate) {
         use event_templates::insert::*;
 
         if new_event_template.user_id == -1 {
@@ -365,7 +365,7 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
-    pub fn delete_event_template(&self, id: i32) {
+    pub fn delete_event_template(&mut self, id: i32) {
         use event_templates::delete::*;
 
         let request = self
@@ -380,7 +380,7 @@ impl State {
             .request(request, RequestDescriptor::new(parser));
     }
 
-    pub fn load_schedules(&self) {
+    pub fn load_schedules(&mut self) {
         use schedules::load_array::*;
 
         let request = self
@@ -393,7 +393,7 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     }
-    pub fn insert_schedule(&self, mut new_schedule: NewSchedule) {
+    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule) {
         use schedules::insert::*;
 
         if new_schedule.user_id == -1 {
@@ -426,7 +426,7 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::new(parser));
     } */
-    pub fn delete_schedule(&self, id: i32) {
+    pub fn delete_schedule(&mut self, id: i32) {
         use schedules::delete::*;
 
         let request = self

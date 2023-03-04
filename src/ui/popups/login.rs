@@ -1,6 +1,7 @@
 use egui::{Align, Color32, Layout, RichText};
 
 use crate::{
+    state::State,
     ui::widget_signal::{AppSignal, StateSignal},
     utils::is_valid_email,
 };
@@ -30,6 +31,7 @@ impl<'a> PopupBuilder<'a> for Login {
     fn build(
         &'a mut self,
         _ctx: &'a egui::Context,
+        _state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {

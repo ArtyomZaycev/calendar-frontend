@@ -4,9 +4,12 @@ use calendar_lib::api::event_templates::types::NewEventTemplate;
 use chrono::NaiveTime;
 use egui::{Align, Layout, TextEdit};
 
-use crate::ui::{
-    time_picker::TimePicker,
-    widget_signal::{AppSignal, StateSignal},
+use crate::{
+    state::State,
+    ui::{
+        time_picker::TimePicker,
+        widget_signal::{AppSignal, StateSignal},
+    },
 };
 
 use super::popup_builder::PopupBuilder;
@@ -43,6 +46,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
     fn build(
         &'a mut self,
         _ctx: &'a egui::Context,
+        _state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {

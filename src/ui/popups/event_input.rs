@@ -5,6 +5,7 @@ use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
 use egui::{Align, Layout};
 
 use crate::{
+    state::State,
     ui::{
         date_picker::DatePicker,
         time_picker::TimePicker,
@@ -74,6 +75,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
     fn build(
         &'a mut self,
         _ctx: &'a egui::Context,
+        _state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {

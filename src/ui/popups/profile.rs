@@ -1,6 +1,6 @@
 use egui::{Align, Layout, RichText, Vec2};
 
-use crate::{db::aliases::UserInfo, ui::widget_signal::AppSignal};
+use crate::{db::aliases::UserInfo, state::State, ui::widget_signal::AppSignal};
 
 use super::popup_builder::PopupBuilder;
 
@@ -27,6 +27,7 @@ impl<'a> PopupBuilder<'a> for Profile {
     fn build(
         &'a mut self,
         _ctx: &'a egui::Context,
+        _state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui: &mut egui::Ui| {

@@ -186,13 +186,8 @@ impl CalendarApp {
     }
     pub fn open_new_schedule(&mut self) {
         let me = self.state.me.as_ref().unwrap();
-        self.popups.push(
-            PopupType::NewSchedule(ScheduleInput::new(
-                me.get_access_level().level,
-                self.state.event_templates.clone(),
-            ))
-            .popup(),
-        );
+        self.popups
+            .push(PopupType::NewSchedule(ScheduleInput::new(me.get_access_level().level)).popup());
     }
     pub fn open_new_event_template(&mut self) {
         let me = self.state.me.as_ref().unwrap();
@@ -666,7 +661,7 @@ impl eframe::App for CalendarApp {
                 .popups
                 .iter_mut()
                 .flat_map(|popup| {
-                    ui.add(popup.build(ctx));
+                    ui.add(popup.build(ctx, &self.state));
                     popup.signals()
                 })
                 .collect::<Vec<_>>();

@@ -1,7 +1,10 @@
 use derive_is_enum_variant::is_enum_variant;
 use egui::Vec2;
 
-use crate::ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal};
+use crate::{
+    state::State,
+    ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal},
+};
 
 use super::{
     event_input::EventInput, event_template_input::EventTemplateInput, login::Login,
@@ -23,15 +26,16 @@ impl<'a> PopupBuilder<'a> for PopupType {
     fn build(
         &'a mut self,
         ctx: &'a egui::Context,
+        state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         match self {
-            PopupType::Profile(w) => w.build(ctx),
-            PopupType::Login(w) => w.build(ctx),
-            PopupType::SignUp(w) => w.build(ctx),
-            PopupType::NewEvent(w) => w.build(ctx),
-            PopupType::UpdateEvent(w) => w.build(ctx),
-            PopupType::NewSchedule(w) => w.build(ctx),
-            PopupType::NewEventTemplate(w) => w.build(ctx),
+            PopupType::Profile(w) => w.build(ctx, state),
+            PopupType::Login(w) => w.build(ctx, state),
+            PopupType::SignUp(w) => w.build(ctx, state),
+            PopupType::NewEvent(w) => w.build(ctx, state),
+            PopupType::UpdateEvent(w) => w.build(ctx, state),
+            PopupType::NewSchedule(w) => w.build(ctx, state),
+            PopupType::NewEventTemplate(w) => w.build(ctx, state),
         }
     }
 
@@ -86,7 +90,7 @@ pub struct Popup {
 impl<'a> WidgetBuilder<'a> for Popup {
     type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
 
-    fn build(&'a mut self, ctx: &'a egui::Context) -> Self::OutputWidget
+    fn build(&'a mut self, ctx: &'a egui::Context, state: &'a State) -> Self::OutputWidget
     where
         Self::OutputWidget: egui::Widget + 'a,
     {
@@ -98,7 +102,7 @@ impl<'a> WidgetBuilder<'a> for Popup {
                 .collapsible(false)
                 .resizable(false)
                 .default_size(Vec2::new(320., 0.))
-                .show(ctx, |ui| ui.add(self.t.build(ctx)))
+                .show(ctx, |ui| ui.add(self.t.build(ctx, state)))
                 .unwrap()
                 .inner
                 .unwrap()

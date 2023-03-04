@@ -1,7 +1,4 @@
-use std::{
-    cell::{Cell, RefCell},
-    collections::HashMap,
-};
+use std::collections::HashMap;
 
 use bytes::Bytes;
 use reqwest::StatusCode;
@@ -35,38 +32,33 @@ impl RequestResult {
 }
 
 struct RequestCounter<T> {
-    request_id: Cell<RequestIndex>,
-    requests: RefCell<HashMap<RequestIndex, RequestDescriptor<T>>>,
+    request_id: RequestIndex,
+    requests: HashMap<RequestIndex, RequestDescriptor<T>>,
 }
 
 impl<T> RequestCounter<T> {
     fn new() -> Self {
         Self {
-            request_id: Cell::new(0),
-            requests: RefCell::new(HashMap::new()),
+            request_id: 0,
+            requests: HashMap::new(),
         }
     }
 
-    fn put(&self, request: RequestDescriptor<T>) -> RequestIndex {
-        let request_id = self.request_id.get();
-        self.request_id.set(request_id + 1);
+    fn put(&mut self, request: RequestDescriptor<T>) -> RequestIndex {
+        let cur_request_id = self.request_id;
+        self.request_id += 1;
 
-        let mut requests = self.requests.borrow_mut();
-        requests.insert(request_id, request);
+        self.requests.insert(cur_request_id, request);
 
-        request_id
+        cur_request_id
     }
 
     fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T>> {
-        self.requests.get_mut().remove(id)
+        self.requests.remove(id)
     }
 
     fn get_requests_descriptions(&self) -> Vec<()> {
-        self.requests
-            .borrow()
-            .iter()
-            .map(|(_, _descriptor)| ())
-            .collect()
+        self.requests.iter().map(|(_, _descriptor)| ()).collect()
     }
 }
 
@@ -101,7 +93,7 @@ impl<T> Connector<T> {
             .header("Access-Control-Allow-Origin", "*")
     }
 
-    pub fn request(&self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {
+    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");

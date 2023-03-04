@@ -1,26 +1,25 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::{
-    event_templates::types::EventTemplate,
-    schedules::types::{NewEventPlan, NewSchedule},
-};
+use calendar_lib::api::schedules::types::{NewEventPlan, NewSchedule};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
 use egui::{Align, Layout, TextEdit};
 use num_traits::FromPrimitive;
 
-use crate::ui::{
-    date_picker::DatePicker,
-    time_picker::TimePicker,
-    widget_signal::{AppSignal, StateSignal},
+use crate::{
+    state::State,
+    ui::{
+        date_picker::DatePicker,
+        time_picker::TimePicker,
+        widget_signal::{AppSignal, StateSignal},
+    },
 };
 
 use super::popup_builder::PopupBuilder;
 
 pub struct ScheduleInput {
     pub max_access_level: i32,
-    pub templates: Vec<EventTemplate>,
 
-    pub template_ind: Option<usize>,
+    pub template_id: Option<i32>,
     pub name: String,
     pub description: String,
     pub first_day: NaiveDate,
@@ -36,13 +35,12 @@ pub struct ScheduleInput {
 }
 
 impl ScheduleInput {
-    pub fn new(max_access_level: i32, templates: Vec<EventTemplate>) -> Self {
+    pub fn new(max_access_level: i32) -> Self {
         let now = Local::now().naive_local();
 
         Self {
             max_access_level,
-            templates,
-            template_ind: None,
+            template_id: None,
             name: String::default(),
             description: String::default(),
             first_day: now.date(),
@@ -63,6 +61,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
     fn build(
         &'a mut self,
         _ctx: &'a egui::Context,
+        state: &'a State,
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a> {
         self.signals.clear();
         Box::new(|ui| {
@@ -72,17 +71,20 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
 
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
-                        match self
-                            .template_ind
-                            .and_then(|template_ind| self.templates.get(template_ind))
-                        {
+                        match self.template_id.and_then(|template_id| {
+                            state.event_templates.iter().find(|t| t.id == template_id)
+                        }) {
                             Some(template) => &template.name,
                             None => "Template",
                         },
                     )
                     .show_ui(ui, |ui| {
-                        self.templates.iter().enumerate().for_each(|(i, template)| {
-                            ui.selectable_value(&mut self.template_ind, Some(i), &template.name);
+                        state.event_templates.iter().for_each(|template| {
+                            ui.selectable_value(
+                                &mut self.template_id,
+                                Some(template.id),
+                                &template.name,
+                            );
                         });
                     });
 
@@ -138,18 +140,14 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     // RTL
 
                     if ui
-                        .add_enabled(self.template_ind.is_some(), egui::Button::new("Create"))
+                        .add_enabled(self.template_id.is_some(), egui::Button::new("Create"))
                         .clicked()
                     {
                         self.signals
                             .push(AppSignal::StateSignal(StateSignal::InsertSchedule(
                                 NewSchedule {
                                     user_id: -1,
-                                    template_id: self
-                                        .templates
-                                        .get(self.template_ind.unwrap())
-                                        .unwrap()
-                                        .id,
+                                    template_id: self.template_id.unwrap(),
                                     name: self.name.clone(),
                                     description: (!self.description.is_empty())
                                         .then_some(self.description.clone()),
