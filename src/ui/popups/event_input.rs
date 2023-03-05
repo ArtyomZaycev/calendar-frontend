@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use calendar_lib::api::events::types::*;
+use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
 use egui::InnerResponse;
 
@@ -139,17 +139,17 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                 .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
                                         id,
-                                        user_id: None,
-                                        name: Some(self.name.clone()),
-                                        description: Some(
+                                        user_id: UNone,
+                                        name: USome(self.name.clone()),
+                                        description: USome(
                                             self.description_enabled
                                                 .then_some(self.description.clone()),
                                         ),
-                                        start: Some(NaiveDateTime::new(self.date, self.start)),
-                                        end: Some(NaiveDateTime::new(self.date, self.end)),
-                                        access_level: Some(self.access_level),
-                                        visibility: Some(self.visibility),
-                                        plan_id: None,
+                                        start: USome(NaiveDateTime::new(self.date, self.start)),
+                                        end: USome(NaiveDateTime::new(self.date, self.end)),
+                                        access_level: USome(self.access_level),
+                                        visibility: USome(self.visibility),
+                                        plan_id: UNone,
                                     },
                                 )));
                         }
