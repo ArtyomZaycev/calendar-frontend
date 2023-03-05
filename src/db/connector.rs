@@ -10,13 +10,27 @@ use super::request_parser::RequestParser;
 
 type RequestIndex = u16;
 
-pub struct RequestDescriptor<T> {
-    parser: RequestParser<T>,
+pub struct RequestDescriptor<Request, RequestDescription> {
+    description: RequestDescription,
+    parser: RequestParser<Request>,
 }
 
-impl<T> RequestDescriptor<T> {
-    pub fn new(parser: RequestParser<T>) -> Self {
-        Self { parser }
+impl<Request, RequestDescription> RequestDescriptor<Request, RequestDescription> {
+    pub fn new(description: RequestDescription, parser: RequestParser<Request>) -> Self {
+        Self {
+            description,
+            parser,
+        }
+    }
+
+    pub fn no_description(parser: RequestParser<Request>) -> Self
+    where
+        RequestDescription: Default,
+    {
+        Self {
+            description: Default::default(),
+            parser,
+        }
     }
 }
 
@@ -31,12 +45,12 @@ impl RequestResult {
     }
 }
 
-struct RequestCounter<T> {
+struct RequestCounter<Request, RequestDescription> {
     request_id: RequestIndex,
-    requests: HashMap<RequestIndex, RequestDescriptor<T>>,
+    requests: HashMap<RequestIndex, RequestDescriptor<Request, RequestDescription>>,
 }
 
-impl<T> RequestCounter<T> {
+impl<T, U> RequestCounter<T, U> {
     fn new() -> Self {
         Self {
             request_id: 0,
@@ -44,7 +58,7 @@ impl<T> RequestCounter<T> {
         }
     }
 
-    fn put(&mut self, request: RequestDescriptor<T>) -> RequestIndex {
+    fn put(&mut self, request: RequestDescriptor<T, U>) -> RequestIndex {
         let cur_request_id = self.request_id;
         self.request_id += 1;
 
@@ -53,27 +67,33 @@ impl<T> RequestCounter<T> {
         cur_request_id
     }
 
-    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T>> {
+    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T, U>> {
         self.requests.remove(id)
     }
 
-    fn get_requests_descriptions(&self) -> Vec<()> {
-        self.requests.iter().map(|(_, _descriptor)| ()).collect()
+    fn get_requests_descriptions(&self) -> Vec<U>
+    where
+        U: Clone,
+    {
+        self.requests
+            .iter()
+            .map(|(_, descriptor)| descriptor.description.clone())
+            .collect()
     }
 }
 
-pub struct Connector<T> {
+pub struct Connector<Request, RequestDescription> {
     client: reqwest::Client,
     server_url: String,
 
-    requests: RequestCounter<T>,
+    requests: RequestCounter<Request, RequestDescription>,
     sender: Sender<RequestResult>,
     reciever: Receiver<RequestResult>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<T> Connector<T> {
+impl<T, U> Connector<T, U> {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
@@ -93,7 +113,7 @@ impl<T> Connector<T> {
             .header("Access-Control-Allow-Origin", "*")
     }
 
-    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<T>) {
+    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<T, U>) {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");
@@ -126,22 +146,26 @@ impl<T> Connector<T> {
         });
     }
 
-    pub fn poll(&mut self) -> Vec<T> {
+    pub fn poll(&mut self) -> Vec<(T, U)> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
             let descriptor = self.requests.take(&res.id).expect("Parser not found");
 
             match res.result {
-                Ok((status_code, bytes)) => {
-                    polled.push(descriptor.parser.parse(status_code, bytes))
-                }
+                Ok((status_code, bytes)) => polled.push((
+                    descriptor.parser.parse(status_code, bytes),
+                    descriptor.description,
+                )),
                 Err(error) => (self.error_handler)(error),
             }
         }
         polled
     }
 
-    pub fn get_active_requests_descriptions(&self) -> Vec<()> {
+    pub fn get_active_requests_descriptions(&self) -> Vec<U>
+    where
+        U: Clone,
+    {
         self.requests.get_requests_descriptions()
     }
 }

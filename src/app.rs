@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::Config,
+    requests::*,
     state::State,
-    state_action::*,
     ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
@@ -216,7 +216,9 @@ impl CalendarApp {
             .for_each(|signal| self.parse_signal(signal));
     }
 
-    fn parse_polled(&mut self, polled: Vec<StateAction>) {
+    fn parse_polled(&mut self, polled: Vec<(AppRequest, AppRequestDescription)>) {
+        let polled = polled.into_iter().map(|(req, _)| req).collect::<Vec<_>>();
+
         if let Some(popup) = self.get_login_popup() {
             if polled.has_login() {
                 popup.closed = true;

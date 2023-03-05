@@ -10,13 +10,14 @@ use crate::{
         connector::{Connector, RequestDescriptor},
         request_parser::RequestParser,
     },
+    requests::AppRequestDescription,
     ui::widget_signal::StateSignal,
 };
 
-use super::state_action::StateAction;
+use super::requests::AppRequest;
 
 pub struct State {
-    connector: Connector<StateAction>,
+    connector: Connector<AppRequest, AppRequestDescription>,
 
     // Should not be modified manually, use requests
     pub me: Option<UserInfo>,
@@ -129,33 +130,33 @@ impl State {
     // Use for testing only
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
-    fn make_empty_parser() -> RequestParser<StateAction> {
-        RequestParser::new_split(|_| StateAction::None, |_, _| StateAction::None)
+    fn make_empty_parser() -> RequestParser<AppRequest> {
+        RequestParser::new_split(|_| AppRequest::None, |_, _| AppRequest::None)
     }
 
-    fn make_parser<U, F>(on_success: F) -> RequestParser<StateAction>
+    fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequest>
     where
         U: DeserializeOwned,
-        F: FnOnce(U) -> StateAction + 'static,
+        F: FnOnce(U) -> AppRequest + 'static,
     {
-        RequestParser::new_complex(on_success, |code, s| StateAction::Error(code, s))
+        RequestParser::new_complex(on_success, |code, s| AppRequest::Error(code, s))
     }
 
     #[allow(dead_code)]
     fn make_bad_request_parser<T, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
-    ) -> RequestParser<StateAction>
+    ) -> RequestParser<AppRequest>
     where
         T: DeserializeOwned,
-        F1: FnOnce(T) -> StateAction + 'static,
-        F2: FnOnce(String) -> StateAction + 'static,
+        F1: FnOnce(T) -> AppRequest + 'static,
+        F2: FnOnce(String) -> AppRequest + 'static,
     {
         RequestParser::new_complex(on_success, |code, msg| {
             if code == StatusCode::BAD_REQUEST {
                 on_bad_request(msg)
             } else {
-                StateAction::Error(code, msg)
+                AppRequest::Error(code, msg)
             }
         })
     }
@@ -163,18 +164,18 @@ impl State {
     fn make_typed_bad_request_parser<T, U, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
-    ) -> RequestParser<StateAction>
+    ) -> RequestParser<AppRequest>
     where
         T: DeserializeOwned,
         U: DeserializeOwned,
-        F1: FnOnce(T) -> StateAction + 'static,
-        F2: FnOnce(U) -> StateAction + 'static,
+        F1: FnOnce(T) -> AppRequest + 'static,
+        F2: FnOnce(U) -> AppRequest + 'static,
     {
         RequestParser::new_complex(on_success, |code, msg| {
             if code == StatusCode::BAD_REQUEST {
                 on_bad_request(serde_json::from_str(&msg).unwrap())
             } else {
-                StateAction::Error(code, msg)
+                AppRequest::Error(code, msg)
             }
         })
     }
@@ -190,9 +191,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::LoadAccessLevels(r));
+        let parser = Self::make_parser(|r| AppRequest::LoadAccessLevels(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
 
     pub fn load_user_roles(&mut self) {
@@ -204,9 +205,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::LoadUserRoles(r));
+        let parser = Self::make_parser(|r| AppRequest::LoadUserRoles(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
 
     pub fn logout(&mut self) {
@@ -224,11 +225,11 @@ impl State {
         self.events = vec![];
 
         let parser = RequestParser::new_split(
-            |_| StateAction::None,
-            |code, _| StateAction::Error(code, "Logout error".to_owned()),
+            |_| AppRequest::None,
+            |code, _| AppRequest::Error(code, "Logout error".to_owned()),
         );
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
 
     pub fn login(&mut self, email: &str, password: &str) {
@@ -244,9 +245,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::Login(r));
+        let parser = Self::make_parser(|r| AppRequest::Login(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
 
     pub fn register(&mut self, name: &str, email: &str, password: &str) {
@@ -264,13 +265,31 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| StateAction::Register(r),
-            |r| StateAction::RegisterError(r),
+            |r| AppRequest::Register(r),
+            |r| AppRequest::RegisterError(r),
         );
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
 
+    pub fn load_event(&mut self, id: i32) {
+        use events::load::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequest::LoadEvent(r),
+            |r| AppRequest::LoadEventError(r),
+        );
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::LoadEvent(id), parser),
+        );
+    }
     pub fn load_events(&mut self) {
         use events::load_array::*;
 
@@ -280,11 +299,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::LoadEvents(r));
+        let parser = Self::make_parser(|r| AppRequest::LoadEvents(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
-
     pub fn insert_event(&mut self, mut new_event: NewEvent) {
         use events::insert::*;
 
@@ -299,14 +317,14 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::InsertEvent(r));
+        let parser = Self::make_parser(|r| AppRequest::InsertEvent(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
-
     pub fn update_event(&mut self, upd_event: UpdateEvent) {
         use events::update::*;
 
+        let id = upd_event.id;
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
             .query(&Args {})
@@ -314,11 +332,12 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::UpdateEvent(r));
-        self.connector
-            .request(request, RequestDescriptor::new(parser));
+        let parser = Self::make_parser(|r| AppRequest::UpdateEvent(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::UpdateEvent(id), parser),
+        );
     }
-
     pub fn delete_event(&mut self, id: i32) {
         use events::delete::*;
 
@@ -329,9 +348,11 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::DeleteEvent(r));
-        self.connector
-            .request(request, RequestDescriptor::new(parser));
+        let parser = Self::make_parser(|r| AppRequest::DeleteEvent(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::DeleteEvent(id), parser),
+        );
     }
 
     pub fn load_event_templates(&mut self) {
@@ -343,9 +364,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::LoadEventTemplates(r));
+        let parser = Self::make_parser(|r| AppRequest::LoadEventTemplates(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
     pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate) {
         use event_templates::insert::*;
@@ -361,9 +382,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::InsertEventTemplate(r));
+        let parser = Self::make_parser(|r| AppRequest::InsertEventTemplate(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
     pub fn delete_event_template(&mut self, id: i32) {
         use event_templates::delete::*;
@@ -375,9 +396,11 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::DeleteEventTemplate(r));
-        self.connector
-            .request(request, RequestDescriptor::new(parser));
+        let parser = Self::make_parser(|r| AppRequest::DeleteEventTemplate(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::DeleteEventTemplate(id), parser),
+        );
     }
 
     pub fn load_schedules(&mut self) {
@@ -389,9 +412,9 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::LoadSchedules(r));
+        let parser = Self::make_parser(|r| AppRequest::LoadSchedules(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
     pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule) {
         use schedules::insert::*;
@@ -407,14 +430,15 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::InsertSchedule(r));
+        let parser = Self::make_parser(|r| AppRequest::InsertSchedule(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::no_description(parser));
     }
     /*
     pub fn update_schedule(&self, upd_schedule: UpdateSchedule) {
         use schedules::update::*;
 
+        let id = upd_schedule.id;
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
             .query(&Args {})
@@ -424,7 +448,7 @@ impl State {
 
         let parser = Self::make_parser(|r| StateAction::UpdateSchedule(r));
         self.connector
-            .request(request, RequestDescriptor::new(parser));
+            .request(request, RequestDescriptor::new(AppRequestDescription::UpdateSchedule(id), parser));
     } */
     pub fn delete_schedule(&mut self, id: i32) {
         use schedules::delete::*;
@@ -436,16 +460,18 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::DeleteSchedule(r));
-        self.connector
-            .request(request, RequestDescriptor::new(parser));
+        let parser = Self::make_parser(|r| AppRequest::DeleteSchedule(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::DeleteSchedule(id), parser),
+        );
     }
 }
 
 impl State {
-    fn parse_action(&mut self, action: StateAction) {
-        match action {
-            StateAction::Login(res) => {
+    fn parse_action(&mut self, request: AppRequest, description: AppRequestDescription) {
+        match request {
+            AppRequest::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
                     current_access_level: res.access_level.level,
@@ -459,70 +485,100 @@ impl State {
                 self.load_event_templates();
                 self.load_schedules();
             }
-            StateAction::Register(_) => {}
-            StateAction::RegisterError(_) => {}
-            StateAction::LoadAccessLevels(mut r) => {
+            AppRequest::Register(_) => {}
+            AppRequest::RegisterError(_) => {}
+            AppRequest::LoadAccessLevels(mut r) => {
                 if let Some(me) = &mut self.me {
                     r.array.sort_by(|a, b| a.level.cmp(&b.level));
                     me.access_levels = r.array;
                 }
             }
-            StateAction::LoadUserRoles(res) => {
+            AppRequest::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
                     me.roles = res.array;
                 }
             }
-            StateAction::LoadEvents(res) => {
+            AppRequest::LoadEvent(res) => {
+                let event = res.event;
+                match self.events.iter_mut().find(|e| e.id == event.id) {
+                    Some(e) => *e = event,
+                    None => self.events.push(event),
+                }
+            }
+            AppRequest::LoadEventError(res) => match res {
+                events::load::BadRequestResponse::NotFound => {
+                    if let AppRequestDescription::LoadEvent(id) = description {
+                        if let Some(ind) = self.events.iter().position(|e| e.id == id) {
+                            self.events.remove(ind);
+                        }
+                    }
+                }
+            },
+            AppRequest::LoadEvents(res) => {
                 self.events = res.array;
             }
-            StateAction::InsertEvent(_) => {
+            AppRequest::InsertEvent(_) => {
                 self.load_events();
             }
-            StateAction::UpdateEvent(_) => {
-                self.load_events();
+            AppRequest::UpdateEvent(_) => {
+                if let AppRequestDescription::UpdateEvent(id) = description {
+                    self.load_event(id);
+                }
             }
-            StateAction::DeleteEvent(_) => {
-                self.load_events();
+            AppRequest::DeleteEvent(_) => {
+                if let AppRequestDescription::DeleteEvent(id) = description {
+                    if let Some(ind) = self.events.iter().position(|e| e.id == id) {
+                        self.events.remove(ind);
+                    }
+                }
             }
-            StateAction::LoadSchedules(res) => {
+            AppRequest::LoadSchedules(res) => {
                 self.schedules = res.array;
                 self.generate_scheduled_events();
             }
-            StateAction::LoadEventTemplates(res) => {
+            AppRequest::LoadEventTemplates(res) => {
                 self.event_templates = res.array;
             }
-            StateAction::InsertEventTemplate(_) => {
+            AppRequest::InsertEventTemplate(_) => {
                 self.load_event_templates();
             }
-            StateAction::DeleteEventTemplate(_) => {
-                self.load_event_templates();
+            AppRequest::DeleteEventTemplate(_) => {
+                if let AppRequestDescription::DeleteEventTemplate(id) = description {
+                    if let Some(ind) = self.event_templates.iter().position(|e| e.id == id) {
+                        self.event_templates.remove(ind);
+                    }
+                }
             }
-            StateAction::InsertSchedule(_) => {
+            AppRequest::InsertSchedule(_) => {
                 self.load_schedules();
             }
             /*StateAction::UpdateSchedule(_) => {
                 self.load_schedules();
             }*/
-            StateAction::DeleteSchedule(_) => {
-                self.load_schedules();
+            AppRequest::DeleteSchedule(_) => {
+                if let AppRequestDescription::DeleteSchedule(id) = description {
+                    if let Some(ind) = self.schedules.iter().position(|s| s.id == id) {
+                        self.schedules.remove(ind);
+                    }
+                }
             }
-            StateAction::None => {}
-            StateAction::Error(status, s) => {
+            AppRequest::None => {}
+            AppRequest::Error(status, s) => {
                 println!("smth went wrong: {status:?}=>{s:?}");
             }
         }
     }
 
-    pub fn poll(&mut self) -> Vec<StateAction> {
+    pub fn poll(&mut self) -> Vec<(AppRequest, AppRequestDescription)> {
         let actions = self.connector.poll();
         actions
             .clone()
             .into_iter()
-            .for_each(|a| self.parse_action(a));
+            .for_each(|(request, description)| self.parse_action(request, description));
         actions
     }
 
-    pub fn get_active_requests_descriptions(&self) -> Vec<()> {
+    pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestDescription> {
         self.connector.get_active_requests_descriptions()
     }
 }

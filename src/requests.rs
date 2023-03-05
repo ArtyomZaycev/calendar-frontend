@@ -6,7 +6,7 @@ use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 
 #[derive(Clone, Debug, is_enum_variant)]
-pub enum StateAction {
+pub enum AppRequest {
     Login(login::Response),
     Register(register::Response),
     RegisterError(register::BadRequestResponse),
@@ -14,15 +14,20 @@ pub enum StateAction {
     LoadAccessLevels(auth::load_access_levels::Response),
     LoadUserRoles(user_roles::load_array::Response),
 
+    LoadEvent(events::load::Response),
+    LoadEventError(events::load::BadRequestResponse),
     LoadEvents(events::load_array::Response),
     InsertEvent(events::insert::Response),
     UpdateEvent(events::update::Response),
     DeleteEvent(events::delete::Response),
 
+    //LoadEventTemplate(event_templates::load::Response),
     LoadEventTemplates(event_templates::load_array::Response),
     InsertEventTemplate(event_templates::insert::Response),
+    //UpdateEventTemplate(event_templates::update::Response),
     DeleteEventTemplate(event_templates::delete::Response),
 
+    //LoadSchedule(schedules::load::Response),
     LoadSchedules(schedules::load_array::Response),
     InsertSchedule(schedules::insert::Response),
     //UpdateSchedule(schedules::update::Response),
@@ -31,6 +36,33 @@ pub enum StateAction {
     #[allow(dead_code)]
     None, // for debug only
     Error(StatusCode, String),
+}
+
+#[derive(Clone, Debug, is_enum_variant)]
+pub enum AppRequestDescription {
+    LoadEvent(i32),
+    UpdateEvent(i32),
+    //UpdateEvents(Vec<i32>),
+    DeleteEvent(i32),
+    //DeleteEvents(Vec<i32>),
+
+    //UpdateEventTemplate(i32),
+    //UpdateEventTemplates(Vec<i32>),
+    DeleteEventTemplate(i32),
+    //DeleteEventTemplates(Vec<i32>),
+
+    //UpdateSchedule(i32),
+    //UpdateSchedules(Vec<i32>),
+    DeleteSchedule(i32),
+    //DeleteSchedules(Vec<i32>),
+    #[allow(dead_code)]
+    None,
+}
+
+impl Default for AppRequestDescription {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 // TODO: macro
@@ -70,7 +102,7 @@ pub trait GetMutStateAction {
     fn get_error_mut(&mut self) -> Option<(&mut StatusCode, &mut String)>;
 }
 
-impl HasStateAction for Vec<StateAction> {
+impl HasStateAction for Vec<AppRequest> {
     fn has_login(&self) -> bool {
         self.iter().any(|x| x.is_login())
     }
@@ -109,10 +141,10 @@ impl HasStateAction for Vec<StateAction> {
     }
 }
 
-impl GetStateAction for Vec<StateAction> {
+impl GetStateAction for Vec<AppRequest> {
     fn get_login(&self) -> Option<&login::Response> {
         self.iter().find_map(|x| {
-            if let StateAction::Login(d) = x {
+            if let AppRequest::Login(d) = x {
                 Some(d)
             } else {
                 None
@@ -122,7 +154,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_register_error(&self) -> Option<&register::BadRequestResponse> {
         self.iter().find_map(|x| {
-            if let StateAction::RegisterError(d) = x {
+            if let AppRequest::RegisterError(d) = x {
                 Some(d)
             } else {
                 None
@@ -132,7 +164,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_load_user_roles(&self) -> Option<&user_roles::load_array::Response> {
         self.iter().find_map(|x| {
-            if let StateAction::LoadUserRoles(d) = x {
+            if let AppRequest::LoadUserRoles(d) = x {
                 Some(d)
             } else {
                 None
@@ -142,7 +174,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_load_events(&self) -> Option<&events::load_array::Response> {
         self.iter().find_map(|x| {
-            if let StateAction::LoadEvents(d) = x {
+            if let AppRequest::LoadEvents(d) = x {
                 Some(d)
             } else {
                 None
@@ -152,7 +184,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_insert_event(&self) -> Option<&events::insert::Response> {
         self.iter().find_map(|x| {
-            if let StateAction::InsertEvent(d) = x {
+            if let AppRequest::InsertEvent(d) = x {
                 Some(d)
             } else {
                 None
@@ -162,7 +194,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_delete_events(&self) -> Option<&events::delete::Response> {
         self.iter().find_map(|x| {
-            if let StateAction::DeleteEvent(d) = x {
+            if let AppRequest::DeleteEvent(d) = x {
                 Some(d)
             } else {
                 None
@@ -172,7 +204,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_none(&self) -> Option<()> {
         self.iter().find_map(|x| {
-            if let StateAction::None = x {
+            if let AppRequest::None = x {
                 Some(())
             } else {
                 None
@@ -182,7 +214,7 @@ impl GetStateAction for Vec<StateAction> {
 
     fn get_error(&self) -> Option<(&StatusCode, &String)> {
         self.iter().find_map(|x| {
-            if let StateAction::Error(d1, d2) = x {
+            if let AppRequest::Error(d1, d2) = x {
                 Some((d1, d2))
             } else {
                 None
@@ -191,10 +223,10 @@ impl GetStateAction for Vec<StateAction> {
     }
 }
 
-impl GetMutStateAction for Vec<StateAction> {
+impl GetMutStateAction for Vec<AppRequest> {
     fn get_login_mut(&mut self) -> Option<&mut login::Response> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::Login(d) = x {
+            if let AppRequest::Login(d) = x {
                 Some(d)
             } else {
                 None
@@ -204,7 +236,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_load_user_roles_mut(&mut self) -> Option<&mut user_roles::load_array::Response> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::LoadUserRoles(d) = x {
+            if let AppRequest::LoadUserRoles(d) = x {
                 Some(d)
             } else {
                 None
@@ -214,7 +246,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_load_events_mut(&mut self) -> Option<&mut events::load_array::Response> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::LoadEvents(d) = x {
+            if let AppRequest::LoadEvents(d) = x {
                 Some(d)
             } else {
                 None
@@ -224,7 +256,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_insert_event_mut(&mut self) -> Option<&mut events::insert::Response> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::InsertEvent(d) = x {
+            if let AppRequest::InsertEvent(d) = x {
                 Some(d)
             } else {
                 None
@@ -234,7 +266,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_delete_events_mut(&mut self) -> Option<&mut events::delete::Response> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::DeleteEvent(d) = x {
+            if let AppRequest::DeleteEvent(d) = x {
                 Some(d)
             } else {
                 None
@@ -244,7 +276,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_none_mut(&mut self) -> Option<()> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::None = x {
+            if let AppRequest::None = x {
                 Some(())
             } else {
                 None
@@ -254,7 +286,7 @@ impl GetMutStateAction for Vec<StateAction> {
 
     fn get_error_mut(&mut self) -> Option<(&mut StatusCode, &mut String)> {
         self.iter_mut().find_map(|x| {
-            if let StateAction::Error(d1, d2) = x {
+            if let AppRequest::Error(d1, d2) = x {
                 Some((d1, d2))
             } else {
                 None
