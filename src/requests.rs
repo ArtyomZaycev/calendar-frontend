@@ -21,16 +21,18 @@ pub enum AppRequest {
     UpdateEvent(events::update::Response),
     DeleteEvent(events::delete::Response),
 
-    //LoadEventTemplate(event_templates::load::Response),
+    LoadEventTemplate(event_templates::load::Response),
+    LoadEventTemplateError(event_templates::load::BadRequestResponse),
     LoadEventTemplates(event_templates::load_array::Response),
     InsertEventTemplate(event_templates::insert::Response),
-    //UpdateEventTemplate(event_templates::update::Response),
+    UpdateEventTemplate(event_templates::update::Response),
     DeleteEventTemplate(event_templates::delete::Response),
 
-    //LoadSchedule(schedules::load::Response),
+    LoadSchedule(schedules::load::Response),
+    LoadScheduleError(schedules::load::BadRequestResponse),
     LoadSchedules(schedules::load_array::Response),
     InsertSchedule(schedules::insert::Response),
-    //UpdateSchedule(schedules::update::Response),
+    UpdateSchedule(schedules::update::Response),
     DeleteSchedule(schedules::delete::Response),
 
     #[allow(dead_code)]
@@ -45,13 +47,13 @@ pub enum AppRequestDescription {
     //UpdateEvents(Vec<i32>),
     DeleteEvent(i32),
     //DeleteEvents(Vec<i32>),
-
-    //UpdateEventTemplate(i32),
+    LoadEventTemplate(i32),
+    UpdateEventTemplate(i32),
     //UpdateEventTemplates(Vec<i32>),
     DeleteEventTemplate(i32),
     //DeleteEventTemplates(Vec<i32>),
-
-    //UpdateSchedule(i32),
+    LoadSchedule(i32),
+    UpdateSchedule(i32),
     //UpdateSchedules(Vec<i32>),
     DeleteSchedule(i32),
     //DeleteSchedules(Vec<i32>),

@@ -63,7 +63,7 @@ impl State {
                     .find(|template| template.id == schedule.template_id)
                 {
                     Some(template) => schedule
-                        .events
+                        .event_plans
                         .iter()
                         .filter_map(|event_plan| {
                             let start = NaiveDateTime::new(now.date(), event_plan.time);
@@ -355,6 +355,24 @@ impl State {
         );
     }
 
+    pub fn load_event_template(&mut self, id: i32) {
+        use event_templates::load::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequest::LoadEventTemplate(r),
+            |r| AppRequest::LoadEventTemplateError(r),
+        );
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::LoadEventTemplate(id), parser),
+        );
+    }
     pub fn load_event_templates(&mut self) {
         use event_templates::load_array::*;
 
@@ -386,6 +404,23 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
+    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate) {
+        use event_templates::update::*;
+
+        let id = upd_event_template.id;
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body { upd_event_template })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| AppRequest::UpdateEventTemplate(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::UpdateEventTemplate(id), parser),
+        );
+    }
     pub fn delete_event_template(&mut self, id: i32) {
         use event_templates::delete::*;
 
@@ -403,6 +438,24 @@ impl State {
         );
     }
 
+    pub fn load_schedule(&mut self, id: i32) {
+        use schedules::load::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { id })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequest::LoadSchedule(r),
+            |r| AppRequest::LoadScheduleError(r),
+        );
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::LoadSchedule(id), parser),
+        );
+    }
     pub fn load_schedules(&mut self) {
         use schedules::load_array::*;
 
@@ -434,8 +487,7 @@ impl State {
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
-    /*
-    pub fn update_schedule(&self, upd_schedule: UpdateSchedule) {
+    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule) {
         use schedules::update::*;
 
         let id = upd_schedule.id;
@@ -446,10 +498,12 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| StateAction::UpdateSchedule(r));
-        self.connector
-            .request(request, RequestDescriptor::new(AppRequestDescription::UpdateSchedule(id), parser));
-    } */
+        let parser = Self::make_parser(|r| AppRequest::UpdateSchedule(r));
+        self.connector.request(
+            request,
+            RequestDescriptor::new(AppRequestDescription::UpdateSchedule(id), parser),
+        );
+    }
     pub fn delete_schedule(&mut self, id: i32) {
         use schedules::delete::*;
 
@@ -499,7 +553,7 @@ impl State {
                 }
             }
             AppRequest::LoadEvent(res) => {
-                let event = res.event;
+                let event = res.value;
                 match self.events.iter_mut().find(|e| e.id == event.id) {
                     Some(e) => *e = event,
                     None => self.events.push(event),
@@ -532,15 +586,36 @@ impl State {
                     }
                 }
             }
-            AppRequest::LoadSchedules(res) => {
-                self.schedules = res.array;
-                self.generate_scheduled_events();
+            AppRequest::LoadEventTemplate(res) => {
+                let template = res.value;
+                match self
+                    .event_templates
+                    .iter_mut()
+                    .find(|t| t.id == template.id)
+                {
+                    Some(t) => *t = template,
+                    None => self.event_templates.push(template),
+                }
             }
+            AppRequest::LoadEventTemplateError(res) => match res {
+                event_templates::load::BadRequestResponse::NotFound => {
+                    if let AppRequestDescription::LoadEventTemplate(id) = description {
+                        if let Some(ind) = self.event_templates.iter().position(|t| t.id == id) {
+                            self.event_templates.remove(ind);
+                        }
+                    }
+                }
+            },
             AppRequest::LoadEventTemplates(res) => {
                 self.event_templates = res.array;
             }
             AppRequest::InsertEventTemplate(_) => {
                 self.load_event_templates();
+            }
+            AppRequest::UpdateEventTemplate(_) => {
+                if let AppRequestDescription::UpdateEventTemplate(id) = description {
+                    self.load_event_template(id);
+                }
             }
             AppRequest::DeleteEventTemplate(_) => {
                 if let AppRequestDescription::DeleteEventTemplate(id) = description {
@@ -549,8 +624,33 @@ impl State {
                     }
                 }
             }
+            AppRequest::LoadSchedule(res) => {
+                let schedule = res.value;
+                match self.schedules.iter_mut().find(|s| s.id == schedule.id) {
+                    Some(s) => *s = schedule,
+                    None => self.schedules.push(schedule),
+                }
+            }
+            AppRequest::LoadScheduleError(res) => match res {
+                schedules::load::BadRequestResponse::NotFound => {
+                    if let AppRequestDescription::LoadSchedule(id) = description {
+                        if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
+                            self.schedules.remove(ind);
+                        }
+                    }
+                }
+            },
+            AppRequest::LoadSchedules(res) => {
+                self.schedules = res.array;
+                self.generate_scheduled_events();
+            }
             AppRequest::InsertSchedule(_) => {
                 self.load_schedules();
+            }
+            AppRequest::UpdateSchedule(_) => {
+                if let AppRequestDescription::UpdateSchedule(id) = description {
+                    self.load_schedule(id);
+                }
             }
             /*StateAction::UpdateSchedule(_) => {
                 self.load_schedules();
