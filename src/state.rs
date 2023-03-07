@@ -44,7 +44,11 @@ impl State {
         }
     }
 
-    pub fn generate_scheduled_events(&mut self) {
+    pub fn has_edit_rights(&self) -> bool {
+        self.me.as_ref().map(|me| me.get_access_level().edit_rights).unwrap_or_default()
+    }
+
+    fn generate_scheduled_events(&mut self) {
         let now = chrono::Local::now().naive_local();
 
         let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
