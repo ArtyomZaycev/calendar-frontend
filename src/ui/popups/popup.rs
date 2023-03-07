@@ -24,6 +24,7 @@ pub enum PopupType {
     NewEvent(EventInput),
     UpdateEvent(EventInput),
     NewSchedule(ScheduleInput),
+    UpdateSchedule(ScheduleInput),
     NewEventTemplate(EventTemplateInput),
 }
 
@@ -41,6 +42,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.content(ui, ctx, state),
             PopupType::UpdateEvent(w) => w.content(ui, ctx, state),
             PopupType::NewSchedule(w) => w.content(ui, ctx, state),
+            PopupType::UpdateSchedule(w) => w.content(ui, ctx, state),
             PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
         }
     }
@@ -53,6 +55,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.title(),
             PopupType::UpdateEvent(w) => w.title(),
             PopupType::NewSchedule(w) => w.title(),
+            PopupType::UpdateSchedule(w) => w.title(),
             PopupType::NewEventTemplate(w) => w.title(),
         }
     }
@@ -65,6 +68,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.signals(),
             PopupType::UpdateEvent(w) => w.signals(),
             PopupType::NewSchedule(w) => w.signals(),
+            PopupType::UpdateSchedule(w) => w.signals(),
             PopupType::NewEventTemplate(w) => w.signals(),
         }
     }
@@ -77,6 +81,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewEvent(w) => w.is_closed(),
             PopupType::UpdateEvent(w) => w.is_closed(),
             PopupType::NewSchedule(w) => w.is_closed(),
+            PopupType::UpdateSchedule(w) => w.is_closed(),
             PopupType::NewEventTemplate(w) => w.is_closed(),
         }
     }

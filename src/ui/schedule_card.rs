@@ -46,8 +46,7 @@ impl<'a> Widget for ScheduleCard<'a> {
                                     .push(StateSignal::DeleteSchedule(*schedule_id).into());
                             }
                             if ui.small_button("E").clicked() {
-                                println!("Not Implemented");
-                                //self.signals.push(AppSignal::ChangeEvent(*schedule_id));
+                                self.signals.push(AppSignal::ChangeSchedule(*schedule_id));
                             }
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));

@@ -1,4 +1,4 @@
-use calendar_lib::api::{auth::register, events::types::Event};
+use calendar_lib::api::{auth::register, events::types::Event, schedules::types::Schedule};
 use chrono::NaiveDate;
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
@@ -125,6 +125,15 @@ impl CalendarApp {
             }
         })
     }
+    pub fn get_update_schedule_popup<'a>(&'a mut self) -> Option<&'a mut ScheduleInput> {
+        self.popups.iter_mut().find_map(|p| {
+            if let PopupType::UpdateSchedule(v) = p.get_type_mut() {
+                Some(v)
+            } else {
+                None
+            }
+        })
+    }
     pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut EventTemplateInput> {
         self.popups.iter_mut().find_map(|p| {
             if let PopupType::NewEventTemplate(v) = p.get_type_mut() {
@@ -189,6 +198,15 @@ impl CalendarApp {
         self.popups
             .push(PopupType::NewSchedule(ScheduleInput::new(me.get_access_level().level)).popup());
     }
+    pub fn open_change_schedule(&mut self, schedule: &Schedule) {
+        self.popups.push(
+            PopupType::UpdateSchedule(ScheduleInput::change(
+                self.state.me.as_ref().unwrap().get_access_level().level,
+                schedule,
+            ))
+            .popup(),
+        );
+    }
     pub fn open_new_event_template(&mut self) {
         let me = self.state.me.as_ref().unwrap();
         self.popups.push(
@@ -205,6 +223,16 @@ impl CalendarApp {
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
                     self.open_change_event(&event.clone());
+                }
+            }
+            AppSignal::ChangeSchedule(schedule_id) => {
+                if let Some(schedule) = self
+                    .state
+                    .schedules
+                    .iter()
+                    .find(|schedule| schedule.id == schedule_id)
+                {
+                    self.open_change_schedule(&schedule.clone());
                 }
             }
         }
@@ -247,6 +275,11 @@ impl CalendarApp {
         }
         if let Some(popup) = self.get_new_schedule_popup() {
             if polled.has_insert_schedule() {
+                popup.closed = true;
+            }
+        }
+        if let Some(popup) = self.get_update_schedule_popup() {
+            if polled.has_update_schedule() {
                 popup.closed = true;
             }
         }

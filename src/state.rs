@@ -105,7 +105,7 @@ impl State {
             StateSignal::DeleteEventTemplate(id) => self.delete_event_template(id),
 
             StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
-            //StateSignal::UpdateSchedule(upd_schedule) => self.update_schedule(upd_schedule),
+            StateSignal::UpdateSchedule(upd_schedule) => self.update_schedule(upd_schedule),
             StateSignal::DeleteSchedule(id) => self.delete_schedule(id),
         }
     }
@@ -558,18 +558,21 @@ impl State {
                     Some(e) => *e = event,
                     None => self.events.push(event),
                 }
+                self.events.sort_by_key(|v| v.start);
             }
             AppRequest::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
                     if let AppRequestDescription::LoadEvent(id) = description {
                         if let Some(ind) = self.events.iter().position(|e| e.id == id) {
                             self.events.remove(ind);
+                            self.events.sort_by_key(|v| v.start);
                         }
                     }
                 }
             },
             AppRequest::LoadEvents(res) => {
                 self.events = res.array;
+                self.events.sort_by_key(|v| v.start);
             }
             AppRequest::InsertEvent(_) => {
                 self.load_events();
@@ -630,12 +633,14 @@ impl State {
                     Some(s) => *s = schedule,
                     None => self.schedules.push(schedule),
                 }
+                self.generate_scheduled_events();
             }
             AppRequest::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
                     if let AppRequestDescription::LoadSchedule(id) = description {
                         if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
                             self.schedules.remove(ind);
+                            self.generate_scheduled_events();
                         }
                     }
                 }

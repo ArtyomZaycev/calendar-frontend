@@ -1,7 +1,7 @@
 use calendar_lib::api::{
     event_templates::types::NewEventTemplate,
     events::types::{NewEvent, UpdateEvent},
-    schedules::types::NewSchedule,
+    schedules::types::{NewSchedule, UpdateSchedule},
 };
 
 #[derive(Debug, Clone)]
@@ -9,6 +9,7 @@ pub enum AppSignal {
     StateSignal(StateSignal),
 
     ChangeEvent(i32),
+    ChangeSchedule(i32),
 }
 
 #[allow(dead_code)]
@@ -25,7 +26,7 @@ pub enum StateSignal {
     DeleteEventTemplate(i32),
 
     InsertSchedule(NewSchedule),
-    //UpdateSchedule(UpdateSchedule),
+    UpdateSchedule(UpdateSchedule),
     DeleteSchedule(i32),
 }
 

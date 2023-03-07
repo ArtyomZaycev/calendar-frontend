@@ -78,6 +78,7 @@ pub trait HasStateAction {
     fn has_update_event(&self) -> bool;
     fn has_delete_events(&self) -> bool;
     fn has_insert_schedule(&self) -> bool;
+    fn has_update_schedule(&self) -> bool;
     fn has_insert_event_template(&self) -> bool;
     fn has_none(&self) -> bool;
     fn has_error(&self) -> bool;
@@ -131,6 +132,9 @@ impl HasStateAction for Vec<AppRequest> {
     }
     fn has_insert_schedule(&self) -> bool {
         self.iter().any(|x| x.is_insert_schedule())
+    }
+    fn has_update_schedule(&self) -> bool {
+        self.iter().any(|x| x.is_update_schedule())
     }
     fn has_insert_event_template(&self) -> bool {
         self.iter().any(|x| x.is_insert_event_template())
