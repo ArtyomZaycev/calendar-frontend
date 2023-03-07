@@ -39,7 +39,10 @@ pub struct ScheduleInput {
 impl ScheduleInput {
     pub fn new(max_access_level: i32) -> Self {
         let now = Local::now().naive_local();
-        let minutes = now.time().signed_duration_since(Default::default()).num_minutes() as u32;
+        let minutes = now
+            .time()
+            .signed_duration_since(Default::default())
+            .num_minutes() as u32;
         let now_time = NaiveTime::from_hms_opt(minutes / 60, minutes % 60, 0).unwrap();
 
         Self {
@@ -64,7 +67,10 @@ impl ScheduleInput {
 
     pub fn change(max_access_level: i32, schedule: &Schedule) -> Self {
         let now = Local::now().naive_local();
-        let minutes = now.time().signed_duration_since(Default::default()).num_minutes() as u32;
+        let minutes = now
+            .time()
+            .signed_duration_since(Default::default())
+            .num_minutes() as u32;
         let now_time = NaiveTime::from_hms_opt(minutes / 60, minutes % 60, 0).unwrap();
 
         Self {
