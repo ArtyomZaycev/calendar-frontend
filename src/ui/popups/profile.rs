@@ -69,12 +69,6 @@ impl<'a> PopupBuilder<'a> for Profile {
                     ui.label(self.user_info.get_access_level().name);
                 }
             });
-            if let Some(phone) = &self.user_info.user.phone {
-                ui.horizontal(|ui| {
-                    ui.label("Phone: ");
-                    ui.label(phone);
-                });
-            }
 
             ContentInfo::new()
         })

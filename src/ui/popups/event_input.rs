@@ -139,7 +139,6 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                 .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
                                         id,
-                                        user_id: UNone,
                                         name: USome(self.name.clone()),
                                         description: USome(
                                             self.description_enabled

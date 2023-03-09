@@ -230,7 +230,6 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                                 .push(AppSignal::StateSignal(StateSignal::UpdateSchedule(
                                     UpdateSchedule {
                                         id,
-                                        user_id: UNone,
                                         name: USome(self.name.clone()),
                                         description: USome(
                                             (!self.description.is_empty())
