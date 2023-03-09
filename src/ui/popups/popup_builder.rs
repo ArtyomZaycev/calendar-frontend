@@ -35,13 +35,6 @@ impl<'a> ContentInfo<'a> {
         self
     }
 
-    pub fn buttons<F>(
-        self,
-        buttons: Vec<Box<dyn FnOnce(&mut egui::Ui, bool) -> egui::Response + 'a>>,
-    ) -> Self {
-        Self { buttons, ..self }
-    }
-
     // First is shown
     pub fn error(self, error: Option<String>) -> Self {
         Self {

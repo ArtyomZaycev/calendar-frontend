@@ -1,4 +1,4 @@
-use egui::{Align, Color32, InnerResponse, Layout, RichText};
+use egui::InnerResponse;
 
 use crate::{
     state::State,
@@ -43,31 +43,6 @@ impl<'a> PopupBuilder<'a> for SignUp {
     ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
 
-        let name_error =
-            { (self.name.len() < 6).then_some("Name must be at least 6 symbols".to_owned()) };
-        let email_error: Option<String> = {
-            (!is_valid_email(&self.email))
-                .then_some("Email is not valid".to_owned())
-                .or(self
-                    .email_taken
-                    .then_some("Account with this email is already registered".to_owned()))
-        };
-        let password_error: Option<String> = {
-            (!is_valid_password(&self.password))
-                .then_some("Invalid password".to_owned())
-                .or((!is_strong_enough_password(&self.password))
-                    .then_some("Password is not strong enough".to_string()))
-        };
-        let password2_error: Option<String> = {
-            (self.password != self.password2).then_some("Passwords must be the same".to_owned())
-        };
-
-        let error = name_error
-            .as_ref()
-            .or(email_error.as_ref())
-            .or(password_error.as_ref())
-            .or(password2_error.as_ref());
-
         let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str| {
             ui.add(
                 egui::TextEdit::singleline(value)
@@ -81,30 +56,6 @@ impl<'a> PopupBuilder<'a> for SignUp {
             show_input_field(ui, &mut self.email, "Email");
             show_input_field(ui, &mut self.password, "Password");
             show_input_field(ui, &mut self.password2, "Repeat Password");
-            ui.horizontal(|ui| {
-                if let Some(error) = error {
-                    ui.add(egui::Label::new(RichText::new(error).color(Color32::RED)).wrap(true));
-                }
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    // RTL
-                    if ui
-                        .add_enabled(error.is_none(), egui::Button::new("Sign Up"))
-                        .clicked()
-                    {
-                        self.signals.push(
-                            StateSignal::Register(
-                                self.name.clone(),
-                                self.email.clone(),
-                                self.password.clone(),
-                            )
-                            .into(),
-                        );
-                    }
-                    if ui.button("Cancel").clicked() {
-                        self.closed = true;
-                    }
-                });
-            });
 
             ContentInfo::new()
                 .error(
@@ -128,7 +79,7 @@ impl<'a> PopupBuilder<'a> for SignUp {
                 )
                 .close_button("Cancel", &mut self.closed)
                 .button(|ui, is_error| {
-                    let response = ui.add_enabled(!is_error, egui::Button::new("Login"));
+                    let response = ui.add_enabled(!is_error, egui::Button::new("Sign Up"));
                     if response.clicked() {
                         self.signals.push(
                             StateSignal::Register(

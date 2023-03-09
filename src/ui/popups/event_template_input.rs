@@ -1,6 +1,6 @@
 use calendar_lib::api::event_templates::types::NewEventTemplate;
 use chrono::NaiveTime;
-use egui::{Align, InnerResponse, Layout, TextEdit};
+use egui::{InnerResponse, TextEdit};
 use std::hash::Hash;
 
 use crate::{
@@ -79,32 +79,6 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 .with_label("Access level: "),
             );
 
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                // RTL
-
-                if ui.button("Create").clicked() {
-                    self.signals
-                        .push(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
-                            NewEventTemplate {
-                                user_id: -1,
-                                name: self.name.clone(),
-                                event_name: self.event_name.clone(),
-                                event_description: (!self.event_description.is_empty())
-                                    .then_some(self.event_description.clone()),
-                                duration: self
-                                    .duration
-                                    .signed_duration_since(NaiveTime::default())
-                                    .to_std()
-                                    .unwrap(),
-                                access_level: self.access_level,
-                            },
-                        )));
-                }
-                if ui.button("Cancel").clicked() {
-                    self.closed = true;
-                }
-            });
-
             ContentInfo::new()
                 .button(|ui, _| {
                     let response = ui.button("Cancel");
@@ -114,7 +88,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                     response
                 })
                 .button(|ui, is_error| {
-                    let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
+                    let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                     if response.clicked() {
                         self.signals.push(AppSignal::StateSignal(
                             StateSignal::InsertEventTemplate(NewEventTemplate {
