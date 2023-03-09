@@ -177,17 +177,13 @@ impl CalendarApp {
         self.popups.push(PopupType::SignUp(SignUp::new()).popup());
     }
     pub fn open_new_event(&mut self) {
-        self.popups.push(
-            PopupType::NewEvent(EventInput::new(
-                self.state.me.as_ref().unwrap().get_access_level().level,
-            ))
-            .popup(),
-        );
+        self.popups
+            .push(PopupType::NewEvent(EventInput::new("new_event_popup")).popup());
     }
     pub fn open_change_event(&mut self, event: &Event) {
         self.popups.push(
             PopupType::UpdateEvent(EventInput::change(
-                self.state.me.as_ref().unwrap().get_access_level().level,
+                format!("change_event_popup_{}", event.id),
                 event,
             ))
             .popup(),

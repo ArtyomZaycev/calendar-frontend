@@ -1,13 +1,13 @@
-use std::ops::RangeInclusive;
-
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
 use egui::{Button, InnerResponse, TextEdit};
 use num_traits::FromPrimitive;
+use std::hash::Hash;
 
 use crate::{
     state::State,
     ui::{
+        access_level_picker::AccessLevelPicker,
         date_picker::DatePicker,
         time_picker::TimePicker,
         widget_signal::{AppSignal, StateSignal},
@@ -17,7 +17,7 @@ use crate::{
 use super::popup_builder::{ContentInfo, PopupBuilder};
 
 pub struct ScheduleInput {
-    pub max_access_level: i32,
+    pub eid: egui::Id,
 
     pub id: Option<i32>,
     pub template_id: Option<i32>,
@@ -37,7 +37,7 @@ pub struct ScheduleInput {
 }
 
 impl ScheduleInput {
-    pub fn new(max_access_level: i32) -> Self {
+    pub fn new(eid: impl Hash) -> Self {
         let now = Local::now().naive_local();
         let minutes = now
             .time()
@@ -46,7 +46,7 @@ impl ScheduleInput {
         let now_time = NaiveTime::from_hms_opt(minutes / 60, minutes % 60, 0).unwrap();
 
         Self {
-            max_access_level,
+            eid: egui::Id::new(eid),
             id: None,
             template_id: None,
             name: String::default(),
@@ -54,7 +54,7 @@ impl ScheduleInput {
             first_day: now.date(),
             last_day_enabled: false,
             last_day: now.date() + Days::new(1),
-            access_level: 0,
+            access_level: -1,
 
             init_events: None,
             new_event_start: now_time,
@@ -65,7 +65,7 @@ impl ScheduleInput {
         }
     }
 
-    pub fn change(max_access_level: i32, schedule: &Schedule) -> Self {
+    pub fn change(eid: impl Hash, schedule: &Schedule) -> Self {
         let now = Local::now().naive_local();
         let minutes = now
             .time()
@@ -74,7 +74,7 @@ impl ScheduleInput {
         let now_time = NaiveTime::from_hms_opt(minutes / 60, minutes % 60, 0).unwrap();
 
         Self {
-            max_access_level,
+            eid: egui::Id::new(eid),
             id: Some(schedule.id),
             template_id: Some(schedule.template_id),
             name: schedule.name.clone(),
@@ -111,6 +111,11 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
         state: &'a State,
     ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
+
+        if self.access_level == -1 {
+            self.access_level = state.me.as_ref().unwrap().current_access_level;
+        }
+
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
@@ -145,10 +150,14 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 }
             });
 
-            ui.add(egui::Slider::new(
-                &mut self.access_level,
-                RangeInclusive::new(0, self.max_access_level),
-            ));
+            ui.add(
+                AccessLevelPicker::new(
+                    self.eid.with("access_level"),
+                    &mut self.access_level,
+                    &state.me.as_ref().unwrap().access_levels,
+                )
+                .with_label("Access level: "),
+            );
 
             ui.separator();
 

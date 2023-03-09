@@ -1,27 +1,26 @@
-use std::ops::RangeInclusive;
-
 use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
-use egui::InnerResponse;
+use egui::{InnerResponse, TextEdit};
+use std::hash::Hash;
 
 use crate::{
     state::State,
     ui::{
+        access_level_picker::AccessLevelPicker,
         date_picker::DatePicker,
+        event_visibility_picker::EventVisibilityPicker,
         time_picker::TimePicker,
         widget_signal::{AppSignal, StateSignal},
     },
-    utils::event_visibility_human_name,
 };
 
 use super::popup_builder::{ContentInfo, PopupBuilder};
 
 pub struct EventInput {
-    pub max_access_level: i32,
+    pub eid: egui::Id,
 
     pub id: Option<i32>,
     pub name: String,
-    pub description_enabled: bool,
     pub description: String,
     pub access_level: i32,
     pub visibility: EventVisibility,
@@ -35,15 +34,14 @@ pub struct EventInput {
 }
 
 impl EventInput {
-    pub fn new(max_access_level: i32) -> Self {
+    pub fn new(eid: impl Hash) -> Self {
         let now = Local::now().naive_local();
         Self {
-            max_access_level,
+            eid: egui::Id::new(eid),
             id: None,
             name: String::default(),
-            description_enabled: false,
             description: String::default(),
-            access_level: 0,
+            access_level: -1,
             visibility: EventVisibility::HideAll,
             date: now.date(),
             start: now.time(),
@@ -53,12 +51,11 @@ impl EventInput {
         }
     }
 
-    pub fn change(max_access_level: i32, event: &Event) -> Self {
+    pub fn change(eid: impl Hash, event: &Event) -> Self {
         Self {
-            max_access_level,
+            eid: egui::Id::new(eid),
             id: Some(event.id),
             name: event.name.clone(),
-            description_enabled: event.description.is_some(),
             description: event.description.clone().unwrap_or_default(),
             access_level: event.access_level,
             visibility: event.visibility,
@@ -76,46 +73,38 @@ impl<'a> PopupBuilder<'a> for EventInput {
         &'a mut self,
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
-        _state: &'a State,
+        state: &'a State,
     ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
 
+        if self.access_level == -1 {
+            self.access_level = state.me.as_ref().unwrap().current_access_level;
+        }
+
         ui.vertical(|ui| {
-            ui.text_edit_singleline(&mut self.name);
-            ui.checkbox(&mut self.description_enabled, "Description");
+            ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
+            ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
 
-            if self.description_enabled {
-                ui.text_edit_multiline(&mut self.description);
-            }
-
-            ui.add(egui::Slider::new(
-                &mut self.access_level,
-                RangeInclusive::new(0, self.max_access_level),
-            ));
-            egui::ComboBox::from_id_source(self.id)
-                .selected_text(event_visibility_human_name(&self.visibility))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.visibility,
-                        EventVisibility::HideName,
-                        event_visibility_human_name(&EventVisibility::HideName),
-                    );
-                    ui.selectable_value(
-                        &mut self.visibility,
-                        EventVisibility::HideDescription,
-                        event_visibility_human_name(&EventVisibility::HideDescription),
-                    );
-                    ui.selectable_value(
-                        &mut self.visibility,
-                        EventVisibility::HideAll,
-                        event_visibility_human_name(&EventVisibility::HideAll),
-                    );
-                });
+            ui.add(
+                AccessLevelPicker::new(
+                    self.eid.with("access_level"),
+                    &mut self.access_level,
+                    &state.me.as_ref().unwrap().access_levels,
+                )
+                .with_label("Access level: "),
+            );
+            ui.add(
+                EventVisibilityPicker::new(self.eid.with("visibility"), &mut self.visibility)
+                    .with_label("Visibility: "),
+            );
 
             ui.add(DatePicker::new("date_picker_id", &mut self.date));
 
-            ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
-            ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
+            ui.horizontal(|ui| {
+                ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
+                ui.label("-");
+                ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
+            });
 
             ContentInfo::new()
                 .error(
@@ -141,7 +130,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                         id,
                                         name: USome(self.name.clone()),
                                         description: USome(
-                                            self.description_enabled
+                                            (!self.description.is_empty())
                                                 .then_some(self.description.clone()),
                                         ),
                                         start: USome(NaiveDateTime::new(self.date, self.start)),
@@ -160,8 +149,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                 .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
                                     user_id: -1,
                                     name: self.name.clone(),
-                                    description: self
-                                        .description_enabled
+                                    description: (!self.description.is_empty())
                                         .then_some(self.description.clone()),
                                     start: NaiveDateTime::new(self.date, self.start),
                                     end: NaiveDateTime::new(self.date, self.end),

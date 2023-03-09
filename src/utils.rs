@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use calendar_lib::api::events::types::EventVisibility;
+use calendar_lib::api::{auth::types::AccessLevel, events::types::EventVisibility};
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -57,6 +57,15 @@ pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
         chrono::Weekday::Sat => "Saturday",
         chrono::Weekday::Sun => "Sunday",
     }
+}
+
+pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32) -> String {
+    access_levels
+        .iter()
+        .filter_map(|level| (level.level == access_level).then_some(level.name.as_str()))
+        // Use intersperse: https://github.com/rust-lang/rust/issues/79524
+        .collect::<Vec<_>>()
+        .join(" | ")
 }
 
 pub fn event_visibility_human_name(visibility: &EventVisibility) -> &'static str {

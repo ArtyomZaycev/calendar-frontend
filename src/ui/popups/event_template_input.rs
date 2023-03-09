@@ -1,12 +1,12 @@
-use std::ops::RangeInclusive;
-
 use calendar_lib::api::event_templates::types::NewEventTemplate;
 use chrono::NaiveTime;
 use egui::{Align, InnerResponse, Layout, TextEdit};
+use std::hash::Hash;
 
 use crate::{
     state::State,
     ui::{
+        access_level_picker::AccessLevelPicker,
         time_picker::TimePicker,
         widget_signal::{AppSignal, StateSignal},
     },
@@ -15,7 +15,7 @@ use crate::{
 use super::popup_builder::{ContentInfo, PopupBuilder};
 
 pub struct EventTemplateInput {
-    pub max_access_level: i32,
+    pub eid: egui::Id,
 
     pub name: String,
     pub event_name: String,
@@ -28,14 +28,14 @@ pub struct EventTemplateInput {
 }
 
 impl EventTemplateInput {
-    pub fn new(max_access_level: i32) -> Self {
+    pub fn new(eid: impl Hash) -> Self {
         Self {
-            max_access_level,
+            eid: egui::Id::new(eid),
             name: String::default(),
             event_name: String::default(),
             event_description: String::default(),
             duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
-            access_level: 0,
+            access_level: -1,
             closed: false,
             signals: vec![],
         }
@@ -47,9 +47,14 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
         &'a mut self,
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
-        _state: &'a State,
+        state: &'a State,
     ) -> InnerResponse<ContentInfo<'a>> {
         self.signals.clear();
+
+        if self.access_level == -1 {
+            self.access_level = state.me.as_ref().unwrap().current_access_level;
+        }
+
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
             ui.separator();
@@ -65,10 +70,14 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 ));
             });
 
-            ui.add(egui::Slider::new(
-                &mut self.access_level,
-                RangeInclusive::new(0, self.max_access_level),
-            ));
+            ui.add(
+                AccessLevelPicker::new(
+                    self.eid.with("access_level"),
+                    &mut self.access_level,
+                    &state.me.as_ref().unwrap().access_levels,
+                )
+                .with_label("Access level: "),
+            );
 
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 // RTL
