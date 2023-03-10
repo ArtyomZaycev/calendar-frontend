@@ -80,67 +80,39 @@ impl CalendarApp {
 }
 
 impl CalendarApp {
-    pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Login> {
+    pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::Login(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_login().then_some(p)
         })
     }
-    pub fn get_sign_up_popup<'a>(&'a mut self) -> Option<&'a mut SignUp> {
+    pub fn get_sign_up_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::SignUp(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_sign_up().then_some(p)
         })
     }
-    pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut EventInput> {
+    pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::NewEvent(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_new_event().then_some(p)
         })
     }
-    pub fn get_update_event_popup<'a>(&'a mut self) -> Option<&'a mut EventInput> {
+    pub fn get_update_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::UpdateEvent(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_update_event().then_some(p)
         })
     }
-    pub fn get_new_schedule_popup<'a>(&'a mut self) -> Option<&'a mut ScheduleInput> {
+    pub fn get_new_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::NewSchedule(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_new_schedule().then_some(p)
         })
     }
-    pub fn get_update_schedule_popup<'a>(&'a mut self) -> Option<&'a mut ScheduleInput> {
+    pub fn get_update_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::UpdateSchedule(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_update_schedule().then_some(p)
         })
     }
-    pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut EventTemplateInput> {
+    pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.popups.iter_mut().find_map(|p| {
-            if let PopupType::NewEventTemplate(v) = p.get_type_mut() {
-                Some(v)
-            } else {
-                None
-            }
+            p.get_type().is_new_event_template().then_some(p)
         })
     }
 
@@ -245,43 +217,45 @@ impl CalendarApp {
 
         if let Some(popup) = self.get_login_popup() {
             if polled.has_login() {
-                popup.closed = true;
+                popup.close();
             }
         }
         if let Some(popup) = self.get_sign_up_popup() {
             if polled.has_register() {
-                popup.closed = true;
+                popup.close();
             } else if let Some(error) = polled.get_register_error() {
-                match error {
-                    register::BadRequestResponse::EmailAlreadyUsed => {
-                        popup.email_taken = true;
+                if let PopupType::SignUp(sign_up) = popup.get_type_mut() {
+                    match error {
+                        register::BadRequestResponse::EmailAlreadyUsed => {
+                            sign_up.email_taken = true;
+                        }
                     }
-                }
+                } 
             }
         }
         if let Some(popup) = self.get_new_event_popup() {
             if polled.has_insert_event() {
-                popup.closed = true;
+                popup.close();
             }
         }
         if let Some(popup) = self.get_update_event_popup() {
             if polled.has_update_event() {
-                popup.closed = true;
+                popup.close();
             }
         }
         if let Some(popup) = self.get_new_schedule_popup() {
             if polled.has_insert_schedule() {
-                popup.closed = true;
+                popup.close();
             }
         }
         if let Some(popup) = self.get_update_schedule_popup() {
             if polled.has_update_schedule() {
-                popup.closed = true;
+                popup.close();
             }
         }
         if let Some(popup) = self.get_new_event_template_popup() {
             if polled.has_insert_event_template() {
-                popup.closed = true;
+                popup.close();
             }
         }
     }

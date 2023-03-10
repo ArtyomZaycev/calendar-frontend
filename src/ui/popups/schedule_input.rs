@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{ContentInfo, PopupBuilder};
+use super::popup_builder::{PopupBuilder, ContentUiInfo};
 
 pub struct ScheduleInput {
     pub eid: egui::Id,
@@ -31,9 +31,6 @@ pub struct ScheduleInput {
     pub init_events: Option<Vec<EventPlan>>,
     pub new_event_start: NaiveTime,
     pub events: [Vec<NewEventPlan>; 7],
-
-    pub closed: bool,
-    pub signals: Vec<AppSignal>,
 }
 
 impl ScheduleInput {
@@ -59,9 +56,6 @@ impl ScheduleInput {
             init_events: None,
             new_event_start: now_time,
             events: Default::default(),
-
-            closed: false,
-            signals: vec![],
         }
     }
 
@@ -96,9 +90,6 @@ impl ScheduleInput {
                     });
                     acc
                 }),
-
-            closed: false,
-            signals: vec![],
         }
     }
 }
@@ -109,9 +100,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         state: &'a State,
-    ) -> InnerResponse<ContentInfo<'a>> {
-        self.signals.clear();
-
+    ) -> InnerResponse<ContentUiInfo<'a>> {
         if self.access_level == -1 {
             self.access_level = state.me.as_ref().unwrap().current_access_level;
         }
@@ -202,14 +191,12 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     self.events[weekday].remove(i);
                 });
             });
-
-            ContentInfo::new()
-                .close_button("Cancel", &mut self.closed)
+            ContentUiInfo::new().close_button("Cancel")
                 .error(
-                    (self.id.is_none() || self.template_id.is_none())
+                    (self.id.is_none() && self.template_id.is_none())
                         .then_some("Template must be set".to_owned()),
                 )
-                .button(|ui, is_error| {
+                .button(|ui, builder, is_error| {
                     if let Some(id) = self.id {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
@@ -235,8 +222,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                                     .then_some(new_event_plan.clone())
                                 })
                                 .collect::<Vec<_>>();
-                            self.signals
-                                .push(AppSignal::StateSignal(StateSignal::UpdateSchedule(
+                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateSchedule(
                                     UpdateSchedule {
                                         id,
                                         name: USome(self.name.clone()),
@@ -258,8 +244,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     } else {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
-                            self.signals
-                                .push(AppSignal::StateSignal(StateSignal::InsertSchedule(
+                            builder.signal(AppSignal::StateSignal(StateSignal::InsertSchedule(
                                     NewSchedule {
                                         user_id: -1,
                                         template_id: self.template_id.unwrap(),
@@ -282,13 +267,5 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     }
                 })
         })
-    }
-
-    fn signals(&'a self) -> Vec<AppSignal> {
-        self.signals.clone()
-    }
-
-    fn is_closed(&'a self) -> bool {
-        self.closed
     }
 }

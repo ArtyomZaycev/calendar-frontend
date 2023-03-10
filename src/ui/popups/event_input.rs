@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{ContentInfo, PopupBuilder};
+use super::popup_builder::{PopupBuilder, ContentUiInfo};
 
 pub struct EventInput {
     pub eid: egui::Id,
@@ -28,9 +28,6 @@ pub struct EventInput {
     pub date: NaiveDate,
     pub start: NaiveTime,
     pub end: NaiveTime,
-
-    pub closed: bool,
-    pub signals: Vec<AppSignal>,
 }
 
 impl EventInput {
@@ -46,8 +43,6 @@ impl EventInput {
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::minutes(30),
-            closed: false,
-            signals: vec![],
         }
     }
 
@@ -62,8 +57,6 @@ impl EventInput {
             date: event.start.date(),
             start: event.start.time(),
             end: event.end.time(),
-            closed: false,
-            signals: vec![],
         }
     }
 }
@@ -74,9 +67,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         state: &'a State,
-    ) -> InnerResponse<ContentInfo<'a>> {
-        self.signals.clear();
-
+    ) -> InnerResponse<ContentUiInfo<'a>> {
         if self.access_level == -1 {
             self.access_level = state.me.as_ref().unwrap().current_access_level;
         }
@@ -106,26 +97,25 @@ impl<'a> PopupBuilder<'a> for EventInput {
                 ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
             });
 
-            ContentInfo::new()
+            ContentUiInfo::new()
                 .error(
                     self.name
                         .is_empty()
                         .then_some("Name cannot be empty".to_owned()),
                 )
                 .error((self.start > self.end).then_some("End must be before the start".to_owned()))
-                .button(|ui, _| {
+                .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {
-                        self.closed = true;
+                        builder.close();
                     }
                     response
                 })
-                .button(|ui, is_error| {
+                .button(|ui, builder, is_error| {
                     if let Some(id) = self.id {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
                         if response.clicked() {
-                            self.signals
-                                .push(AppSignal::StateSignal(StateSignal::UpdateEvent(
+                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                     UpdateEvent {
                                         id,
                                         name: USome(self.name.clone()),
@@ -145,8 +135,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     } else {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
-                            self.signals
-                                .push(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
+                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
                                     user_id: -1,
                                     name: self.name.clone(),
                                     description: (!self.description.is_empty())
@@ -162,13 +151,5 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     }
                 })
         })
-    }
-
-    fn signals(&'a self) -> Vec<AppSignal> {
-        self.signals.clone()
-    }
-
-    fn is_closed(&'a self) -> bool {
-        self.closed
     }
 }

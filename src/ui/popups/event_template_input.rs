@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{ContentInfo, PopupBuilder};
+use super::popup_builder::{PopupBuilder, ContentUiInfo};
 
 pub struct EventTemplateInput {
     pub eid: egui::Id,
@@ -22,9 +22,6 @@ pub struct EventTemplateInput {
     pub event_description: String,
     pub duration: NaiveTime,
     pub access_level: i32,
-
-    pub closed: bool,
-    pub signals: Vec<AppSignal>,
 }
 
 impl EventTemplateInput {
@@ -36,8 +33,6 @@ impl EventTemplateInput {
             event_description: String::default(),
             duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             access_level: -1,
-            closed: false,
-            signals: vec![],
         }
     }
 }
@@ -48,9 +43,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         state: &'a State,
-    ) -> InnerResponse<ContentInfo<'a>> {
-        self.signals.clear();
-
+    ) -> InnerResponse<ContentUiInfo<'a>> {
         if self.access_level == -1 {
             self.access_level = state.me.as_ref().unwrap().current_access_level;
         }
@@ -79,18 +72,18 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 .with_label("Access level: "),
             );
 
-            ContentInfo::new()
-                .button(|ui, _| {
+            ContentUiInfo::new()
+                .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {
-                        self.closed = true;
+                        builder.close();
                     }
                     response
                 })
-                .button(|ui, is_error| {
+                .button(|ui, builder, is_error| {
                     let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                     if response.clicked() {
-                        self.signals.push(AppSignal::StateSignal(
+                        builder.signal(AppSignal::StateSignal(
                             StateSignal::InsertEventTemplate(NewEventTemplate {
                                 user_id: -1,
                                 name: self.name.clone(),
@@ -109,13 +102,5 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                     response
                 })
         })
-    }
-
-    fn signals(&'a self) -> Vec<AppSignal> {
-        self.signals.clone()
-    }
-
-    fn is_closed(&'a self) -> bool {
-        self.closed
     }
 }

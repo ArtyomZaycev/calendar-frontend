@@ -2,18 +2,15 @@ use egui::InnerResponse;
 
 use crate::{
     state::State,
-    ui::widget_signal::{AppSignal, StateSignal},
+    ui::widget_signal::StateSignal,
     utils::is_valid_email,
 };
 
-use super::popup_builder::{ContentInfo, PopupBuilder};
+use super::popup_builder::{PopupBuilder, ContentUiInfo};
 
 pub struct Login {
     pub email: String,
     pub password: String,
-
-    pub closed: bool,
-    pub signals: Vec<AppSignal>,
 }
 
 impl Login {
@@ -21,8 +18,6 @@ impl Login {
         Self {
             email: String::default(),
             password: String::default(),
-            closed: false,
-            signals: vec![],
         }
     }
 }
@@ -33,8 +28,7 @@ impl<'a> PopupBuilder<'a> for Login {
         ui: &mut egui::Ui,
         _ctx: &'a egui::Context,
         _state: &'a State,
-    ) -> InnerResponse<ContentInfo<'a>> {
-        self.signals.clear();
+    ) -> InnerResponse<ContentUiInfo<'a>> {
         let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str| {
             ui.add(
                 egui::TextEdit::singleline(value)
@@ -47,7 +41,7 @@ impl<'a> PopupBuilder<'a> for Login {
             show_input_field(ui, &mut self.email, "Email");
             show_input_field(ui, &mut self.password, "Password");
 
-            ContentInfo::new()
+            ContentUiInfo::new()
                 .error(
                     (&self.email != "admin" && !is_valid_email(&self.email))
                         .then_some("Email is not valid".to_owned()),
@@ -59,24 +53,16 @@ impl<'a> PopupBuilder<'a> for Login {
                         .then_some("Password is not strong enough".to_string()))*/
                     None,
                 )
-                .close_button("Cancel", &mut self.closed)
-                .button(|ui, is_error| {
+                .close_button("Cancel")
+                .button(|ui, builder, is_error| {
                     let response = ui.add_enabled(!is_error, egui::Button::new("Login"));
                     if response.clicked() {
-                        self.signals.push(
-                            StateSignal::Login(self.email.clone(), self.password.clone()).into(),
+                        builder.signal(
+                            StateSignal::Login(self.email.clone(), self.password.clone()),
                         );
                     }
                     response
                 })
         })
-    }
-
-    fn signals(&'a self) -> Vec<AppSignal> {
-        self.signals.clone()
-    }
-
-    fn is_closed(&'a self) -> bool {
-        self.closed
     }
 }
