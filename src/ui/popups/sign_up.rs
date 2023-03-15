@@ -6,7 +6,7 @@ use crate::{
     utils::{is_strong_enough_password, is_valid_email, is_valid_password},
 };
 
-use super::popup_builder::{PopupBuilder, ContentUiInfo};
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct SignUp {
     pub name: String,
@@ -74,13 +74,11 @@ impl<'a> PopupBuilder<'a> for SignUp {
                 .button(|ui, builder, is_error| {
                     let response = ui.add_enabled(!is_error, egui::Button::new("Sign Up"));
                     if response.clicked() {
-                        builder.signal(
-                            StateSignal::Register(
-                                self.name.clone(),
-                                self.email.clone(),
-                                self.password.clone(),
-                            )
-                        );
+                        builder.signal(StateSignal::Register(
+                            self.name.clone(),
+                            self.email.clone(),
+                            self.password.clone(),
+                        ));
                     }
                     response
                 })

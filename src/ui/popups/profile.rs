@@ -2,7 +2,7 @@ use egui::{Align, InnerResponse, Layout, Vec2};
 
 use crate::{db::aliases::UserInfo, state::State};
 
-use super::popup_builder::{PopupBuilder, ContentUiInfo};
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct Profile {
     pub user_info: UserInfo,
@@ -10,9 +10,7 @@ pub struct Profile {
 
 impl Profile {
     pub fn new(user_info: UserInfo) -> Self {
-        Self {
-            user_info,
-        }
+        Self { user_info }
     }
 }
 

@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{PopupBuilder, ContentUiInfo};
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct ScheduleInput {
     pub eid: egui::Id,
@@ -191,7 +191,8 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     self.events[weekday].remove(i);
                 });
             });
-            ContentUiInfo::new().close_button("Cancel")
+            ContentUiInfo::new()
+                .close_button("Cancel")
                 .error(
                     (self.id.is_none() && self.template_id.is_none())
                         .then_some("Template must be set".to_owned()),
@@ -223,45 +224,43 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                                 })
                                 .collect::<Vec<_>>();
                             builder.signal(AppSignal::StateSignal(StateSignal::UpdateSchedule(
-                                    UpdateSchedule {
-                                        id,
-                                        name: USome(self.name.clone()),
-                                        description: USome(
-                                            (!self.description.is_empty())
-                                                .then_some(self.description.clone()),
-                                        ),
-                                        first_day: USome(self.first_day),
-                                        last_day: USome(
-                                            self.last_day_enabled.then_some(self.last_day),
-                                        ),
-                                        access_level: USome(self.access_level),
-                                        delete_events,
-                                        new_events,
-                                    },
-                                )));
+                                UpdateSchedule {
+                                    id,
+                                    name: USome(self.name.clone()),
+                                    description: USome(
+                                        (!self.description.is_empty())
+                                            .then_some(self.description.clone()),
+                                    ),
+                                    first_day: USome(self.first_day),
+                                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                                    access_level: USome(self.access_level),
+                                    delete_events,
+                                    new_events,
+                                },
+                            )));
                         }
                         response
                     } else {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
                             builder.signal(AppSignal::StateSignal(StateSignal::InsertSchedule(
-                                    NewSchedule {
-                                        user_id: -1,
-                                        template_id: self.template_id.unwrap(),
-                                        name: self.name.clone(),
-                                        description: (!self.description.is_empty())
-                                            .then_some(self.description.clone()),
-                                        first_day: self.first_day,
-                                        last_day: self.last_day_enabled.then_some(self.last_day),
-                                        access_level: self.access_level,
-                                        events: self
-                                            .events
-                                            .clone()
-                                            .into_iter()
-                                            .flat_map(|v| v)
-                                            .collect(),
-                                    },
-                                )));
+                                NewSchedule {
+                                    user_id: -1,
+                                    template_id: self.template_id.unwrap(),
+                                    name: self.name.clone(),
+                                    description: (!self.description.is_empty())
+                                        .then_some(self.description.clone()),
+                                    first_day: self.first_day,
+                                    last_day: self.last_day_enabled.then_some(self.last_day),
+                                    access_level: self.access_level,
+                                    events: self
+                                        .events
+                                        .clone()
+                                        .into_iter()
+                                        .flat_map(|v| v)
+                                        .collect(),
+                                },
+                            )));
                         }
                         response
                     }

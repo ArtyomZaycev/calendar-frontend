@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{PopupBuilder, ContentUiInfo};
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct EventInput {
     pub eid: egui::Id,
@@ -116,26 +116,27 @@ impl<'a> PopupBuilder<'a> for EventInput {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
                         if response.clicked() {
                             builder.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
-                                    UpdateEvent {
-                                        id,
-                                        name: USome(self.name.clone()),
-                                        description: USome(
-                                            (!self.description.is_empty())
-                                                .then_some(self.description.clone()),
-                                        ),
-                                        start: USome(NaiveDateTime::new(self.date, self.start)),
-                                        end: USome(NaiveDateTime::new(self.date, self.end)),
-                                        access_level: USome(self.access_level),
-                                        visibility: USome(self.visibility),
-                                        plan_id: UNone,
-                                    },
-                                )));
+                                UpdateEvent {
+                                    id,
+                                    name: USome(self.name.clone()),
+                                    description: USome(
+                                        (!self.description.is_empty())
+                                            .then_some(self.description.clone()),
+                                    ),
+                                    start: USome(NaiveDateTime::new(self.date, self.start)),
+                                    end: USome(NaiveDateTime::new(self.date, self.end)),
+                                    access_level: USome(self.access_level),
+                                    visibility: USome(self.visibility),
+                                    plan_id: UNone,
+                                },
+                            )));
                         }
                         response
                     } else {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
+                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEvent(
+                                NewEvent {
                                     user_id: -1,
                                     name: self.name.clone(),
                                     description: (!self.description.is_empty())
@@ -145,7 +146,8 @@ impl<'a> PopupBuilder<'a> for EventInput {
                                     access_level: self.access_level,
                                     visibility: self.visibility,
                                     plan_id: None,
-                                })));
+                                },
+                            )));
                         }
                         response
                     }

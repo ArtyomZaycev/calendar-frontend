@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use super::popup_builder::{PopupBuilder, ContentUiInfo};
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct EventTemplateInput {
     pub eid: egui::Id,
@@ -83,8 +83,8 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 .button(|ui, builder, is_error| {
                     let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                     if response.clicked() {
-                        builder.signal(AppSignal::StateSignal(
-                            StateSignal::InsertEventTemplate(NewEventTemplate {
+                        builder.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
+                            NewEventTemplate {
                                 user_id: -1,
                                 name: self.name.clone(),
                                 event_name: self.event_name.clone(),
@@ -96,8 +96,8 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                                     .to_std()
                                     .unwrap(),
                                 access_level: self.access_level,
-                            }),
-                        ));
+                            },
+                        )));
                     }
                     response
                 })

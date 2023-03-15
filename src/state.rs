@@ -1,5 +1,7 @@
+use std::{cell::RefCell, collections::HashMap};
+
 use calendar_lib::api::{auth, events, schedules, user_roles};
-use chrono::{Datelike, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
@@ -18,13 +20,13 @@ use super::requests::AppRequest;
 
 pub struct State {
     connector: Connector<AppRequest, AppRequestDescription>,
+    phantom_events: RefCell<HashMap<NaiveDate, Vec<Event>>>,
 
     // Should not be modified manually, use requests
     pub me: Option<UserInfo>,
     pub users: Vec<User>,
     pub event_templates: Vec<EventTemplate>,
     pub events: Vec<Event>,
-    pub phantom_events: Vec<Event>, // Created from schedules, do not exist in the db
     pub schedules: Vec<Schedule>,
 
     pub errors: Vec<()>,
@@ -34,11 +36,11 @@ impl State {
     pub fn new(config: &Config) -> Self {
         Self {
             connector: Connector::new(config),
+            phantom_events: RefCell::new(HashMap::new()),
             me: None,
             users: Vec::default(),
             event_templates: Vec::default(),
             events: Vec::default(),
-            phantom_events: Vec::default(),
             schedules: Vec::default(),
             errors: Vec::default(),
         }
@@ -51,48 +53,57 @@ impl State {
             .unwrap_or_default()
     }
 
-    fn generate_scheduled_events(&mut self) {
-        let now = chrono::Local::now().naive_local();
+    fn clear_phantom_events(&mut self) {
+        self.phantom_events.get_mut().clear();
+    }
 
-        let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
-            self.events
-                .iter()
-                .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
-        };
-
-        self.phantom_events = self
-            .schedules
-            .iter()
-            .flat_map(|schedule| {
-                match self
-                    .event_templates
-                    .iter()
-                    .find(|template| template.id == schedule.template_id)
-                {
-                    Some(template) => schedule
-                        .event_plans
+    pub fn get_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
+        self.phantom_events
+            .borrow_mut()
+            .entry(date)
+            .or_insert_with(|| {
+                let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
+                    self.events
                         .iter()
-                        .filter_map(|event_plan| {
-                            let start = NaiveDateTime::new(now.date(), event_plan.time);
-                            (event_plan.weekday == now.date().weekday()
-                                && !event_exists(schedule, &start))
-                            .then(|| Event {
-                                id: -1,
-                                user_id: schedule.user_id,
-                                name: template.event_name.clone(),
-                                description: template.event_description.clone(),
-                                start,
-                                end: start + chrono::Duration::from_std(template.duration).unwrap(),
-                                access_level: schedule.access_level,
-                                visibility: EventVisibility::HideAll,
-                                plan_id: Some(event_plan.id),
-                            })
-                        })
-                        .collect(),
-                    None => vec![],
-                }
+                        .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
+                };
+
+                self.schedules
+                    .iter()
+                    .flat_map(|schedule| {
+                        match self
+                            .event_templates
+                            .iter()
+                            .find(|template| template.id == schedule.template_id)
+                        {
+                            Some(template) => schedule
+                                .event_plans
+                                .iter()
+                                .filter_map(|event_plan| {
+                                    let start = NaiveDateTime::new(date, event_plan.time);
+                                    (event_plan.weekday == date.weekday()
+                                        && !event_exists(schedule, &start))
+                                    .then(|| Event {
+                                        id: -1,
+                                        user_id: schedule.user_id,
+                                        name: template.event_name.clone(),
+                                        description: template.event_description.clone(),
+                                        start,
+                                        end: start
+                                            + chrono::Duration::from_std(template.duration)
+                                                .unwrap(),
+                                        access_level: schedule.access_level,
+                                        visibility: EventVisibility::HideAll,
+                                        plan_id: Some(event_plan.id),
+                                    })
+                                })
+                                .collect(),
+                            None => vec![],
+                        }
+                    })
+                    .collect()
             })
-            .collect();
+            .clone()
     }
 }
 
@@ -640,21 +651,21 @@ impl State {
                     Some(s) => *s = schedule,
                     None => self.schedules.push(schedule),
                 }
-                self.generate_scheduled_events();
+                self.clear_phantom_events();
             }
             AppRequest::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
                     if let AppRequestDescription::LoadSchedule(id) = description {
                         if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
                             self.schedules.remove(ind);
-                            self.generate_scheduled_events();
+                            self.clear_phantom_events();
                         }
                     }
                 }
             },
             AppRequest::LoadSchedules(res) => {
                 self.schedules = res.array;
-                self.generate_scheduled_events();
+                self.clear_phantom_events();
             }
             AppRequest::InsertSchedule(_) => {
                 self.load_schedules();

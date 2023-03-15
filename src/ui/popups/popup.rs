@@ -10,7 +10,7 @@ use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
-    popup_builder::{PopupBuilder, ContentUiInfo},
+    popup_builder::{ContentUiInfo, PopupBuilder},
     profile::Profile,
     schedule_input::ScheduleInput,
     sign_up::SignUp,
@@ -78,10 +78,13 @@ impl<'a> WidgetBuilder<'a> for Popup {
                 .resizable(false)
                 .default_size(Vec2::new(320., 0.))
                 .show(ctx, |ui| {
-                    let content = self.t.build(ctx, state)(ui);
-                    self.signals = content.inner.signals;
-                    self.is_closed = self.is_closed || content.inner.is_closed;
-                    content.response
+                    let InnerResponse {
+                        mut inner,
+                        response,
+                    } = self.t.build(ctx, state)(ui);
+                    self.signals.append(&mut inner.signals);
+                    self.is_closed = self.is_closed || inner.is_closed;
+                    response
                 })
                 .unwrap()
                 .inner
@@ -97,7 +100,7 @@ impl Popup {
             id: egui::Id::new(rand::random::<i64>()),
             t: popup,
             signals: vec![],
-            is_closed: false
+            is_closed: false,
         }
     }
 

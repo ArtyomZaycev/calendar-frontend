@@ -2,6 +2,7 @@ use calendar_lib::api::{auth::register, events::types::Event, schedules::types::
 use chrono::NaiveDate;
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
+use itertools::Itertools;
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -81,39 +82,39 @@ impl CalendarApp {
 
 impl CalendarApp {
     pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_login().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_login().then_some(p))
     }
     pub fn get_sign_up_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_sign_up().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_sign_up().then_some(p))
     }
     pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_new_event().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_new_event().then_some(p))
     }
     pub fn get_update_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_update_event().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_update_event().then_some(p))
     }
     pub fn get_new_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_new_schedule().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_new_schedule().then_some(p))
     }
     pub fn get_update_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_update_schedule().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_update_schedule().then_some(p))
     }
     pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups.iter_mut().find_map(|p| {
-            p.get_type().is_new_event_template().then_some(p)
-        })
+        self.popups
+            .iter_mut()
+            .find_map(|p| p.get_type().is_new_event_template().then_some(p))
     }
 
     pub fn is_open_profile(&self) -> bool {
@@ -230,7 +231,7 @@ impl CalendarApp {
                             sign_up.email_taken = true;
                         }
                     }
-                } 
+                }
             }
         }
         if let Some(popup) = self.get_new_event_popup() {
@@ -418,8 +419,9 @@ impl CalendarApp {
                                 .state
                                 .events
                                 .iter()
-                                .chain(self.state.phantom_events.iter())
                                 .filter(|e| e.start.date() == date)
+                                .chain(&self.state.get_phantom_events(date))
+                                .sorted_by_key(|v| v.start)
                                 .count();
                             ui.vertical(|ui| {
                                 ui.label(date.to_string());
@@ -456,8 +458,9 @@ impl CalendarApp {
                         self.state
                             .events
                             .iter()
-                            .chain(self.state.phantom_events.iter())
                             .filter(|e| e.start.date() == date)
+                            .chain(&self.state.get_phantom_events(date))
+                            .sorted_by_key(|v| v.start)
                             .for_each(|event| {
                                 ui.add(
                                     EventCard::new(
@@ -489,8 +492,9 @@ impl CalendarApp {
             self.state
                 .events
                 .iter()
-                .chain(self.state.phantom_events.iter())
                 .filter(|e| e.start.date() == date)
+                .chain(&self.state.get_phantom_events(date))
+                .sorted_by_key(|v| v.start)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
                     if i % num_of_columns as usize == 0 {
@@ -545,8 +549,9 @@ impl CalendarApp {
                         self.state
                             .events
                             .iter()
-                            .chain(self.state.phantom_events.iter())
                             .filter(|e| e.start.date() == date)
+                            .chain(&self.state.get_phantom_events(date))
+                            .sorted_by_key(|v| v.start)
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
                                 if i % num_of_columns as usize == 0 {
