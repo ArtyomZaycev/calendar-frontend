@@ -76,29 +76,16 @@ impl ContentInfo {
     {
         let mut builder = ContentInfoBuilder::new();
         f(&mut builder);
-        self.is_closed = builder.is_closed;
+        self.is_closed |= builder.is_closed;
         self.signals.append(&mut builder.signals);
     }
 
-    pub fn builder<F>(self, f: F) -> Self
+    pub fn builder<F>(mut self, f: F) -> Self
     where
         F: FnOnce(&mut ContentInfoBuilder),
     {
-        let mut builder = ContentInfoBuilder::new();
-        f(&mut builder);
-        self.signals(builder.signals).closed(builder.is_closed)
-    }
-
-    pub fn signals(mut self, mut signals: Vec<AppSignal>) -> Self {
-        self.signals.append(&mut signals);
+        self.with_builder(f);
         self
-    }
-
-    pub fn closed(self, closed: bool) -> Self {
-        Self {
-            is_closed: closed,
-            ..self
-        }
     }
 }
 
