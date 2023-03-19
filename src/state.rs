@@ -124,7 +124,7 @@ impl State {
         }
     }
 
-    pub fn get_events_for_date(&self, date: NaiveDate) -> &Vec<Event> {
+    pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
     }
 }
