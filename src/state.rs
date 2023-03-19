@@ -1,10 +1,11 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::{collections::HashMap};
 
 use calendar_lib::api::{
     auth::{self, types::NewPassword},
     events, schedules, user_roles,
 };
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use itertools::Itertools;
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
@@ -23,7 +24,8 @@ use super::requests::AppRequest;
 
 pub struct State {
     connector: Connector<AppRequest, AppRequestDescription>,
-    phantom_events: RefCell<HashMap<NaiveDate, Vec<Event>>>,
+    /// Has both server and phantom events
+    events_per_day: HashMap<NaiveDate, Vec<Event>>,
 
     // Should not be modified manually, use requests
     pub me: Option<UserInfo>,
@@ -39,7 +41,7 @@ impl State {
     pub fn new(config: &Config) -> Self {
         Self {
             connector: Connector::new(config),
-            phantom_events: RefCell::new(HashMap::new()),
+            events_per_day: HashMap::new(),
             me: None,
             users: Vec::default(),
             event_templates: Vec::default(),
@@ -62,57 +64,70 @@ impl State {
         }
     }
 
-    fn clear_phantom_events(&mut self) {
-        self.phantom_events.get_mut().clear();
+    fn clear_events_for_day(&mut self, date: NaiveDate) {
+        self.events_per_day.remove(&date);
+    }
+    fn clear_events(&mut self) {
+        self.events_per_day.clear();
     }
 
-    pub fn get_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
-        self.phantom_events
-            .borrow_mut()
-            .entry(date)
-            .or_insert_with(|| {
-                let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
-                    self.events
-                        .iter()
-                        .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
-                };
+    fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
+        let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
+            self.events
+                .iter()
+                .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
+        };
 
-                self.schedules
+        self.schedules
+            .iter()
+            .flat_map(|schedule| {
+                match self
+                    .event_templates
                     .iter()
-                    .flat_map(|schedule| {
-                        match self
-                            .event_templates
-                            .iter()
-                            .find(|template| template.id == schedule.template_id)
-                        {
-                            Some(template) => schedule
-                                .event_plans
-                                .iter()
-                                .filter_map(|event_plan| {
-                                    let start = NaiveDateTime::new(date, event_plan.time);
-                                    (event_plan.weekday == date.weekday()
-                                        && !event_exists(schedule, &start))
-                                    .then(|| Event {
-                                        id: -1,
-                                        user_id: schedule.user_id,
-                                        name: template.event_name.clone(),
-                                        description: template.event_description.clone(),
-                                        start,
-                                        end: start
-                                            + chrono::Duration::from_std(template.duration)
-                                                .unwrap(),
-                                        access_level: schedule.access_level,
-                                        visibility: EventVisibility::HideAll,
-                                        plan_id: Some(event_plan.id),
-                                    })
-                                })
-                                .collect(),
-                            None => vec![],
-                        }
-                    })
-                    .collect()
+                    .find(|template| template.id == schedule.template_id)
+                {
+                    Some(template) => schedule
+                        .event_plans
+                        .iter()
+                        .filter_map(|event_plan| {
+                            let start = NaiveDateTime::new(date, event_plan.time);
+                            (event_plan.weekday == date.weekday()
+                                && !event_exists(schedule, &start))
+                            .then(|| Event {
+                                id: -1,
+                                user_id: schedule.user_id,
+                                name: template.event_name.clone(),
+                                description: template.event_description.clone(),
+                                start,
+                                end: start + chrono::Duration::from_std(template.duration).unwrap(),
+                                access_level: schedule.access_level,
+                                visibility: EventVisibility::HideAll,
+                                plan_id: Some(event_plan.id),
+                            })
+                        })
+                        .collect(),
+                    None => vec![],
+                }
             })
-            .clone()
+            .collect()
+    }
+
+    pub fn prepare_date(&mut self, date: NaiveDate) {
+        if !self.events_per_day.contains_key(&date) {
+            self.events_per_day.insert(date, {
+                self.events
+                    .iter()
+                    .filter(|e| e.start.date() == date)
+                    .cloned()
+                    .chain(self.generate_phantom_events(date))
+                    .sorted_by_key(|v| v.start)
+                    .collect()
+            });
+        }
+    }
+
+    pub fn get_events_for_date(&self, date: NaiveDate) -> &Vec<Event> {
+        self.events_per_day.get(&date).unwrap()
     }
 }
 
@@ -624,25 +639,25 @@ impl State {
             }
             AppRequest::LoadEvent(res) => {
                 let event = res.value;
+                self.clear_events_for_day(event.start.date());
                 match self.events.iter_mut().find(|e| e.id == event.id) {
                     Some(e) => *e = event,
                     None => self.events.push(event),
                 }
-                self.events.sort_by_key(|v| v.start);
             }
             AppRequest::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
                     if let AppRequestDescription::LoadEvent(id) = description {
                         if let Some(ind) = self.events.iter().position(|e| e.id == id) {
+                            self.clear_events_for_day(self.events[ind].start.date());
                             self.events.remove(ind);
-                            self.events.sort_by_key(|v| v.start);
                         }
                     }
                 }
             },
             AppRequest::LoadEvents(res) => {
                 self.events = res.array;
-                self.events.sort_by_key(|v| v.start);
+                self.clear_events();
             }
             AppRequest::InsertEvent(_) => {
                 self.load_events();
@@ -655,6 +670,7 @@ impl State {
             AppRequest::DeleteEvent(_) => {
                 if let AppRequestDescription::DeleteEvent(id) = description {
                     if let Some(ind) = self.events.iter().position(|e| e.id == id) {
+                        self.clear_events_for_day(self.events[ind].start.date());
                         self.events.remove(ind);
                     }
                 }
@@ -703,21 +719,21 @@ impl State {
                     Some(s) => *s = schedule,
                     None => self.schedules.push(schedule),
                 }
-                self.clear_phantom_events();
+                self.clear_events();
             }
             AppRequest::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
                     if let AppRequestDescription::LoadSchedule(id) = description {
                         if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
                             self.schedules.remove(ind);
-                            self.clear_phantom_events();
+                            self.clear_events();
                         }
                     }
                 }
             },
             AppRequest::LoadSchedules(res) => {
                 self.schedules = res.array;
-                self.clear_phantom_events();
+                self.clear_events();
             }
             AppRequest::InsertSchedule(_) => {
                 self.load_schedules();
@@ -727,13 +743,11 @@ impl State {
                     self.load_schedule(id);
                 }
             }
-            /*StateAction::UpdateSchedule(_) => {
-                self.load_schedules();
-            }*/
             AppRequest::DeleteSchedule(_) => {
                 if let AppRequestDescription::DeleteSchedule(id) = description {
                     if let Some(ind) = self.schedules.iter().position(|s| s.id == id) {
                         self.schedules.remove(ind);
+                        self.clear_events();
                     }
                 }
             }

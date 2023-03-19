@@ -3,7 +3,10 @@ use egui::{Align, InnerResponse, Layout, Vec2};
 use crate::{
     db::aliases::UserInfo,
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, widget_signal::{AppSignal, StateSignal}},
+    ui::{
+        access_level_picker::AccessLevelPicker,
+        widget_signal::{AppSignal, StateSignal},
+    },
 };
 
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
@@ -42,7 +45,14 @@ impl<'a> PopupBuilder<'a> for Profile {
                     ui.label(&self.user_info.user.email);
                 });
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    if state.me.as_ref().unwrap().access_levels.iter().any(|access_level| access_level.is_full()) {
+                    if state
+                        .me
+                        .as_ref()
+                        .unwrap()
+                        .access_levels
+                        .iter()
+                        .any(|access_level| access_level.is_full())
+                    {
                         // TODO: Somehow prevent opening multiple
                         if ui.add_enabled(true, egui::Button::new("add")).clicked() {
                             builder.signal(AppSignal::AddPassword);
@@ -58,7 +68,9 @@ impl<'a> PopupBuilder<'a> for Profile {
                             &self.user_info.access_levels,
                         ));
                         if self.user_info.current_access_level != pr_access_level {
-                            builder.signal(StateSignal::ChangeAccessLevel(self.user_info.current_access_level));
+                            builder.signal(StateSignal::ChangeAccessLevel(
+                                self.user_info.current_access_level,
+                            ));
                         }
                     });
                 });

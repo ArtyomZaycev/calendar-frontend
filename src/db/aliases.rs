@@ -24,7 +24,8 @@ pub struct UserInfo {
 
 impl UserInfo {
     pub fn get_access_level(&self) -> AccessLevel {
-        let levels = self.access_levels
+        let levels = self
+            .access_levels
             .iter()
             .filter(|l| l.level == self.current_access_level)
             .collect::<Vec<_>>();

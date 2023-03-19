@@ -2,7 +2,6 @@ use calendar_lib::api::{auth::register, events::types::Event, schedules::types::
 use chrono::NaiveDate;
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
-use itertools::Itertools;
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -164,8 +163,9 @@ impl CalendarApp {
         );
     }
     pub fn open_new_schedule(&mut self) {
-        self.popups
-            .push(PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level())).popup());
+        self.popups.push(
+            PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level())).popup(),
+        );
     }
     pub fn open_change_schedule(&mut self, schedule: &Schedule) {
         self.popups.push(
@@ -421,14 +421,9 @@ impl CalendarApp {
                         let monday = first_monday + chrono::Days::new(7 * week);
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
-                            let events = self
-                                .state
-                                .events
-                                .iter()
-                                .filter(|e| e.start.date() == date)
-                                .chain(&self.state.get_phantom_events(date))
-                                .sorted_by_key(|v| v.start)
-                                .count();
+
+                            self.state.prepare_date(date);
+                            let events = self.state.get_events_for_date(date).len();
                             ui.vertical(|ui| {
                                 ui.label(date.to_string());
                                 if first_day <= date && date <= last_day {
@@ -461,12 +456,11 @@ impl CalendarApp {
                         ui.set_width(column_width);
                         ui.vertical_centered(|ui| ui.heading(weekday_name));
                         ui.add_space(4.);
+
+                        self.state.prepare_date(date);
                         self.state
-                            .events
+                            .get_events_for_date(date)
                             .iter()
-                            .filter(|e| e.start.date() == date)
-                            .chain(&self.state.get_phantom_events(date))
-                            .sorted_by_key(|v| v.start)
                             .for_each(|event| {
                                 ui.add(
                                     EventCard::new(
@@ -493,14 +487,12 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
+            self.state.prepare_date(date);
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .events
+                .get_events_for_date(date)
                 .iter()
-                .filter(|e| e.start.date() == date)
-                .chain(&self.state.get_phantom_events(date))
-                .sorted_by_key(|v| v.start)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
                     if i % num_of_columns as usize == 0 {
@@ -550,14 +542,13 @@ impl CalendarApp {
                 egui::CollapsingHeader::new(RichText::new(header_text).heading())
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
+                        self.state.prepare_date(date);
+
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state
-                            .events
+                            .get_events_for_date(date)
                             .iter()
-                            .filter(|e| e.start.date() == date)
-                            .chain(&self.state.get_phantom_events(date))
-                            .sorted_by_key(|v| v.start)
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
                                 if i % num_of_columns as usize == 0 {

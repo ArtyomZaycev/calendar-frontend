@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use calendar_lib::api::auth::types::AccessLevel;
-use egui::{Id, Widget, WidgetText};
+use egui::{Id, Widget};
 use itertools::Itertools;
 
 use crate::utils::access_levels_human_name;
