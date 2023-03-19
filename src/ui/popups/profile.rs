@@ -1,7 +1,6 @@
 use egui::{Align, InnerResponse, Layout, Vec2};
 
 use crate::{
-    db::aliases::UserInfo,
     state::State,
     ui::{
         access_level_picker::AccessLevelPicker,
@@ -11,13 +10,11 @@ use crate::{
 
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
-pub struct Profile {
-    pub user_info: UserInfo,
-}
+pub struct Profile {}
 
 impl Profile {
-    pub fn new(user_info: UserInfo) -> Self {
-        Self { user_info }
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
@@ -36,19 +33,16 @@ impl<'a> PopupBuilder<'a> for Profile {
                         builder.close();
                     }
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        ui.heading(&self.user_info.user.name);
+                        ui.heading(&state.me.as_ref().unwrap().user.name);
                     });
                 });
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label("Email: ");
-                    ui.label(&self.user_info.user.email);
+                    ui.label(&state.me.as_ref().unwrap().user.email);
                 });
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     if state
-                        .me
-                        .as_ref()
-                        .unwrap()
                         .access_levels
                         .iter()
                         .any(|access_level| access_level.is_full())
@@ -61,16 +55,14 @@ impl<'a> PopupBuilder<'a> for Profile {
 
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         ui.label("Access level: ");
-                        let pr_access_level = self.user_info.current_access_level;
+                        let mut level = state.get_access_level().level;
                         ui.add(AccessLevelPicker::new(
                             "profile_access_level_picker",
-                            &mut self.user_info.current_access_level,
-                            &self.user_info.access_levels,
+                            &mut level,
+                            &state.access_levels,
                         ));
-                        if self.user_info.current_access_level != pr_access_level {
-                            builder.signal(StateSignal::ChangeAccessLevel(
-                                self.user_info.current_access_level,
-                            ));
+                        if state.get_access_level().level != level {
+                            builder.signal(StateSignal::ChangeAccessLevel(level));
                         }
                     });
                 });

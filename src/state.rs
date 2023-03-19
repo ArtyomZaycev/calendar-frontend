@@ -1,7 +1,10 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use calendar_lib::api::{
-    auth::{self, types::NewPassword},
+    auth::{
+        self,
+        types::{AccessLevel, NewPassword},
+    },
     events, schedules, user_roles,
 };
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
@@ -26,9 +29,11 @@ pub struct State {
     connector: Connector<AppRequest, AppRequestDescription>,
     /// Has both server and phantom events
     events_per_day: HashMap<NaiveDate, Vec<Event>>,
+    current_access_level: i32,
 
     // Should not be modified manually, use requests
     pub me: Option<UserInfo>,
+    pub access_levels: Vec<AccessLevel>,
     pub users: Vec<User>,
     pub event_templates: Vec<EventTemplate>,
     pub events: Vec<Event>,
@@ -43,24 +48,13 @@ impl State {
             connector: Connector::new(config),
             events_per_day: HashMap::new(),
             me: None,
+            current_access_level: -1,
+            access_levels: Vec::default(),
             users: Vec::default(),
             event_templates: Vec::default(),
             events: Vec::default(),
             schedules: Vec::default(),
             errors: Vec::default(),
-        }
-    }
-
-    pub fn get_access_level(&self) -> i32 {
-        match self.me.as_ref() {
-            Some(me) => me.current_access_level,
-            None => -1,
-        }
-    }
-    pub fn has_edit_rights(&self) -> bool {
-        match self.me.as_ref() {
-            Some(me) => me.get_access_level().edit_rights,
-            None => false,
         }
     }
 
@@ -78,8 +72,10 @@ impl State {
                 .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
         };
 
+        let level = self.get_access_level().level;
         self.schedules
             .iter()
+            .filter(move |s| s.access_level <= level)
             .flat_map(|schedule| {
                 match self
                     .event_templates
@@ -114,10 +110,12 @@ impl State {
 
     pub fn prepare_date(&mut self, date: NaiveDate) {
         if !self.events_per_day.contains_key(&date) {
+            let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
                 self.events
                     .iter()
                     .filter(|e| e.start.date() == date)
+                    .filter(move |e| e.access_level <= level)
                     .cloned()
                     .chain(self.generate_phantom_events(date))
                     .sorted_by_key(|v| v.start)
@@ -135,9 +133,7 @@ impl State {
     pub fn parse_signal(&mut self, signal: StateSignal) {
         match signal {
             StateSignal::ChangeAccessLevel(new_access_level) => {
-                if let Some(me) = self.me.as_mut() {
-                    me.current_access_level = new_access_level;
-                }
+                self.change_access_level(new_access_level);
             }
 
             StateSignal::Login(email, password) => self.login(&email, &password),
@@ -234,6 +230,25 @@ impl State {
 }
 
 impl State {
+    pub fn get_access_level(&self) -> AccessLevel {
+        let levels = self
+            .access_levels
+            .iter()
+            .filter(|l| l.level == self.current_access_level)
+            .collect::<Vec<_>>();
+        if levels.len() == 0 {
+            self.access_levels.last().unwrap().clone()
+        } else if levels.len() == 1 {
+            levels[0].clone()
+        } else {
+            (*levels.iter().find(|v| v.edit_rights).unwrap_or(&levels[0])).clone()
+        }
+    }
+    pub fn change_access_level(&mut self, new_access_level: i32) {
+        self.current_access_level = new_access_level;
+        self.clear_events();
+    }
+
     pub fn load_access_levels(&mut self) {
         use auth::load_access_levels::*;
 
@@ -273,8 +288,13 @@ impl State {
             .unwrap();
 
         self.me = None;
+        self.events_per_day.clear();
+        self.current_access_level = -1;
+        self.access_levels = vec![];
         self.users = vec![];
+        self.event_templates = vec![];
         self.events = vec![];
+        self.schedules = vec![];
 
         let parser = RequestParser::new_split(
             |_| AppRequest::None,
@@ -613,11 +633,11 @@ impl State {
             AppRequest::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
-                    current_access_level: res.access_level.level,
-                    access_levels: vec![res.access_level],
                     key: res.key,
                     roles: vec![],
                 });
+                self.current_access_level = res.access_level.level;
+                self.access_levels = vec![res.access_level];
                 self.load_state();
             }
             AppRequest::Register(_) => {}
@@ -626,11 +646,9 @@ impl State {
                 self.load_access_levels();
             }
             AppRequest::LoadAccessLevels(mut r) => {
-                if let Some(me) = &mut self.me {
-                    r.array.sort_by(|a, b| a.level.cmp(&b.level));
-                    me.access_levels = r.array;
-                    me.access_levels.sort_by_key(|l| l.level);
-                }
+                r.array.sort_by(|a, b| a.level.cmp(&b.level));
+                self.access_levels = r.array;
+                self.access_levels.sort_by_key(|l| l.level);
             }
             AppRequest::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {

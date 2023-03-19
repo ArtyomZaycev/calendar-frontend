@@ -62,7 +62,7 @@ impl<'a> PopupBuilder<'a> for NewPasswordInput {
             ui.add(AccessLevelPicker::new(
                 "new_password_access_level_picker",
                 &mut self.next_password_level,
-                &state.me.as_ref().unwrap().access_levels,
+                &state.access_levels,
             ));
 
             show_pass_input(

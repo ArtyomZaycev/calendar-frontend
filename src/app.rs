@@ -139,9 +139,7 @@ impl CalendarApp {
     }
 
     pub fn open_profile(&mut self) {
-        self.popups.push(
-            PopupType::Profile(Profile::new(self.state.me.as_ref().unwrap().clone())).popup(),
-        );
+        self.popups.push(PopupType::Profile(Profile::new()).popup());
     }
     pub fn open_login(&mut self) {
         self.popups.push(PopupType::Login(Login::new()).popup());
@@ -164,13 +162,13 @@ impl CalendarApp {
     }
     pub fn open_new_schedule(&mut self) {
         self.popups.push(
-            PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level())).popup(),
+            PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level().level)).popup(),
         );
     }
     pub fn open_change_schedule(&mut self, schedule: &Schedule) {
         self.popups.push(
             PopupType::UpdateSchedule(ScheduleInput::change(
-                self.state.get_access_level(),
+                self.state.get_access_level().level,
                 schedule,
             ))
             .popup(),
@@ -178,8 +176,10 @@ impl CalendarApp {
     }
     pub fn open_new_event_template(&mut self) {
         self.popups.push(
-            PopupType::NewEventTemplate(EventTemplateInput::new(self.state.get_access_level()))
-                .popup(),
+            PopupType::NewEventTemplate(EventTemplateInput::new(
+                self.state.get_access_level().level,
+            ))
+            .popup(),
         );
     }
     pub fn open_new_password(&mut self) {
@@ -585,11 +585,13 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
+            let level = self.state.get_access_level().level;
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
                 .schedules
                 .iter()
+                .filter(|s| s.access_level <= level)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, schedule)| {
                     if i % num_of_columns as usize == 0 {
@@ -624,11 +626,13 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
+            let level = self.state.get_access_level().level;
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
                 .event_templates
                 .iter()
+                .filter(|s| s.access_level <= level)
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, schedule)| {
                     if i % num_of_columns as usize == 0 {

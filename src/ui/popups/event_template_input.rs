@@ -45,7 +45,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
         state: &'a State,
     ) -> InnerResponse<ContentUiInfo<'a>> {
         if self.access_level == -1 {
-            self.access_level = state.me.as_ref().unwrap().current_access_level;
+            self.access_level = state.get_access_level().level;
         }
 
         ui.vertical(|ui| {
@@ -68,7 +68,7 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    &state.me.as_ref().unwrap().access_levels,
+                    &state.access_levels,
                 ));
             });
 
