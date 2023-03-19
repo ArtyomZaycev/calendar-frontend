@@ -18,6 +18,7 @@ use crate::{
             event_input::EventInput,
             event_template_input::EventTemplateInput,
             login::Login,
+            new_password_input::NewPasswordInput,
             popup::{Popup, PopupType},
             profile::Profile,
             schedule_input::ScheduleInput,
@@ -163,25 +164,27 @@ impl CalendarApp {
         );
     }
     pub fn open_new_schedule(&mut self) {
-        let me = self.state.me.as_ref().unwrap();
         self.popups
-            .push(PopupType::NewSchedule(ScheduleInput::new(me.get_access_level().level)).popup());
+            .push(PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level())).popup());
     }
     pub fn open_change_schedule(&mut self, schedule: &Schedule) {
         self.popups.push(
             PopupType::UpdateSchedule(ScheduleInput::change(
-                self.state.me.as_ref().unwrap().get_access_level().level,
+                self.state.get_access_level(),
                 schedule,
             ))
             .popup(),
         );
     }
     pub fn open_new_event_template(&mut self) {
-        let me = self.state.me.as_ref().unwrap();
         self.popups.push(
-            PopupType::NewEventTemplate(EventTemplateInput::new(me.get_access_level().level))
+            PopupType::NewEventTemplate(EventTemplateInput::new(self.state.get_access_level()))
                 .popup(),
         );
+    }
+    pub fn open_new_password(&mut self) {
+        self.popups
+            .push(PopupType::NewPassword(NewPasswordInput::new()).popup());
     }
 }
 
@@ -203,6 +206,9 @@ impl CalendarApp {
                 {
                     self.open_change_schedule(&schedule.clone());
                 }
+            }
+            AppSignal::AddPassword => {
+                self.open_new_password();
             }
         }
     }

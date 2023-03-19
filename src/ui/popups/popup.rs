@@ -10,6 +10,7 @@ use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
+    new_password_input::NewPasswordInput,
     popup_builder::{ContentUiInfo, PopupBuilder},
     profile::Profile,
     schedule_input::ScheduleInput,
@@ -26,6 +27,7 @@ pub enum PopupType {
     NewSchedule(ScheduleInput),
     UpdateSchedule(ScheduleInput),
     NewEventTemplate(EventTemplateInput),
+    NewPassword(NewPasswordInput),
 }
 
 impl<'a> PopupBuilder<'a> for PopupType {
@@ -44,6 +46,7 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::NewSchedule(w) => w.content(ui, ctx, state),
             PopupType::UpdateSchedule(w) => w.content(ui, ctx, state),
             PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
+            PopupType::NewPassword(w) => w.content(ui, ctx, state),
         }
     }
 }

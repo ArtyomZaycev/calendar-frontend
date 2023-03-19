@@ -49,7 +49,10 @@ impl<'a> ContentUiInfo<'a> {
     }
 
     // First is shown
-    pub fn error(self, error: Option<String>) -> Self {
+    pub fn error(self, is_error: bool, msg: &str) -> Self {
+        self.some_error(is_error.then_some(msg.to_owned()))
+    }
+    pub fn some_error(self, error: Option<String>) -> Self {
         Self {
             error: self.error.or(error),
             ..self

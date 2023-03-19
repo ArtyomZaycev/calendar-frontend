@@ -63,14 +63,14 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 ));
             });
 
-            ui.add(
-                AccessLevelPicker::new(
+            ui.horizontal(|ui| {
+                ui.label("Access level: ");
+                ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
                     &state.me.as_ref().unwrap().access_levels,
-                )
-                .with_label("Access level: "),
-            );
+                ));
+            });
 
             ContentUiInfo::new()
                 .button(|ui, builder, _| {

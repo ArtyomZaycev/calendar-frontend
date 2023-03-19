@@ -76,14 +76,14 @@ impl<'a> PopupBuilder<'a> for EventInput {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
 
-            ui.add(
-                AccessLevelPicker::new(
+            ui.horizontal(|ui| {
+                ui.label("Access level: ");
+                ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
                     &state.me.as_ref().unwrap().access_levels,
-                )
-                .with_label("Access level: "),
-            );
+                ));
+            });
             ui.add(
                 EventVisibilityPicker::new(self.eid.with("visibility"), &mut self.visibility)
                     .with_label("Visibility: "),
@@ -98,12 +98,8 @@ impl<'a> PopupBuilder<'a> for EventInput {
             });
 
             ContentUiInfo::new()
-                .error(
-                    self.name
-                        .is_empty()
-                        .then_some("Name cannot be empty".to_owned()),
-                )
-                .error((self.start > self.end).then_some("End must be before the start".to_owned()))
+                .error(self.name.is_empty(), "Name cannot be empty")
+                .error(self.start > self.end, "End must be before the start")
                 .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {

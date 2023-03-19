@@ -1,5 +1,5 @@
 use calendar_lib::api::{
-    auth::{self, login, register},
+    auth::{self, login, new_password, register},
     event_templates, events, schedules, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
@@ -8,8 +8,11 @@ use reqwest::StatusCode;
 #[derive(Clone, Debug, is_enum_variant)]
 pub enum AppRequest {
     Login(login::Response),
+
     Register(register::Response),
     RegisterError(register::BadRequestResponse),
+
+    NewPassword(new_password::Response),
 
     LoadAccessLevels(auth::load_access_levels::Response),
     LoadUserRoles(user_roles::load_array::Response),

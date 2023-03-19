@@ -39,15 +39,8 @@ impl<'a> PopupBuilder<'a> for Login {
 
             ContentUiInfo::new()
                 .error(
-                    (&self.email != "admin" && !is_valid_email(&self.email))
-                        .then_some("Email is not valid".to_owned()),
-                )
-                .error(
-                    /*(!is_valid_password(&self.password))
-                    .then_some("Invalid password".to_owned())
-                    .or((!is_strong_enough_password(&self.password))
-                        .then_some("Password is not strong enough".to_string()))*/
-                    None,
+                    &self.email != "admin" && !is_valid_email(&self.email),
+                    "Email is not valid",
                 )
                 .close_button("Cancel")
                 .button(|ui, builder, is_error| {

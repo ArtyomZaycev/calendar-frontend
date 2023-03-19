@@ -1,6 +1,9 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use calendar_lib::api::{auth, events, schedules, user_roles};
+use calendar_lib::api::{
+    auth::{self, types::NewPassword},
+    events, schedules, user_roles,
+};
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
@@ -46,11 +49,17 @@ impl State {
         }
     }
 
+    pub fn get_access_level(&self) -> i32 {
+        match self.me.as_ref() {
+            Some(me) => me.current_access_level,
+            None => -1,
+        }
+    }
     pub fn has_edit_rights(&self) -> bool {
-        self.me
-            .as_ref()
-            .map(|me| me.get_access_level().edit_rights)
-            .unwrap_or_default()
+        match self.me.as_ref() {
+            Some(me) => me.get_access_level().edit_rights,
+            None => false,
+        }
     }
 
     fn clear_phantom_events(&mut self) {
@@ -110,6 +119,12 @@ impl State {
 impl State {
     pub fn parse_signal(&mut self, signal: StateSignal) {
         match signal {
+            StateSignal::ChangeAccessLevel(new_access_level) => {
+                if let Some(me) = self.me.as_mut() {
+                    me.current_access_level = new_access_level;
+                }
+            }
+
             StateSignal::Login(email, password) => self.login(&email, &password),
             StateSignal::Register(name, email, password) => self.register(&name, &email, &password),
 
@@ -125,6 +140,10 @@ impl State {
             StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
             StateSignal::UpdateSchedule(upd_schedule) => self.update_schedule(upd_schedule),
             StateSignal::DeleteSchedule(id) => self.delete_schedule(id),
+
+            StateSignal::InsertPassword(access_level, viewer_password, editor_password) => {
+                self.new_password(access_level, viewer_password, editor_password);
+            }
         }
     }
 }
@@ -286,6 +305,31 @@ impl State {
             |r| AppRequest::Register(r),
             |r| AppRequest::RegisterError(r),
         );
+        self.connector
+            .request(request, RequestDescriptor::no_description(parser));
+    }
+
+    pub fn new_password(
+        &mut self,
+        access_level: i32,
+        viewer: Option<NewPassword>,
+        editor: Option<NewPassword>,
+    ) {
+        use auth::new_password::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body {
+                user_id: self.me.as_ref().unwrap().user.id,
+                access_level,
+                viewer_password: viewer,
+                editor_password: editor,
+            })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| AppRequest::NewPassword(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -541,6 +585,14 @@ impl State {
 }
 
 impl State {
+    fn load_state(&mut self) {
+        self.load_access_levels();
+        self.load_events();
+        self.load_user_roles();
+        self.load_event_templates();
+        self.load_schedules();
+    }
+
     fn parse_action(&mut self, request: AppRequest, description: AppRequestDescription) {
         match request {
             AppRequest::Login(res) => {
@@ -551,18 +603,18 @@ impl State {
                     key: res.key,
                     roles: vec![],
                 });
-                self.load_access_levels();
-                self.load_events();
-                self.load_user_roles();
-                self.load_event_templates();
-                self.load_schedules();
+                self.load_state();
             }
             AppRequest::Register(_) => {}
             AppRequest::RegisterError(_) => {}
+            AppRequest::NewPassword(_) => {
+                self.load_access_levels();
+            }
             AppRequest::LoadAccessLevels(mut r) => {
                 if let Some(me) = &mut self.me {
                     r.array.sort_by(|a, b| a.level.cmp(&b.level));
                     me.access_levels = r.array;
+                    me.access_levels.sort_by_key(|l| l.level);
                 }
             }
             AppRequest::LoadUserRoles(res) => {
@@ -687,7 +739,7 @@ impl State {
             }
             AppRequest::None => {}
             AppRequest::Error(status, s) => {
-                println!("smth went wrong: {status:?}=>{s:?}");
+                println!("smth went wrong: {status:?}=>{s:?}; description={description:?}");
             }
         }
     }

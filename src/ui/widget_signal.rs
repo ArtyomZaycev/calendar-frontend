@@ -1,4 +1,5 @@
 use calendar_lib::api::{
+    auth::types::NewPassword,
     event_templates::types::NewEventTemplate,
     events::types::{NewEvent, UpdateEvent},
     schedules::types::{NewSchedule, UpdateSchedule},
@@ -10,13 +11,19 @@ pub enum AppSignal {
 
     ChangeEvent(i32),
     ChangeSchedule(i32),
+
+    AddPassword,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum StateSignal {
-    Login(String, String),            // email, password
-    Register(String, String, String), // name, email, password
+    ChangeAccessLevel(i32),
+
+    /// (email, password)
+    Login(String, String),
+    /// (name, email, password)
+    Register(String, String, String),
 
     InsertEvent(NewEvent),
     UpdateEvent(UpdateEvent),
@@ -28,6 +35,8 @@ pub enum StateSignal {
     InsertSchedule(NewSchedule),
     UpdateSchedule(UpdateSchedule),
     DeleteSchedule(i32),
+
+    InsertPassword(i32, Option<NewPassword>, Option<NewPassword>),
 }
 
 impl Into<AppSignal> for StateSignal {

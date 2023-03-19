@@ -51,24 +51,20 @@ impl<'a> PopupBuilder<'a> for SignUp {
             show_input_field(ui, &mut self.password2, "Repeat Password");
 
             ContentUiInfo::new()
+                .error(self.name.len() < 6, "Name must be at least 6 symbols")
+                .error(!is_valid_email(&self.email), "Email is not valid")
                 .error(
-                    (self.name.len() < 6).then_some("Name must be at least 6 symbols".to_owned()),
+                    self.email_taken,
+                    "Account with this email is already registered",
                 )
-                .error((!is_valid_email(&self.email)).then_some("Email is not valid".to_owned()))
+                .error(!is_valid_password(&self.password), "Invalid password")
                 .error(
-                    self.email_taken
-                        .then_some("Account with this email is already registered".to_owned()),
-                )
-                .error(
-                    (!is_valid_password(&self.password)).then_some("Invalid password".to_owned()),
-                )
-                .error(
-                    (!is_strong_enough_password(&self.password))
-                        .then_some("Password is not strong enough".to_string()),
+                    !is_strong_enough_password(&self.password),
+                    "Password is not strong enough",
                 )
                 .error(
-                    (self.password != self.password2)
-                        .then_some("Passwords must be the same".to_owned()),
+                    self.password != self.password2,
+                    "Passwords must be the same",
                 )
                 .close_button("Cancel")
                 .button(|ui, builder, is_error| {

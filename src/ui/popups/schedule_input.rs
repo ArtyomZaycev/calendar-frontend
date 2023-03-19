@@ -139,14 +139,14 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 }
             });
 
-            ui.add(
-                AccessLevelPicker::new(
+            ui.horizontal(|ui| {
+                ui.label("Access level: ");
+                ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
                     &state.me.as_ref().unwrap().access_levels,
-                )
-                .with_label("Access level: "),
-            );
+                ));
+            });
 
             ui.separator();
 
@@ -194,8 +194,8 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
             ContentUiInfo::new()
                 .close_button("Cancel")
                 .error(
-                    (self.id.is_none() && self.template_id.is_none())
-                        .then_some("Template must be set".to_owned()),
+                    self.id.is_none() && self.template_id.is_none(),
+                    "Template must be set",
                 )
                 .button(|ui, builder, is_error| {
                     if let Some(id) = self.id {
