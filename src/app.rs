@@ -1,5 +1,5 @@
 use calendar_lib::api::{auth::register, events::types::Event, schedules::types::Schedule};
-use chrono::NaiveDate;
+use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
 use num_traits::FromPrimitive;
@@ -375,6 +375,38 @@ impl CalendarApp {
                 ui.selectable_header("Week", view.is_week(), || *view = EventsView::Week(today));
                 ui.selectable_header("Day", view.is_day(), || *view = EventsView::Day(today));
                 ui.selectable_header("Events", view.is_days(), || *view = EventsView::Days(today));
+
+                ui.add_space(16.);
+                match view {
+                    EventsView::Month(date) => {
+                        if ui.small_button("<").clicked() {
+                            *date = date.checked_sub_months(Months::new(1)).unwrap();
+                        }
+                        ui.label(date.format("%B %Y").to_string());
+                        if ui.small_button(">").clicked() {
+                            *date = date.checked_add_months(Months::new(1)).unwrap();
+                        }
+                    }
+                    EventsView::Week(date) => {
+                        if ui.small_button("<").clicked() {
+                            *date = date.checked_sub_days(Days::new(7)).unwrap();
+                        }
+                        ui.label(date.format("%W week %Y").to_string());
+                        if ui.small_button(">").clicked() {
+                            *date = date.checked_add_days(Days::new(7)).unwrap();
+                        }
+                    }
+                    EventsView::Day(date) => {
+                        if ui.small_button("<").clicked() {
+                            *date = date.checked_sub_days(Days::new(1)).unwrap();
+                        }
+                        ui.label(date.format("%x").to_string());
+                        if ui.small_button(">").clicked() {
+                            *date = date.checked_add_days(Days::new(1)).unwrap();
+                        }
+                    }
+                    EventsView::Days(_) => {}
+                }
             });
         }
     }
