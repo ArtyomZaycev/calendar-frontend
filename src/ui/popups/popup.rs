@@ -111,7 +111,6 @@ impl<'a> WidgetBuilder<'a> for Popup {
 
 impl Popup {
     pub fn new(popup: PopupType) -> Self {
-        println!("new");
         Self {
             id: egui::Id::new(rand::random::<i64>()),
             t: popup,

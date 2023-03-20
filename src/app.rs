@@ -362,6 +362,7 @@ impl CalendarApp {
             CalendarView::Events(_) => self.events_view_picker(ui),
             _ => {}
         }
+        ui.add_space(8.);
     }
 
     fn events_view_picker(&mut self, ui: &mut egui::Ui) {
@@ -376,7 +377,6 @@ impl CalendarApp {
                 ui.selectable_header("Events", view.is_days(), || *view = EventsView::Days(today));
             });
         }
-        ui.add_space(8.);
     }
 
     fn main_view(&mut self, ui: &mut egui::Ui) {
@@ -429,7 +429,7 @@ impl CalendarApp {
                                 if first_day <= date && date <= last_day {
                                     ui.label(events.to_string());
                                 } else {
-                                    ui.add_space(0.);
+                                    ui.label("");
                                 }
                             });
                         });

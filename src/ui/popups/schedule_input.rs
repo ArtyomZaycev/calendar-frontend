@@ -1,6 +1,6 @@
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{Button, InnerResponse, TextEdit};
+use egui::{Button, InnerResponse, TextEdit, Vec2};
 use num_traits::FromPrimitive;
 use std::hash::Hash;
 
@@ -87,10 +87,12 @@ impl ScheduleInput {
                 .event_plans
                 .iter()
                 .fold(Default::default(), |mut acc, event| {
-                    acc[event.weekday.num_days_from_monday() as usize].push(NewEventPlan {
+                    let weekday_ind = event.weekday.num_days_from_monday() as usize;
+                    acc[weekday_ind].push(NewEventPlan {
                         weekday: event.weekday,
                         time: event.time,
                     });
+                    acc[weekday_ind].sort_by_key(|e| e.time);
                     acc
                 }),
         }
@@ -171,42 +173,48 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 &mut self.new_event_start,
             ));
 
-            (0..7).for_each(|weekday| {
-                let to_delete = ui
-                    .horizontal(|ui| {
+            egui::Grid::new(self.eid.with("weekday_grid"))
+                .min_col_width(0.)
+                .spacing(Vec2::new(4., 0.))
+                .show(ui, |ui| {
+                    (0..7).for_each(|weekday_ind| {
+                        let weekday = Weekday::from_usize(weekday_ind).unwrap();
+                        let mut to_delete = vec![];
+
+                        ui.label(weekday.to_string());
                         if ui
                             .add_enabled(
-                                !self.events[weekday]
+                                !self.events[weekday_ind]
                                     .iter()
                                     .any(|e| e.time == self.new_event_start),
                                 Button::new("Add"),
                             )
                             .clicked()
                         {
-                            dbg!(&self.events[weekday]);
-                            dbg!(&self.new_event_start);
-                            self.events[weekday].push(NewEventPlan {
-                                weekday: Weekday::from_usize(weekday).unwrap(),
+                            self.events[weekday_ind].push(NewEventPlan {
+                                weekday,
                                 time: self.new_event_start,
                             });
+                            self.events[weekday_ind].sort_by_key(|e| e.time);
                         }
                         ui.add_space(4.);
-                        self.events[weekday]
-                            .iter()
-                            .enumerate()
-                            .filter_map(|(i, new_event_plan)| {
+                        self.events[weekday_ind].iter().enumerate().for_each(
+                            |(i, new_event_plan)| {
                                 ui.spacing_mut().item_spacing = egui::Vec2::default();
                                 ui.label(new_event_plan.time.format("%H:%M").to_string());
-                                ui.small_button("X").clicked().then_some(i)
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .inner;
+                                if ui.small_button("X").clicked() {
+                                    to_delete.push(i);
+                                }
+                            },
+                        );
 
-                to_delete.into_iter().rev().for_each(|i| {
-                    self.events[weekday].remove(i);
+                        to_delete.into_iter().rev().for_each(|i| {
+                            self.events[weekday_ind].remove(i);
+                        });
+                        ui.end_row();
+                    });
                 });
-            });
+
             ContentUiInfo::new()
                 .error(
                     self.id.is_none() && self.template_id.is_none(),
@@ -269,12 +277,7 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                                     first_day: self.first_day,
                                     last_day: self.last_day_enabled.then_some(self.last_day),
                                     access_level: self.access_level,
-                                    events: self
-                                        .events
-                                        .clone()
-                                        .into_iter()
-                                        .flat_map(|v| v)
-                                        .collect(),
+                                    events: self.events.clone().into_iter().flatten().collect(),
                                 },
                             )));
                         }

@@ -1,5 +1,5 @@
-pub use calendar_lib::api::*;
 use calendar_lib::api::utils;
+pub use calendar_lib::api::*;
 use serde::{Deserialize, Serialize};
 
 pub use event_templates::types::*;
