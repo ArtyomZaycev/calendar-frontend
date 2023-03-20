@@ -37,6 +37,10 @@ impl NewPasswordInput {
 }
 
 impl<'a> PopupBuilder<'a> for NewPasswordInput {
+    fn title(&self) -> Option<String> {
+        Some("New Password".to_owned())
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,

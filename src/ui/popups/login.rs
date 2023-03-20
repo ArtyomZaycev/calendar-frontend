@@ -19,6 +19,10 @@ impl Login {
 }
 
 impl<'a> PopupBuilder<'a> for Login {
+    fn title(&self) -> Option<String> {
+        Some("Login".to_owned())
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,

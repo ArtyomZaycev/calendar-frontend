@@ -38,6 +38,10 @@ impl EventTemplateInput {
 }
 
 impl<'a> PopupBuilder<'a> for EventTemplateInput {
+    fn title(&self) -> Option<String> {
+        Some("New Event Template".to_owned())
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,

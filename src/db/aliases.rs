@@ -1,5 +1,5 @@
 pub use calendar_lib::api::*;
-use calendar_lib::api::{auth::types::AccessLevel, utils};
+use calendar_lib::api::utils;
 use serde::{Deserialize, Serialize};
 
 pub use event_templates::types::*;

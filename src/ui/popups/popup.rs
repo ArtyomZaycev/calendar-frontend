@@ -31,6 +31,20 @@ pub enum PopupType {
 }
 
 impl<'a> PopupBuilder<'a> for PopupType {
+    fn title(&self) -> Option<String> {
+        match self {
+            PopupType::Profile(w) => w.title(),
+            PopupType::Login(w) => w.title(),
+            PopupType::SignUp(w) => w.title(),
+            PopupType::NewEvent(w) => w.title(),
+            PopupType::UpdateEvent(w) => w.title(),
+            PopupType::NewSchedule(w) => w.title(),
+            PopupType::UpdateSchedule(w) => w.title(),
+            PopupType::NewEventTemplate(w) => w.title(),
+            PopupType::NewPassword(w) => w.title(),
+        }
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,
@@ -73,10 +87,9 @@ impl<'a> WidgetBuilder<'a> for Popup {
         Self::OutputWidget: egui::Widget + 'a,
     {
         Box::new(|_| {
-            let title: Option<String> = None;
-            egui::Window::new(title.clone().unwrap_or_default())
+            egui::Window::new("")
                 .id(self.id)
-                .title_bar(title.is_some())
+                .title_bar(false)
                 .collapsible(false)
                 .resizable(false)
                 .default_size(Vec2::new(320., 0.))

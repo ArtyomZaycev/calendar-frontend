@@ -115,6 +115,10 @@ impl ContentInfoBuilder {
 }
 
 pub trait PopupBuilder<'a> {
+    fn title(&self) -> Option<String> {
+        None
+    }
+
     fn build(
         &'a mut self,
         ctx: &'a egui::Context,
@@ -122,6 +126,10 @@ pub trait PopupBuilder<'a> {
     ) -> Box<dyn FnOnce(&mut egui::Ui) -> InnerResponse<ContentInfo> + 'a> {
         Box::new(move |ui| {
             ui.vertical(|ui| {
+                if let Some(title) = self.title() {
+                    ui.heading(title);
+                    ui.separator();
+                }
                 let ContentUiInfo {
                     mut info,
                     buttons,

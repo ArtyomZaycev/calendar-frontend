@@ -17,7 +17,8 @@ use crate::{
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct EventInput {
-    pub eid: egui::Id,
+    eid: egui::Id,
+    pub orig_name: String,
 
     pub id: Option<i32>,
     pub name: String,
@@ -35,6 +36,7 @@ impl EventInput {
         let now = Local::now().naive_local();
         Self {
             eid: egui::Id::new(eid),
+            orig_name: String::default(),
             id: None,
             name: String::default(),
             description: String::default(),
@@ -49,6 +51,7 @@ impl EventInput {
     pub fn change(eid: impl Hash, event: &Event) -> Self {
         Self {
             eid: egui::Id::new(eid),
+            orig_name: event.name.clone(),
             id: Some(event.id),
             name: event.name.clone(),
             description: event.description.clone().unwrap_or_default(),
@@ -62,6 +65,14 @@ impl EventInput {
 }
 
 impl<'a> PopupBuilder<'a> for EventInput {
+    fn title(&self) -> Option<String> {
+        if self.id.is_some() {
+            Some(format!("Change '{}' Event", self.orig_name))
+        } else {
+            Some("New Event".to_owned())
+        }
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,
@@ -109,7 +120,7 @@ impl<'a> PopupBuilder<'a> for EventInput {
                 })
                 .button(|ui, builder, is_error| {
                     if let Some(id) = self.id {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Save"));
                         if response.clicked() {
                             builder.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
                                 UpdateEvent {

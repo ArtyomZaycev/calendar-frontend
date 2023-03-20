@@ -17,7 +17,8 @@ use crate::{
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct ScheduleInput {
-    pub eid: egui::Id,
+    eid: egui::Id,
+    pub orig_name: String,
 
     pub id: Option<i32>,
     pub template_id: Option<i32>,
@@ -44,6 +45,7 @@ impl ScheduleInput {
 
         Self {
             eid: egui::Id::new(eid),
+            orig_name: String::default(),
             id: None,
             template_id: None,
             name: String::default(),
@@ -69,6 +71,7 @@ impl ScheduleInput {
 
         Self {
             eid: egui::Id::new(eid),
+            orig_name: schedule.name.clone(),
             id: Some(schedule.id),
             template_id: Some(schedule.template_id),
             name: schedule.name.clone(),
@@ -95,6 +98,14 @@ impl ScheduleInput {
 }
 
 impl<'a> PopupBuilder<'a> for ScheduleInput {
+    fn title(&self) -> Option<String> {
+        if self.id.is_some() {
+            Some(format!("Change '{}' Schedule", self.orig_name))
+        } else {
+            Some("New Schedule".to_owned())
+        }
+    }
+
     fn content(
         &'a mut self,
         ui: &mut egui::Ui,
@@ -130,13 +141,18 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     });
             }
 
-            ui.add(DatePicker::new("schedule_first_day", &mut self.first_day));
+            egui::Grid::new(self.eid.with("time_grid")).show(ui, |ui| {
+                ui.label("First day:");
+                ui.add(DatePicker::new("schedule_first_day", &mut self.first_day));
+                ui.end_row();
 
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.last_day_enabled, "Last Day");
-                if self.last_day_enabled {
-                    ui.add(DatePicker::new("schedule_last_day", &mut self.last_day));
-                }
+                ui.label("Last day:");
+                ui.add_enabled(
+                    self.last_day_enabled,
+                    DatePicker::new("schedule_last_day", &mut self.last_day),
+                );
+                ui.checkbox(&mut self.last_day_enabled, "");
+                ui.end_row();
             });
 
             ui.horizontal(|ui| {
@@ -192,14 +208,14 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 });
             });
             ContentUiInfo::new()
-                .close_button("Cancel")
                 .error(
                     self.id.is_none() && self.template_id.is_none(),
                     "Template must be set",
                 )
+                .close_button("Cancel")
                 .button(|ui, builder, is_error| {
                     if let Some(id) = self.id {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Save"));
                         if response.clicked() {
                             let events = self.events.iter().flatten().collect::<Vec<_>>();
                             let init_events = self.init_events.clone().unwrap_or(vec![]);

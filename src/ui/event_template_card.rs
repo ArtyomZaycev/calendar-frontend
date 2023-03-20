@@ -56,7 +56,7 @@ impl<'a> Widget for EventTemplateCard<'a> {
                                     .push(StateSignal::DeleteEventTemplate(*template_id).into());
                             }
                             /*if ui.small_button("E").clicked() {
-                                self.signals.push(AppSignal::ChangeEvent(*event_id));
+                                self.signals.push(AppSignal::ChangeEventTemplate(*template_id));
                             }*/
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));
