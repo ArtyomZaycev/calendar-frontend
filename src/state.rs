@@ -7,7 +7,7 @@ use calendar_lib::api::{
     },
     events, schedules, user_roles,
 };
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
@@ -66,10 +66,10 @@ impl State {
     }
 
     fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
-        let event_exists = |schedule: &Schedule, start: &NaiveDateTime| {
+        let event_exists = |plan_id: i32| {
             self.events
                 .iter()
-                .any(|e| e.plan_id == Some(schedule.id) && &e.start == start)
+                .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
         let level = self.get_access_level().level;
@@ -87,19 +87,19 @@ impl State {
                         .iter()
                         .filter_map(|event_plan| {
                             let start = NaiveDateTime::new(date, event_plan.time);
-                            (event_plan.weekday == date.weekday()
-                                && !event_exists(schedule, &start))
-                            .then(|| Event {
-                                id: -1,
-                                user_id: schedule.user_id,
-                                name: template.event_name.clone(),
-                                description: template.event_description.clone(),
-                                start,
-                                end: start + chrono::Duration::from_std(template.duration).unwrap(),
-                                access_level: schedule.access_level,
-                                visibility: EventVisibility::HideAll,
-                                plan_id: Some(event_plan.id),
-                            })
+                            (event_plan.weekday == date.weekday() && !event_exists(event_plan.id))
+                                .then(|| Event {
+                                    id: -1,
+                                    user_id: schedule.user_id,
+                                    name: template.event_name.clone(),
+                                    description: template.event_description.clone(),
+                                    start,
+                                    end: start
+                                        + chrono::Duration::from_std(template.duration).unwrap(),
+                                    access_level: schedule.access_level,
+                                    visibility: EventVisibility::HideAll,
+                                    plan_id: Some(event_plan.id),
+                                })
                         })
                         .collect(),
                     None => vec![],
@@ -154,6 +154,35 @@ impl State {
 
             StateSignal::InsertPassword(access_level, viewer_password, editor_password) => {
                 self.new_password(access_level, viewer_password, editor_password);
+            }
+            StateSignal::AcceptScheduledEvent(date, plan_id) => {
+                if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
+                    schedule
+                        .event_plans
+                        .iter()
+                        .find(|plan| plan.id == plan_id)
+                        .map(|plan| (schedule, plan))
+                }) {
+                    if let Some(template) = self
+                        .event_templates
+                        .iter()
+                        .find(|template| schedule.template_id == template.id)
+                    {
+                        let start = NaiveDateTime::new(date, plan.time);
+                        self.insert_event(NewEvent {
+                            user_id: -1,
+                            name: template.event_name.clone(),
+                            description: template.event_description.clone(),
+                            start,
+                            end: start
+                                .checked_add_signed(Duration::from_std(template.duration).unwrap())
+                                .unwrap(),
+                            access_level: template.access_level,
+                            visibility: EventVisibility::HideAll,
+                            plan_id: Some(plan_id),
+                        });
+                    }
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ use calendar_lib::api::{
     events::types::{NewEvent, UpdateEvent},
     schedules::types::{NewSchedule, UpdateSchedule},
 };
+use chrono::NaiveDate;
 
 #[derive(Debug, Clone)]
 pub enum AppSignal {
@@ -36,7 +37,10 @@ pub enum StateSignal {
     UpdateSchedule(UpdateSchedule),
     DeleteSchedule(i32),
 
+    /// (access_level, viewer_password, editor_password)
     InsertPassword(i32, Option<NewPassword>, Option<NewPassword>),
+    /// (date, plan_id)
+    AcceptScheduledEvent(NaiveDate, i32),
 }
 
 impl Into<AppSignal> for StateSignal {

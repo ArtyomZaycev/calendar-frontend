@@ -1,3 +1,4 @@
+use calendar_lib::api::events::types::NewEvent;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 use crate::db::aliases::Event;
@@ -126,6 +127,22 @@ impl<'a> Widget for EventCard<'a> {
                                         .color(Color32::RED)
                                         .small(),
                                 ));
+                            }
+                        }
+                        if is_phantom {
+                            if let Some(plan_id) = plan_id {
+                                ui.add_space(4.);
+                                ui.vertical_centered(|ui| {
+                                    if ui.button("Accept").clicked() {
+                                        self.signals.push(
+                                            StateSignal::AcceptScheduledEvent(
+                                                start.date(),
+                                                *plan_id,
+                                            )
+                                            .into(),
+                                        )
+                                    }
+                                });
                             }
                         }
                     })
