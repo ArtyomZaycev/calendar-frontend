@@ -1,4 +1,3 @@
-use calendar_lib::api::events::types::NewEvent;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 use crate::db::aliases::Event;

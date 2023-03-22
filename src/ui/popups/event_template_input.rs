@@ -1,4 +1,4 @@
-use calendar_lib::api::event_templates::types::NewEventTemplate;
+use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
 use egui::{InnerResponse, TextEdit};
 use std::hash::Hash;
@@ -15,8 +15,9 @@ use crate::{
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct EventTemplateInput {
-    pub eid: egui::Id,
+    eid: egui::Id,
 
+    pub id: Option<i32>,
     pub name: String,
     pub event_name: String,
     pub event_description: String,
@@ -28,11 +29,25 @@ impl EventTemplateInput {
     pub fn new(eid: impl Hash) -> Self {
         Self {
             eid: egui::Id::new(eid),
+            id: None,
             name: String::default(),
             event_name: String::default(),
             event_description: String::default(),
             duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             access_level: -1,
+        }
+    }
+
+    pub fn change(eid: impl Hash, template: &EventTemplate) -> Self {
+        let duration_minutes = template.duration.as_secs() as u32 / 60;
+        Self {
+            eid: egui::Id::new(eid),
+            id: Some(template.id),
+            name: template.name.clone(),
+            event_name: template.event_name.clone(),
+            event_description: template.event_description.clone().unwrap_or_default(),
+            duration: NaiveTime::from_hms_opt(duration_minutes / 60, duration_minutes % 60, 0).unwrap(),
+            access_level: template.access_level,
         }
     }
 }
@@ -85,25 +100,47 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                     response
                 })
                 .button(|ui, builder, is_error| {
-                    let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
-                    if response.clicked() {
-                        builder.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
-                            NewEventTemplate {
-                                user_id: -1,
-                                name: self.name.clone(),
-                                event_name: self.event_name.clone(),
-                                event_description: (!self.event_description.is_empty())
-                                    .then_some(self.event_description.clone()),
-                                duration: self
-                                    .duration
-                                    .signed_duration_since(NaiveTime::default())
-                                    .to_std()
-                                    .unwrap(),
-                                access_level: self.access_level,
-                            },
-                        )));
+                    if let Some(id) = self.id {
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
+                        if response.clicked() {
+                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateEventTemplate(
+                                UpdateEventTemplate {
+                                    id,
+                                    name: USome(self.name.clone()),
+                                    event_name: USome(self.event_name.clone()),
+                                    event_description: USome((!self.event_description.is_empty())
+                                        .then_some(self.event_description.clone())),
+                                    duration: USome(self
+                                        .duration
+                                        .signed_duration_since(NaiveTime::default())
+                                        .to_std()
+                                        .unwrap()),
+                                    access_level: USome(self.access_level),
+                                },
+                            )));
+                        }
+                        response
+                    } else {
+                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
+                        if response.clicked() {
+                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
+                                NewEventTemplate {
+                                    user_id: -1,
+                                    name: self.name.clone(),
+                                    event_name: self.event_name.clone(),
+                                    event_description: (!self.event_description.is_empty())
+                                        .then_some(self.event_description.clone()),
+                                    duration: self
+                                        .duration
+                                        .signed_duration_since(NaiveTime::default())
+                                        .to_std()
+                                        .unwrap(),
+                                    access_level: self.access_level,
+                                },
+                            )));
+                        }
+                        response
                     }
-                    response
                 })
         })
     }

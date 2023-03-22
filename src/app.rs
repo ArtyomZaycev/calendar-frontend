@@ -1,4 +1,4 @@
-use calendar_lib::api::{auth::register, events::types::Event, schedules::types::Schedule};
+use calendar_lib::api::{auth::register, events::types::Event, schedules::types::Schedule, event_templates::types::EventTemplate};
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
@@ -160,6 +160,15 @@ impl CalendarApp {
             .popup(),
         );
     }
+    pub fn open_change_event_template(&mut self, template: &EventTemplate) {
+        self.popups.push(
+            PopupType::UpdateEventTemplate(EventTemplateInput::change(
+                format!("change_event_template_popup_{}", template.id),
+                template,
+            ))
+            .popup(),
+        );
+    }
     pub fn open_new_schedule(&mut self) {
         self.popups.push(
             PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level().level)).popup(),
@@ -194,7 +203,12 @@ impl CalendarApp {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
-                    self.open_change_event(&event.clone());
+                    self.open_change_event(&event.clone());//
+                }
+            }
+            AppSignal::ChangeEventTemplate(template_id) => {
+                if let Some(template) = self.state.event_templates.iter().find(|template| template.id == template_id) {
+                    self.open_change_event_template(&template.clone());
                 }
             }
             AppSignal::ChangeSchedule(schedule_id) => {

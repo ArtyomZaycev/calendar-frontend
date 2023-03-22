@@ -1,6 +1,6 @@
 use calendar_lib::api::{
     auth::types::NewPassword,
-    event_templates::types::NewEventTemplate,
+    event_templates::types::{NewEventTemplate, UpdateEventTemplate},
     events::types::{NewEvent, UpdateEvent},
     schedules::types::{NewSchedule, UpdateSchedule},
 };
@@ -11,6 +11,7 @@ pub enum AppSignal {
     StateSignal(StateSignal),
 
     ChangeEvent(i32),
+    ChangeEventTemplate(i32),
     ChangeSchedule(i32),
 
     AddPassword,
@@ -31,6 +32,7 @@ pub enum StateSignal {
     DeleteEvent(i32),
 
     InsertEventTemplate(NewEventTemplate),
+    UpdateEventTemplate(UpdateEventTemplate),
     DeleteEventTemplate(i32),
 
     InsertSchedule(NewSchedule),

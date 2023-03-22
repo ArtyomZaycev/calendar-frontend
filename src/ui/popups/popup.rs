@@ -24,9 +24,10 @@ pub enum PopupType {
     SignUp(SignUp),
     NewEvent(EventInput),
     UpdateEvent(EventInput),
+    NewEventTemplate(EventTemplateInput),
+    UpdateEventTemplate(EventTemplateInput),
     NewSchedule(ScheduleInput),
     UpdateSchedule(ScheduleInput),
-    NewEventTemplate(EventTemplateInput),
     NewPassword(NewPasswordInput),
 }
 
@@ -38,9 +39,10 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.title(),
             PopupType::NewEvent(w) => w.title(),
             PopupType::UpdateEvent(w) => w.title(),
+            PopupType::NewEventTemplate(w) => w.title(),
+            PopupType::UpdateEventTemplate(w) => w.title(),
             PopupType::NewSchedule(w) => w.title(),
             PopupType::UpdateSchedule(w) => w.title(),
-            PopupType::NewEventTemplate(w) => w.title(),
             PopupType::NewPassword(w) => w.title(),
         }
     }
@@ -57,9 +59,10 @@ impl<'a> PopupBuilder<'a> for PopupType {
             PopupType::SignUp(w) => w.content(ui, ctx, state),
             PopupType::NewEvent(w) => w.content(ui, ctx, state),
             PopupType::UpdateEvent(w) => w.content(ui, ctx, state),
+            PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
+            PopupType::UpdateEventTemplate(w) => w.content(ui, ctx, state),
             PopupType::NewSchedule(w) => w.content(ui, ctx, state),
             PopupType::UpdateSchedule(w) => w.content(ui, ctx, state),
-            PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
             PopupType::NewPassword(w) => w.content(ui, ctx, state),
         }
     }

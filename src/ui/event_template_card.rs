@@ -50,14 +50,17 @@ impl<'a> Widget for EventTemplateCard<'a> {
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            ui.spacing_mut().item_spacing = Vec2::new(4., 0.);
-                            if ui.small_button("X").clicked() {
-                                self.signals
-                                    .push(StateSignal::DeleteEventTemplate(*template_id).into());
-                            }
-                            /*if ui.small_button("E").clicked() {
-                                self.signals.push(AppSignal::ChangeEventTemplate(*template_id));
-                            }*/
+                            ui.menu_button("C", |ui| {
+                                if ui.button("Edit").clicked() {
+                                    self.signals.push(AppSignal::ChangeEventTemplate(*template_id));
+                                    ui.close_menu();
+                                }
+                                if ui.button("Delete").clicked() {
+                                    self.signals
+                                        .push(StateSignal::DeleteEventTemplate(*template_id).into());
+                                    ui.close_menu();
+                                }
+                            });
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));
                             });

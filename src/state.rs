@@ -146,6 +146,9 @@ impl State {
             StateSignal::InsertEventTemplate(new_event_template) => {
                 self.insert_event_template(new_event_template)
             }
+            StateSignal::UpdateEventTemplate(upd_event_template) => {
+                self.update_event_template(upd_event_template);
+            }
             StateSignal::DeleteEventTemplate(id) => self.delete_event_template(id),
 
             StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
@@ -732,6 +735,7 @@ impl State {
                     Some(t) => *t = template,
                     None => self.event_templates.push(template),
                 }
+                self.clear_events();
             }
             AppRequest::LoadEventTemplateError(res) => match res {
                 event_templates::load::BadRequestResponse::NotFound => {
