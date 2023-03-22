@@ -100,17 +100,17 @@ impl<'a> PopupBuilder<'a> for EventInput {
                     .with_label("Visibility: "),
             );
 
-            ui.add(DatePicker::new("date_picker_id", &mut self.date));
+            ui.add(DatePicker::new(self.eid.with("date"), &mut self.date));
 
             ui.horizontal(|ui| {
-                ui.add(TimePicker::new("event-builder-time-start", &mut self.start));
+                ui.add(TimePicker::new(self.eid.with("time_start"), &mut self.start));
                 ui.label("-");
-                ui.add(TimePicker::new("event-builder-time-end", &mut self.end));
+                self.end = self.end.max(self.start);
+                ui.add(TimePicker::new(self.eid.with("time_end"), &mut self.end));
             });
 
             ContentUiInfo::new()
                 .error(self.name.is_empty(), "Name cannot be empty")
-                .error(self.start > self.end, "End must be before the start")
                 .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {
