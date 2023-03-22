@@ -3,7 +3,7 @@ use egui::InnerResponse;
 use crate::{
     state::State,
     ui::widget_signal::StateSignal,
-    utils::{is_strong_enough_password, is_valid_email, is_valid_password},
+    utils::{is_strong_enough_password, is_valid_email},
 };
 
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
@@ -61,7 +61,6 @@ impl<'a> PopupBuilder<'a> for SignUp {
                     self.email_taken,
                     "Account with this email is already registered",
                 )
-                .error(!is_valid_password(&self.password), "Invalid password")
                 .error(
                     !is_strong_enough_password(&self.password),
                     "Password is not strong enough",

@@ -2,6 +2,7 @@ use std::future::Future;
 
 use calendar_lib::api::{auth::types::AccessLevel, events::types::EventVisibility};
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
+use email_address::EmailAddress;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn easy_spawn<F>(f: F)
@@ -20,13 +21,11 @@ where
 }
 
 pub fn is_valid_email(email: &str) -> bool {
-    email.contains(|c| c == '@')
-}
-pub fn is_valid_password(password: &str) -> bool {
-    password.is_ascii() && password.len() <= 24
+    EmailAddress::is_valid(email)
 }
 pub fn is_strong_enough_password(password: &str) -> bool {
-    is_valid_password(password) && password.len() >= 8
+    password.len() >= 4
+    && password.len() <= 32
 }
 
 pub fn get_first_month_day_date(date: &NaiveDate) -> NaiveDate {
