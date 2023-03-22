@@ -16,6 +16,7 @@ use super::popup_builder::{ContentUiInfo, PopupBuilder};
 
 pub struct EventTemplateInput {
     eid: egui::Id,
+    pub orig_name: String,
 
     pub id: Option<i32>,
     pub name: String,
@@ -29,6 +30,7 @@ impl EventTemplateInput {
     pub fn new(eid: impl Hash) -> Self {
         Self {
             eid: egui::Id::new(eid),
+            orig_name: String::default(),
             id: None,
             name: String::default(),
             event_name: String::default(),
@@ -42,6 +44,7 @@ impl EventTemplateInput {
         let duration_minutes = template.duration.as_secs() as u32 / 60;
         Self {
             eid: egui::Id::new(eid),
+            orig_name: template.name.clone(),
             id: Some(template.id),
             name: template.name.clone(),
             event_name: template.event_name.clone(),
@@ -54,7 +57,11 @@ impl EventTemplateInput {
 
 impl<'a> PopupBuilder<'a> for EventTemplateInput {
     fn title(&self) -> Option<String> {
-        Some("New Event Template".to_owned())
+        if self.id.is_some() {
+            Some(format!("Change '{}' Event Template", self.orig_name))
+        } else {
+            Some("New Event Template".to_owned())
+        }
     }
 
     fn content(
