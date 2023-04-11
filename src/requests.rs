@@ -8,6 +8,7 @@ use reqwest::StatusCode;
 #[derive(Clone, Debug, is_enum_variant)]
 pub enum AppRequest {
     Login(login::Response),
+    LoginError(login::BadRequestResponse),
 
     Register(register::Response),
     RegisterError(register::BadRequestResponse),
@@ -89,6 +90,7 @@ pub trait HasStateAction {
 
 pub trait GetStateAction {
     fn get_login(&self) -> Option<&login::Response>;
+    fn get_login_error(&self) -> Option<&login::BadRequestResponse>;
     fn get_register_error(&self) -> Option<&register::BadRequestResponse>;
     fn get_load_user_roles(&self) -> Option<&user_roles::load_array::Response>;
     fn get_load_events(&self) -> Option<&events::load_array::Response>;
@@ -154,6 +156,16 @@ impl GetStateAction for Vec<AppRequest> {
     fn get_login(&self) -> Option<&login::Response> {
         self.iter().find_map(|x| {
             if let AppRequest::Login(d) = x {
+                Some(d)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn get_login_error(&self) -> Option<&login::BadRequestResponse> {
+        self.iter().find_map(|x| {
+            if let AppRequest::LoginError(d) = x {
                 Some(d)
             } else {
                 None

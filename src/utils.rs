@@ -23,9 +23,11 @@ where
 pub fn is_valid_email(email: &str) -> bool {
     EmailAddress::is_valid(email)
 }
-pub fn is_strong_enough_password(password: &str) -> bool {
+pub fn is_password_valid(password: &str) -> bool {
+    password.len() <= 30
+}
+pub fn is_password_strong_enough(password: &str) -> bool {
     password.len() >= 4
-    && password.len() <= 32
 }
 
 pub fn get_first_month_day_date(date: &NaiveDate) -> NaiveDate {

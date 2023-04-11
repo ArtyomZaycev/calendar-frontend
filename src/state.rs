@@ -349,7 +349,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::Login(r));
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequest::Login(r),
+            |r| AppRequest::LoginError(r),
+        );
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -672,6 +675,7 @@ impl State {
                 self.access_levels = vec![res.access_level];
                 self.load_state();
             }
+            AppRequest::LoginError(_) => {}
             AppRequest::Register(_) => {}
             AppRequest::RegisterError(_) => {}
             AppRequest::NewPassword(_) => {

@@ -99,6 +99,11 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
             });
 
             ContentUiInfo::new()
+                .error(self.name.is_empty(), "Name cannot be empty")
+                .error(self.name.len() > 80, "Name is too long")
+                .error(self.event_name.is_empty(), "Event name cannot be empty")
+                .error(self.event_name.len() > 80, "Event name is too long")
+                .error(self.event_description.len() > 250, "Event description is too long")
                 .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {

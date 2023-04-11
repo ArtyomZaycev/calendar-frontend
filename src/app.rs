@@ -1,4 +1,4 @@
-use calendar_lib::api::{auth::register, events::types::Event, schedules::types::Schedule, event_templates::types::EventTemplate};
+use calendar_lib::api::{auth::{register, login}, events::types::Event, schedules::types::Schedule, event_templates::types::EventTemplate};
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
@@ -198,6 +198,11 @@ impl CalendarApp {
 }
 
 impl CalendarApp {
+    fn logout(&mut self) {
+        self.popups.clear();
+        self.state.logout();
+    }
+
     fn parse_signal(&mut self, signal: AppSignal) {
         match signal {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
@@ -239,6 +244,14 @@ impl CalendarApp {
         if let Some(popup) = self.get_login_popup() {
             if polled.has_login() {
                 popup.close();
+            } else if let Some(error) = polled.get_login_error() {
+                if let PopupType::Login(login) = popup.get_type_mut() {
+                    match error {
+                        login::BadRequestResponse::UserNotFound => {
+                            login.user_not_found();
+                        }
+                    }
+                }
             }
         }
         if let Some(popup) = self.get_sign_up_popup() {
@@ -248,7 +261,7 @@ impl CalendarApp {
                 if let PopupType::SignUp(sign_up) = popup.get_type_mut() {
                     match error {
                         register::BadRequestResponse::EmailAlreadyUsed => {
-                            sign_up.email_taken = true;
+                            sign_up.email_taken();
                         }
                     }
                 }
@@ -299,7 +312,7 @@ impl CalendarApp {
                         }
                     }
                     if ui.button("Logout").clicked() {
-                        self.state.logout();
+                        self.logout();
                     }
                 } else {
                     if ui

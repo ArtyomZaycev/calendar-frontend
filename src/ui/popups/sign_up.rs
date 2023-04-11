@@ -3,7 +3,7 @@ use egui::InnerResponse;
 use crate::{
     state::State,
     ui::widget_signal::StateSignal,
-    utils::{is_strong_enough_password, is_valid_email},
+    utils::{is_password_strong_enough, is_valid_email},
 };
 
 use super::popup_builder::{ContentUiInfo, PopupBuilder};
@@ -14,7 +14,7 @@ pub struct SignUp {
     pub password: String,
     pub password2: String,
 
-    pub email_taken: bool,
+    email_taken: Option<String>,
 }
 
 impl SignUp {
@@ -24,8 +24,12 @@ impl SignUp {
             email: String::default(),
             password: String::default(),
             password2: String::default(),
-            email_taken: false,
+            email_taken: None,
         }
+    }
+
+    pub fn email_taken(&mut self) {
+        self.email_taken = Some(self.email.clone());
     }
 }
 
@@ -40,29 +44,31 @@ impl<'a> PopupBuilder<'a> for SignUp {
         _ctx: &'a egui::Context,
         _state: &'a State,
     ) -> InnerResponse<ContentUiInfo<'a>> {
-        let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str| {
+        let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
             ui.add(
                 egui::TextEdit::singleline(value)
                     .desired_width(f32::INFINITY)
-                    .hint_text(hint),
+                    .hint_text(hint)
+                    .password(password),
             );
         };
 
         ui.vertical_centered(|ui| {
-            show_input_field(ui, &mut self.name, "Name");
-            show_input_field(ui, &mut self.email, "Email");
-            show_input_field(ui, &mut self.password, "Password");
-            show_input_field(ui, &mut self.password2, "Repeat Password");
+            show_input_field(ui, &mut self.name, "Name", false);
+            show_input_field(ui, &mut self.email, "Email", false);
+            show_input_field(ui, &mut self.password, "Password", true);
+            show_input_field(ui, &mut self.password2, "Confirm Password", true);
 
             ContentUiInfo::new()
                 .error(self.name.len() < 6, "Name must be at least 6 symbols")
+                .error(self.name.len() > 30, "Name must be at most 30 symbols")
                 .error(!is_valid_email(&self.email), "Email is not valid")
                 .error(
-                    self.email_taken,
+                    self.email_taken.as_ref().map_or(false, |e| e == &self.email),
                     "Account with this email is already registered",
                 )
                 .error(
-                    !is_strong_enough_password(&self.password),
+                    !is_password_strong_enough(&self.password),
                     "Password is not strong enough",
                 )
                 .error(

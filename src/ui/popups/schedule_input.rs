@@ -148,6 +148,10 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 ui.add(DatePicker::new("schedule_first_day", &mut self.first_day));
                 ui.end_row();
 
+                if self.last_day_enabled && self.first_day > self.last_day {
+                    self.last_day = self.first_day;
+                }
+
                 ui.label("Last day:");
                 ui.add_enabled(
                     self.last_day_enabled,
@@ -216,6 +220,9 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                 });
 
             ContentUiInfo::new()
+                .error(self.name.is_empty(), "Name cannot be empty")
+                .error(self.name.len() > 80, "Name is too long")
+                .error(self.description.len() > 250, "Description is too long")
                 .error(
                     self.id.is_none() && self.template_id.is_none(),
                     "Template must be set",
