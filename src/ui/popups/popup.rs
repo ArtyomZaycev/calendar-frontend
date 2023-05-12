@@ -3,7 +3,7 @@ use egui::{InnerResponse, Vec2};
 
 use crate::{
     state::State,
-    ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal},
+    ui::{widget_signal::AppSignal},
 };
 
 use super::{
@@ -82,33 +82,27 @@ pub struct Popup {
     is_closed: bool,
 }
 
-impl<'a> WidgetBuilder<'a> for Popup {
-    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-
-    fn build(&'a mut self, ctx: &'a egui::Context, state: &'a State) -> Self::OutputWidget
-    where
-        Self::OutputWidget: egui::Widget + 'a,
+impl Popup {
+    pub fn show(&mut self, ctx: &egui::Context, state: &State) -> egui::Response
     {
-        Box::new(|_| {
-            egui::Window::new("")
-                .id(self.id)
-                .title_bar(false)
-                .collapsible(false)
-                .resizable(false)
-                .default_size(Vec2::new(320., 0.))
-                .show(ctx, |ui| {
-                    let InnerResponse {
-                        mut inner,
-                        response,
-                    } = self.t.build(ctx, state)(ui);
-                    self.signals.append(&mut inner.signals);
-                    self.is_closed = self.is_closed || inner.is_closed;
-                    response
-                })
-                .unwrap()
-                .inner
-                .unwrap()
-        })
+        egui::Window::new("")
+            .id(self.id)
+            .title_bar(false)
+            .collapsible(false)
+            .resizable(false)
+            .default_size(Vec2::new(320., 0.))
+            .show(ctx, |ui| {
+                let InnerResponse {
+                    mut inner,
+                    response,
+                } = self.t.show(ui, ctx, state);
+                self.signals.append(&mut inner.signals);
+                self.is_closed = self.is_closed || inner.is_closed;
+                response
+            })
+            .unwrap()
+            .inner
+            .unwrap()
     }
 }
 

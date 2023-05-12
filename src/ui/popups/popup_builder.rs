@@ -2,7 +2,7 @@ use egui::{Align, Color32, InnerResponse, Layout, RichText, WidgetText};
 
 use crate::{
     state::State,
-    ui::{widget_builder::WidgetBuilder, widget_signal::AppSignal},
+    ui::{widget_signal::AppSignal},
 };
 
 pub struct ContentUiInfo<'a> {
@@ -119,39 +119,38 @@ pub trait PopupBuilder<'a> {
         None
     }
 
-    fn build(
+    fn show(
         &'a mut self,
+        ui: &mut egui::Ui,
         ctx: &'a egui::Context,
         state: &'a State,
-    ) -> Box<dyn FnOnce(&mut egui::Ui) -> InnerResponse<ContentInfo> + 'a> {
-        Box::new(move |ui| {
-            ui.vertical(|ui| {
-                if let Some(title) = self.title() {
-                    ui.heading(title);
-                    ui.separator();
-                }
-                let ContentUiInfo {
-                    mut info,
-                    buttons,
-                    error,
-                } = self.content(ui, ctx, state).inner;
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    info.with_builder(|builder| {
-                        buttons.into_iter().rev().for_each(|button| {
-                            button(ui, builder, error.is_some());
-                        });
+    ) -> InnerResponse<ContentInfo> {
+        ui.vertical(|ui| {
+            if let Some(title) = self.title() {
+                ui.heading(title);
+                ui.separator();
+            }
+            let ContentUiInfo {
+                mut info,
+                buttons,
+                error,
+            } = self.content(ui, ctx, state).inner;
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                info.with_builder(|builder| {
+                    buttons.into_iter().rev().for_each(|button| {
+                        button(ui, builder, error.is_some());
                     });
-                    if let Some(error) = error.clone() {
-                        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                            ui.add(
-                                egui::Label::new(RichText::new(error).color(Color32::RED))
-                                    .wrap(true),
-                            );
-                        });
-                    }
                 });
-                info
-            })
+                if let Some(error) = error.clone() {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        ui.add(
+                            egui::Label::new(RichText::new(error).color(Color32::RED))
+                                .wrap(true),
+                        );
+                    });
+                }
+            });
+            info
         })
     }
 
@@ -161,15 +160,4 @@ pub trait PopupBuilder<'a> {
         ctx: &'a egui::Context,
         state: &'a State,
     ) -> InnerResponse<ContentUiInfo<'a>>;
-}
-
-impl<'a> WidgetBuilder<'a> for dyn PopupBuilder<'a> {
-    type OutputWidget = Box<dyn FnOnce(&mut egui::Ui) -> egui::Response + 'a>;
-
-    fn build(&'a mut self, ctx: &'a egui::Context, state: &'a State) -> Self::OutputWidget
-    where
-        Self::OutputWidget: egui::Widget + 'a,
-    {
-        Box::new(move |ui| self.build(ctx, state)(ui).response)
-    }
 }

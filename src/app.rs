@@ -25,7 +25,6 @@ use crate::{
         },
         schedule_card::ScheduleCard,
         utils::UiUtils,
-        widget_builder::WidgetBuilder,
         widget_signal::AppSignal,
     },
     utils::*,
@@ -208,7 +207,7 @@ impl CalendarApp {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
-                    self.open_change_event(&event.clone());//
+                    self.open_change_event(&event.clone());
                 }
             }
             AppSignal::ChangeEventTemplate(template_id) => {
@@ -731,7 +730,7 @@ impl eframe::App for CalendarApp {
                 .popups
                 .iter_mut()
                 .flat_map(|popup| {
-                    ui.add(popup.build(ctx, &self.state));
+                    popup.show(ctx, &self.state);
                     popup.signals()
                 })
                 .collect::<Vec<_>>();
