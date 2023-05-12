@@ -480,8 +480,7 @@ impl CalendarApp {
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
-                            self.state.prepare_date(date);
-                            let events = self.state.get_events_for_date(date).len();
+                            let events = self.state.get_prepared_events_for_date(date).len();
                             ui.vertical(|ui| {
                                 ui.label(date.to_string());
                                 if first_day <= date && date <= last_day {
@@ -515,9 +514,9 @@ impl CalendarApp {
                         ui.vertical_centered(|ui| ui.heading(weekday_name));
                         ui.add_space(4.);
 
-                        self.state.prepare_date(date);
+                        let level = self.state.get_access_level().level;
                         self.state
-                            .get_events_for_date(date)
+                            .get_prepared_events_for_date(date)
                             .iter()
                             .for_each(|event| {
                                 ui.add(
@@ -525,6 +524,7 @@ impl CalendarApp {
                                         &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
+                                        level,
                                     )
                                     .hide_date(),
                                 );
@@ -545,11 +545,11 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
-            self.state.prepare_date(date);
+            let level = self.state.get_access_level().level;
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .get_events_for_date(date)
+                .get_prepared_events_for_date(date)
                 .iter()
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
@@ -567,6 +567,7 @@ impl CalendarApp {
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
+                                level,
                             ));
                         });
                     });
@@ -600,12 +601,11 @@ impl CalendarApp {
                 egui::CollapsingHeader::new(RichText::new(header_text).heading())
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
-                        self.state.prepare_date(date);
-
+                        let level = self.state.get_access_level().level;
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state
-                            .get_events_for_date(date)
+                            .get_prepared_events_for_date(date)
                             .iter()
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
@@ -623,6 +623,7 @@ impl CalendarApp {
                                             &mut signals,
                                             egui::Vec2::new(column_width, 200.),
                                             &event,
+                                            level,
                                         ));
                                     });
                                 });

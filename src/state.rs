@@ -115,8 +115,25 @@ impl State {
                 self.events
                     .iter()
                     .filter(|e| e.start.date() == date)
-                    .filter(move |e| e.access_level <= level)
-                    .cloned()
+                    .filter_map(move |e| {
+                        if e.access_level >= level {
+                            Some(e.clone())
+                        } else {
+                            match e.visibility {
+                                EventVisibility::HideAll => None,
+                                EventVisibility::HideName => Some(Event {
+                                    name: "".to_owned(),
+                                    description: None,
+                                    ..e.clone()
+                                }),
+                                EventVisibility::HideDescription => Some(Event {
+                                    description: None,
+                                    ..e.clone()
+                                }),
+                                EventVisibility::Show => Some(e.clone()),
+                            }
+                        }
+                    })
                     .chain(self.generate_phantom_events(date))
                     .sorted_by_key(|v| v.start)
                     .collect()
@@ -126,6 +143,10 @@ impl State {
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
+    }
+    pub fn get_prepared_events_for_date(&mut self, date: NaiveDate) -> &[Event] {
+        self.prepare_date(date);
+        self.get_events_for_date(date)
     }
 }
 

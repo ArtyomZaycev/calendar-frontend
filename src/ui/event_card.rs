@@ -8,17 +8,20 @@ pub struct EventCard<'a> {
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     event: &'a Event,
+    access_level: i32,
+
     show_description: bool,
     show_date: bool,
     show_time: bool,
 }
 
 impl<'a> EventCard<'a> {
-    pub fn new(signals: &'a mut Vec<AppSignal>, desired_size: Vec2, event: &'a Event) -> Self {
+    pub fn new(signals: &'a mut Vec<AppSignal>, desired_size: Vec2, event: &'a Event, access_level: i32) -> Self {
         Self {
             signals,
             desired_size,
             event,
+            access_level,
             show_description: true,
             show_date: true,
             show_time: true,
@@ -77,7 +80,7 @@ impl<'a> Widget for EventCard<'a> {
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            if !is_phantom {
+                            if !is_phantom && self.access_level >= self.event.access_level {
                                 ui.menu_button("C", |ui| {
                                     if ui.button("Edit").clicked() {
                                         self.signals.push(AppSignal::ChangeEvent(*event_id));
