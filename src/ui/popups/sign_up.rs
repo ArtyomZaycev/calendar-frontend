@@ -44,14 +44,15 @@ impl<'a> PopupBuilder<'a> for SignUp {
         _ctx: &'a egui::Context,
         _state: &'a State,
     ) -> InnerResponse<ContentUiInfo<'a>> {
-        let show_input_field = |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
-            ui.add(
-                egui::TextEdit::singleline(value)
-                    .desired_width(f32::INFINITY)
-                    .hint_text(hint)
-                    .password(password),
-            );
-        };
+        let show_input_field =
+            |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
+                ui.add(
+                    egui::TextEdit::singleline(value)
+                        .desired_width(f32::INFINITY)
+                        .hint_text(hint)
+                        .password(password),
+                );
+            };
 
         ui.vertical_centered(|ui| {
             show_input_field(ui, &mut self.name, "Name", false);
@@ -64,7 +65,9 @@ impl<'a> PopupBuilder<'a> for SignUp {
                 .error(self.name.len() > 30, "Name must be at most 30 symbols")
                 .error(!is_valid_email(&self.email), "Email is not valid")
                 .error(
-                    self.email_taken.as_ref().map_or(false, |e| e == &self.email),
+                    self.email_taken
+                        .as_ref()
+                        .map_or(false, |e| e == &self.email),
                     "Account with this email is already registered",
                 )
                 .error(

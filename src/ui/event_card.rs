@@ -16,7 +16,12 @@ pub struct EventCard<'a> {
 }
 
 impl<'a> EventCard<'a> {
-    pub fn new(signals: &'a mut Vec<AppSignal>, desired_size: Vec2, event: &'a Event, access_level: i32) -> Self {
+    pub fn new(
+        signals: &'a mut Vec<AppSignal>,
+        desired_size: Vec2,
+        event: &'a Event,
+        access_level: i32,
+    ) -> Self {
         Self {
             signals,
             desired_size,

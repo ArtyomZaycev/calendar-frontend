@@ -103,7 +103,10 @@ impl<'a> PopupBuilder<'a> for EventInput {
             ui.add(DatePicker::new(self.eid.with("date"), &mut self.date));
 
             ui.horizontal(|ui| {
-                ui.add(TimePicker::new(self.eid.with("time_start"), &mut self.start));
+                ui.add(TimePicker::new(
+                    self.eid.with("time_start"),
+                    &mut self.start,
+                ));
                 ui.label("-");
                 self.end = self.end.max(self.start);
                 ui.add(TimePicker::new(self.eid.with("time_end"), &mut self.end));

@@ -1,10 +1,7 @@
 use derive_is_enum_variant::is_enum_variant;
 use egui::{InnerResponse, Vec2};
 
-use crate::{
-    state::State,
-    ui::{widget_signal::AppSignal},
-};
+use crate::{state::State, ui::widget_signal::AppSignal};
 
 use super::{
     event_input::EventInput,
@@ -83,8 +80,7 @@ pub struct Popup {
 }
 
 impl Popup {
-    pub fn show(&mut self, ctx: &egui::Context, state: &State) -> egui::Response
-    {
+    pub fn show(&mut self, ctx: &egui::Context, state: &State) -> egui::Response {
         egui::Window::new("")
             .id(self.id)
             .title_bar(false)

@@ -1,4 +1,9 @@
-use calendar_lib::api::{auth::{register, login}, events::types::Event, schedules::types::Schedule, event_templates::types::EventTemplate};
+use calendar_lib::api::{
+    auth::{login, register},
+    event_templates::types::EventTemplate,
+    events::types::Event,
+    schedules::types::Schedule,
+};
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
@@ -211,7 +216,12 @@ impl CalendarApp {
                 }
             }
             AppSignal::ChangeEventTemplate(template_id) => {
-                if let Some(template) = self.state.event_templates.iter().find(|template| template.id == template_id) {
+                if let Some(template) = self
+                    .state
+                    .event_templates
+                    .iter()
+                    .find(|template| template.id == template_id)
+                {
                     self.open_change_event_template(&template.clone());
                 }
             }

@@ -52,12 +52,14 @@ impl<'a> Widget for EventTemplateCard<'a> {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             ui.menu_button("C", |ui| {
                                 if ui.button("Edit").clicked() {
-                                    self.signals.push(AppSignal::ChangeEventTemplate(*template_id));
+                                    self.signals
+                                        .push(AppSignal::ChangeEventTemplate(*template_id));
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {
-                                    self.signals
-                                        .push(StateSignal::DeleteEventTemplate(*template_id).into());
+                                    self.signals.push(
+                                        StateSignal::DeleteEventTemplate(*template_id).into(),
+                                    );
                                     ui.close_menu();
                                 }
                             });

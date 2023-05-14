@@ -49,7 +49,8 @@ impl EventTemplateInput {
             name: template.name.clone(),
             event_name: template.event_name.clone(),
             event_description: template.event_description.clone().unwrap_or_default(),
-            duration: NaiveTime::from_hms_opt(duration_minutes / 60, duration_minutes % 60, 0).unwrap(),
+            duration: NaiveTime::from_hms_opt(duration_minutes / 60, duration_minutes % 60, 0)
+                .unwrap(),
             access_level: template.access_level,
         }
     }
@@ -103,7 +104,10 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 .error(self.name.len() > 80, "Name is too long")
                 .error(self.event_name.is_empty(), "Event name cannot be empty")
                 .error(self.event_name.len() > 80, "Event name is too long")
-                .error(self.event_description.len() > 250, "Event description is too long")
+                .error(
+                    self.event_description.len() > 250,
+                    "Event description is too long",
+                )
                 .button(|ui, builder, _| {
                     let response = ui.button("Cancel");
                     if response.clicked() {
@@ -115,28 +119,31 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                     if let Some(id) = self.id {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
                         if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateEventTemplate(
-                                UpdateEventTemplate {
+                            builder.signal(AppSignal::StateSignal(
+                                StateSignal::UpdateEventTemplate(UpdateEventTemplate {
                                     id,
                                     name: USome(self.name.clone()),
                                     event_name: USome(self.event_name.clone()),
-                                    event_description: USome((!self.event_description.is_empty())
-                                        .then_some(self.event_description.clone())),
-                                    duration: USome(self
-                                        .duration
-                                        .signed_duration_since(NaiveTime::default())
-                                        .to_std()
-                                        .unwrap()),
+                                    event_description: USome(
+                                        (!self.event_description.is_empty())
+                                            .then_some(self.event_description.clone()),
+                                    ),
+                                    duration: USome(
+                                        self.duration
+                                            .signed_duration_since(NaiveTime::default())
+                                            .to_std()
+                                            .unwrap(),
+                                    ),
                                     access_level: USome(self.access_level),
-                                },
-                            )));
+                                }),
+                            ));
                         }
                         response
                     } else {
                         let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
                         if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
-                                NewEventTemplate {
+                            builder.signal(AppSignal::StateSignal(
+                                StateSignal::InsertEventTemplate(NewEventTemplate {
                                     user_id: -1,
                                     name: self.name.clone(),
                                     event_name: self.event_name.clone(),
@@ -148,8 +155,8 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                                         .to_std()
                                         .unwrap(),
                                     access_level: self.access_level,
-                                },
-                            )));
+                                }),
+                            ));
                         }
                         response
                     }

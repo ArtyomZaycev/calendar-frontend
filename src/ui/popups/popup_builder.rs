@@ -1,9 +1,6 @@
 use egui::{Align, Color32, InnerResponse, Layout, RichText, WidgetText};
 
-use crate::{
-    state::State,
-    ui::{widget_signal::AppSignal},
-};
+use crate::{state::State, ui::widget_signal::AppSignal};
 
 pub struct ContentUiInfo<'a> {
     pub info: ContentInfo,
@@ -144,8 +141,7 @@ pub trait PopupBuilder<'a> {
                 if let Some(error) = error.clone() {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         ui.add(
-                            egui::Label::new(RichText::new(error).color(Color32::RED))
-                                .wrap(true),
+                            egui::Label::new(RichText::new(error).color(Color32::RED)).wrap(true),
                         );
                     });
                 }
