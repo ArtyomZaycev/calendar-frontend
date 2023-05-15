@@ -684,7 +684,7 @@ impl State {
         self.load_schedules();
     }
 
-    fn parse_action(&mut self, request: AppRequest, description: AppRequestDescription) {
+    fn parse_request(&mut self, request: AppRequest, description: AppRequestDescription) {
         match request {
             AppRequest::Login(res) => {
                 self.me = Some(UserInfo {
@@ -839,7 +839,7 @@ impl State {
         actions
             .clone()
             .into_iter()
-            .for_each(|(request, description)| self.parse_action(request, description));
+            .for_each(|(request, description)| self.parse_request(request, description));
         actions
     }
 

@@ -44,7 +44,7 @@ pub enum AppRequest {
     Error(StatusCode, String),
 }
 
-#[derive(Clone, Debug, is_enum_variant)]
+#[derive(Clone, Debug, Default, is_enum_variant)]
 pub enum AppRequestDescription {
     LoadEvent(i32),
     UpdateEvent(i32),
@@ -62,13 +62,8 @@ pub enum AppRequestDescription {
     DeleteSchedule(i32),
     //DeleteSchedules(Vec<i32>),
     #[allow(dead_code)]
+    #[default]
     None,
-}
-
-impl Default for AppRequestDescription {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 // TODO: macro
