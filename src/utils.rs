@@ -1,8 +1,7 @@
-use std::future::Future;
-
 use calendar_lib::api::{auth::types::AccessLevel, events::types::EventVisibility};
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
 use email_address::EmailAddress;
+use std::future::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn easy_spawn<F>(f: F)

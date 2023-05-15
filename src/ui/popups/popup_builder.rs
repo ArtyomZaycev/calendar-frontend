@@ -1,6 +1,5 @@
-use egui::{Align, Color32, InnerResponse, Layout, RichText, WidgetText};
-
 use crate::{state::State, ui::widget_signal::AppSignal};
+use egui::{Align, Color32, InnerResponse, Layout, RichText, WidgetText};
 
 pub struct ContentUiInfo<'a> {
     pub info: ContentInfo,

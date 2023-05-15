@@ -1,9 +1,4 @@
-use calendar_lib::api::{schedules::types::*, utils::*};
-use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{Button, InnerResponse, TextEdit, Vec2};
-use num_traits::FromPrimitive;
-use std::hash::Hash;
-
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 use crate::{
     state::State,
     ui::{
@@ -13,8 +8,11 @@ use crate::{
         widget_signal::{AppSignal, StateSignal},
     },
 };
-
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use calendar_lib::api::{schedules::types::*, utils::*};
+use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
+use egui::{Button, InnerResponse, TextEdit, Vec2};
+use num_traits::FromPrimitive;
+use std::hash::Hash;
 
 pub struct ScheduleInput {
     eid: egui::Id,

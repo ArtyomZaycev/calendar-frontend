@@ -1,12 +1,10 @@
-use calendar_lib::api::auth::types::NewPassword;
-use egui::{InnerResponse, TextEdit};
-
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 use crate::{
     state::State,
     ui::{access_level_picker::AccessLevelPicker, widget_signal::StateSignal},
 };
-
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use calendar_lib::api::auth::types::NewPassword;
+use egui::{InnerResponse, TextEdit};
 
 pub struct NewPasswordInput {
     pub next_password_level: i32,

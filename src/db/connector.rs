@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-
+use super::request_parser::RequestParser;
+use crate::config::Config;
 use bytes::Bytes;
 use reqwest::StatusCode;
+use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
-
-use crate::config::Config;
-
-use super::request_parser::RequestParser;
 
 type RequestIndex = u16;
 

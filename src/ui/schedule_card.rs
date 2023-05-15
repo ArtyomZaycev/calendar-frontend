@@ -1,8 +1,6 @@
-use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
-
-use crate::db::aliases::Schedule;
-
 use super::widget_signal::{AppSignal, StateSignal};
+use crate::db::aliases::Schedule;
+use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct ScheduleCard<'a> {
     signals: &'a mut Vec<AppSignal>,

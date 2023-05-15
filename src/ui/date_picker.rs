@@ -2,8 +2,6 @@
 
 // From https://github.com/shadr/egui-datepicker
 
-use std::hash::Hash;
-
 pub use chrono::offset::{FixedOffset, Local, Utc};
 use chrono::{prelude::*, Duration};
 use eframe::{
@@ -11,6 +9,7 @@ use eframe::{
     egui::{Area, Color32, DragValue, Frame, Id, Key, Order, Response, RichText, Ui, Widget},
 };
 use num_traits::FromPrimitive;
+use std::hash::Hash;
 
 /// Default values of fields are:
 /// - sunday_first: `false`

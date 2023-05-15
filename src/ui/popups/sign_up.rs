@@ -1,12 +1,10 @@
-use egui::InnerResponse;
-
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 use crate::{
     state::State,
     ui::widget_signal::StateSignal,
     utils::{is_password_strong_enough, is_valid_email},
 };
-
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use egui::InnerResponse;
 
 pub struct SignUp {
     pub name: String,

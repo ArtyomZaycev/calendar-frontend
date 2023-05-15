@@ -1,5 +1,14 @@
-use std::collections::HashMap;
-
+use super::requests::AppRequest;
+use crate::{
+    config::Config,
+    db::{
+        aliases::*,
+        connector::{Connector, RequestDescriptor},
+        request_parser::RequestParser,
+    },
+    requests::AppRequestDescription,
+    ui::widget_signal::StateSignal,
+};
 use calendar_lib::api::{
     auth::{
         self,
@@ -11,19 +20,7 @@ use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 use reqwest::{Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
-
-use crate::{
-    config::Config,
-    db::{
-        aliases::*,
-        connector::{Connector, RequestDescriptor},
-        request_parser::RequestParser,
-    },
-    requests::AppRequestDescription,
-    ui::widget_signal::StateSignal,
-};
-
-use super::requests::AppRequest;
+use std::collections::HashMap;
 
 pub struct State {
     connector: Connector<AppRequest, AppRequestDescription>,

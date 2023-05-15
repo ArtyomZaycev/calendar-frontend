@@ -1,10 +1,8 @@
-use std::hash::Hash;
-
+use crate::utils::access_levels_human_name;
 use calendar_lib::api::auth::types::AccessLevel;
 use egui::{Id, Widget};
 use itertools::Itertools;
-
-use crate::utils::access_levels_human_name;
+use std::hash::Hash;
 
 pub struct AccessLevelPicker<'a> {
     id: Id,

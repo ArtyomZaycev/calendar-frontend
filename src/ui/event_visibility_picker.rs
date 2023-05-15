@@ -1,9 +1,7 @@
-use std::hash::Hash;
-
+use crate::utils::event_visibility_human_name;
 use calendar_lib::api::events::types::EventVisibility;
 use egui::{Id, Widget, WidgetText};
-
-use crate::utils::event_visibility_human_name;
+use std::hash::Hash;
 
 pub struct EventVisibilityPicker<'a> {
     id: Id,

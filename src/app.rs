@@ -1,15 +1,3 @@
-use calendar_lib::api::{
-    auth::{login, register},
-    event_templates::types::EventTemplate,
-    events::types::Event,
-    schedules::types::Schedule,
-};
-use chrono::{Days, Months, NaiveDate};
-use derive_is_enum_variant::is_enum_variant;
-use egui::{Align, Layout, RichText, Sense};
-use num_traits::FromPrimitive;
-use serde::{Deserialize, Serialize};
-
 use crate::{
     config::Config,
     requests::*,
@@ -34,6 +22,17 @@ use crate::{
     },
     utils::*,
 };
+use calendar_lib::api::{
+    auth::{login, register},
+    event_templates::types::EventTemplate,
+    events::types::Event,
+    schedules::types::Schedule,
+};
+use chrono::{Days, Months, NaiveDate};
+use derive_is_enum_variant::is_enum_variant;
+use egui::{Align, Layout, RichText, Sense};
+use num_traits::FromPrimitive;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
 enum EventsView {

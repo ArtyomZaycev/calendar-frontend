@@ -1,7 +1,5 @@
 // TODO: Move to lib
 
-use std::hash::Hash;
-
 pub use chrono::offset::{FixedOffset, Local, Utc};
 use chrono::prelude::*;
 use eframe::{
@@ -9,6 +7,7 @@ use eframe::{
     egui::{Response, Ui, Widget},
 };
 use egui::Id;
+use std::hash::Hash;
 
 pub struct TimePicker<'a> {
     pub id: Id,

@@ -1,5 +1,4 @@
-use egui::{Align, InnerResponse, Layout, Vec2};
-
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 use crate::{
     state::State,
     ui::{
@@ -7,8 +6,7 @@ use crate::{
         widget_signal::{AppSignal, StateSignal},
     },
 };
-
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use egui::{Align, InnerResponse, Layout, Vec2};
 
 pub struct Profile {}
 

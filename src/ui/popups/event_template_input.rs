@@ -1,8 +1,4 @@
-use calendar_lib::api::{event_templates::types::*, utils::*};
-use chrono::NaiveTime;
-use egui::{InnerResponse, TextEdit};
-use std::hash::Hash;
-
+use super::popup_builder::{ContentUiInfo, PopupBuilder};
 use crate::{
     state::State,
     ui::{
@@ -11,8 +7,10 @@ use crate::{
         widget_signal::{AppSignal, StateSignal},
     },
 };
-
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use calendar_lib::api::{event_templates::types::*, utils::*};
+use chrono::NaiveTime;
+use egui::{InnerResponse, TextEdit};
+use std::hash::Hash;
 
 pub struct EventTemplateInput {
     eid: egui::Id,

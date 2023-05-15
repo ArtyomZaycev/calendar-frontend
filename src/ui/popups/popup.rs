@@ -1,8 +1,3 @@
-use derive_is_enum_variant::is_enum_variant;
-use egui::{InnerResponse, Vec2};
-
-use crate::{state::State, ui::widget_signal::AppSignal};
-
 use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
@@ -13,6 +8,9 @@ use super::{
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
+use crate::{state::State, ui::widget_signal::AppSignal};
+use derive_is_enum_variant::is_enum_variant;
+use egui::{InnerResponse, Vec2};
 
 #[derive(is_enum_variant)]
 pub enum PopupType {

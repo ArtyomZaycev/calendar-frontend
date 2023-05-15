@@ -1,8 +1,6 @@
-use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
-
-use crate::db::aliases::EventTemplate;
-
 use super::widget_signal::{AppSignal, StateSignal};
+use crate::db::aliases::EventTemplate;
+use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventTemplateCard<'a> {
     signals: &'a mut Vec<AppSignal>,
