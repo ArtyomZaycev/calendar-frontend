@@ -46,3 +46,22 @@ impl<T> RequestParser<T> {
         (self.parser)(status_code, bytes)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use reqwest::StatusCode;
+
+    use super::RequestParser;
+
+    #[test]
+    fn parser_test() {
+        let parser = RequestParser::<String>::new_complex(
+            |s: String| format!("{s}; Success"),
+            |code, s| format!("{code}=>{s}"),
+        );
+        assert_eq!(
+            parser.parse(StatusCode::BAD_REQUEST, bytes::Bytes::from_static(b"e1")),
+            "400 Bad Request=>e1".to_owned()
+        );
+    }
+}
