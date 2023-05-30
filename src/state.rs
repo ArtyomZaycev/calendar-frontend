@@ -113,7 +113,7 @@ impl State {
                     .iter()
                     .filter(|e| e.start.date() == date)
                     .filter_map(move |e| {
-                        if e.access_level >= level {
+                        if e.access_level <= level {
                             Some(e.clone())
                         } else {
                             match e.visibility {
