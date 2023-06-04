@@ -1,4 +1,4 @@
-use super::requests::AppRequest;
+use super::requests::AppRequestResponse;
 use crate::{
     config::Config,
     db::{
@@ -6,7 +6,7 @@ use crate::{
         connector::{Connector, RequestDescriptor},
         request_parser::RequestParser,
     },
-    requests::AppRequestDescription,
+    requests::AppRequestInfo,
     ui::widget_signal::StateSignal,
 };
 use calendar_lib::api::{
@@ -23,7 +23,7 @@ use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 pub struct State {
-    connector: Connector<AppRequest, AppRequestDescription>,
+    connector: Connector<AppRequestResponse, AppRequestInfo>,
     /// Has both server and phantom events
     events_per_day: HashMap<NaiveDate, Vec<Event>>,
     current_access_level: i32,
@@ -228,33 +228,33 @@ impl State {
     // Use for testing only
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
-    fn make_empty_parser() -> RequestParser<AppRequest> {
-        RequestParser::new_split(|_| AppRequest::None, |_, _| AppRequest::None)
+    fn make_empty_parser() -> RequestParser<AppRequestResponse> {
+        RequestParser::new_split(|_| AppRequestResponse::None, |_, _| AppRequestResponse::None)
     }
 
-    fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequest>
+    fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequestResponse>
     where
         U: DeserializeOwned,
-        F: FnOnce(U) -> AppRequest + 'static,
+        F: FnOnce(U) -> AppRequestResponse + 'static,
     {
-        RequestParser::new_complex(on_success, |code, s| AppRequest::Error(code, s))
+        RequestParser::new_complex(on_success, |code, s| AppRequestResponse::Error(code, s))
     }
 
     #[allow(dead_code)]
     fn make_bad_request_parser<T, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
-    ) -> RequestParser<AppRequest>
+    ) -> RequestParser<AppRequestResponse>
     where
         T: DeserializeOwned,
-        F1: FnOnce(T) -> AppRequest + 'static,
-        F2: FnOnce(String) -> AppRequest + 'static,
+        F1: FnOnce(T) -> AppRequestResponse + 'static,
+        F2: FnOnce(String) -> AppRequestResponse + 'static,
     {
         RequestParser::new_complex(on_success, |code, msg| {
             if code == StatusCode::BAD_REQUEST {
                 on_bad_request(msg)
             } else {
-                AppRequest::Error(code, msg)
+                AppRequestResponse::Error(code, msg)
             }
         })
     }
@@ -262,18 +262,18 @@ impl State {
     fn make_typed_bad_request_parser<T, U, F1, F2>(
         on_success: F1,
         on_bad_request: F2,
-    ) -> RequestParser<AppRequest>
+    ) -> RequestParser<AppRequestResponse>
     where
         T: DeserializeOwned,
         U: DeserializeOwned,
-        F1: FnOnce(T) -> AppRequest + 'static,
-        F2: FnOnce(U) -> AppRequest + 'static,
+        F1: FnOnce(T) -> AppRequestResponse + 'static,
+        F2: FnOnce(U) -> AppRequestResponse + 'static,
     {
         RequestParser::new_complex(on_success, |code, msg| {
             if code == StatusCode::BAD_REQUEST {
                 on_bad_request(serde_json::from_str(&msg).unwrap())
             } else {
-                AppRequest::Error(code, msg)
+                AppRequestResponse::Error(code, msg)
             }
         })
     }
@@ -308,7 +308,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::LoadAccessLevels(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -322,7 +322,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::LoadUserRoles(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadUserRoles(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -347,8 +347,8 @@ impl State {
         self.schedules = vec![];
 
         let parser = RequestParser::new_split(
-            |_| AppRequest::None,
-            |code, _| AppRequest::Error(code, "Logout error".to_owned()),
+            |_| AppRequestResponse::None,
+            |code, _| AppRequestResponse::Error(code, "Logout error".to_owned()),
         );
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
@@ -368,8 +368,8 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequest::Login(r),
-            |r| AppRequest::LoginError(r),
+            |r| AppRequestResponse::Login(r),
+            |r| AppRequestResponse::LoginError(r),
         );
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
@@ -390,8 +390,8 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequest::Register(r),
-            |r| AppRequest::RegisterError(r),
+            |r| AppRequestResponse::Register(r),
+            |r| AppRequestResponse::RegisterError(r),
         );
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
@@ -417,7 +417,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::NewPassword(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -432,12 +432,12 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequest::LoadEvent(r),
-            |r| AppRequest::LoadEventError(r),
+            |r| AppRequestResponse::LoadEvent(r),
+            |r| AppRequestResponse::LoadEventError(r),
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::LoadEvent(id), parser),
+            RequestDescriptor::new(AppRequestInfo::LoadEvent(id), parser),
         );
     }
     pub fn load_events(&mut self) {
@@ -449,7 +449,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::LoadEvents(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadEvents(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -467,7 +467,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::InsertEvent(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::InsertEvent(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -482,10 +482,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::UpdateEvent(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::UpdateEvent(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::UpdateEvent(id), parser),
+            RequestDescriptor::new(AppRequestInfo::UpdateEvent(id), parser),
         );
     }
     pub fn delete_event(&mut self, id: i32) {
@@ -498,10 +498,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::DeleteEvent(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::DeleteEvent(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::DeleteEvent(id), parser),
+            RequestDescriptor::new(AppRequestInfo::DeleteEvent(id), parser),
         );
     }
 
@@ -515,12 +515,12 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequest::LoadEventTemplate(r),
-            |r| AppRequest::LoadEventTemplateError(r),
+            |r| AppRequestResponse::LoadEventTemplate(r),
+            |r| AppRequestResponse::LoadEventTemplateError(r),
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::LoadEventTemplate(id), parser),
+            RequestDescriptor::new(AppRequestInfo::LoadEventTemplate(id), parser),
         );
     }
     pub fn load_event_templates(&mut self) {
@@ -532,7 +532,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::LoadEventTemplates(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -550,7 +550,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::InsertEventTemplate(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -565,10 +565,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::UpdateEventTemplate(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::UpdateEventTemplate(id), parser),
+            RequestDescriptor::new(AppRequestInfo::UpdateEventTemplate(id), parser),
         );
     }
     pub fn delete_event_template(&mut self, id: i32) {
@@ -581,10 +581,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::DeleteEventTemplate(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::DeleteEventTemplate(id), parser),
+            RequestDescriptor::new(AppRequestInfo::DeleteEventTemplate(id), parser),
         );
     }
 
@@ -598,12 +598,12 @@ impl State {
             .unwrap();
 
         let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequest::LoadSchedule(r),
-            |r| AppRequest::LoadScheduleError(r),
+            |r| AppRequestResponse::LoadSchedule(r),
+            |r| AppRequestResponse::LoadScheduleError(r),
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::LoadSchedule(id), parser),
+            RequestDescriptor::new(AppRequestInfo::LoadSchedule(id), parser),
         );
     }
     pub fn load_schedules(&mut self) {
@@ -615,7 +615,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::LoadSchedules(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadSchedules(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -633,7 +633,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::InsertSchedule(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::InsertSchedule(r));
         self.connector
             .request(request, RequestDescriptor::no_description(parser));
     }
@@ -648,10 +648,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::UpdateSchedule(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::UpdateSchedule(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::UpdateSchedule(id), parser),
+            RequestDescriptor::new(AppRequestInfo::UpdateSchedule(id), parser),
         );
     }
     pub fn delete_schedule(&mut self, id: i32) {
@@ -664,10 +664,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequest::DeleteSchedule(r));
+        let parser = Self::make_parser(|r| AppRequestResponse::DeleteSchedule(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestDescription::DeleteSchedule(id), parser),
+            RequestDescriptor::new(AppRequestInfo::DeleteSchedule(id), parser),
         );
     }
 }
@@ -681,9 +681,9 @@ impl State {
         self.load_schedules();
     }
 
-    fn parse_request(&mut self, request: AppRequest, description: AppRequestDescription) {
+    fn parse_request(&mut self, request: AppRequestResponse, description: AppRequestInfo) {
         match request {
-            AppRequest::Login(res) => {
+            AppRequestResponse::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
                     key: res.key,
@@ -693,23 +693,23 @@ impl State {
                 self.access_levels = vec![res.access_level];
                 self.load_state();
             }
-            AppRequest::LoginError(_) => {}
-            AppRequest::Register(_) => {}
-            AppRequest::RegisterError(_) => {}
-            AppRequest::NewPassword(_) => {
+            AppRequestResponse::LoginError(_) => {}
+            AppRequestResponse::Register(_) => {}
+            AppRequestResponse::RegisterError(_) => {}
+            AppRequestResponse::NewPassword(_) => {
                 self.load_access_levels();
             }
-            AppRequest::LoadAccessLevels(mut r) => {
+            AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));
                 self.access_levels = r.array;
                 self.access_levels.sort_by_key(|l| l.level);
             }
-            AppRequest::LoadUserRoles(res) => {
+            AppRequestResponse::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
                     me.roles = res.array;
                 }
             }
-            AppRequest::LoadEvent(res) => {
+            AppRequestResponse::LoadEvent(res) => {
                 let event = res.value;
                 self.clear_events_for_day(event.start.date());
                 match self.events.iter_mut().find(|e| e.id == event.id) {
@@ -717,9 +717,9 @@ impl State {
                     None => self.events.push(event),
                 }
             }
-            AppRequest::LoadEventError(res) => match res {
+            AppRequestResponse::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
-                    if let AppRequestDescription::LoadEvent(id) = description {
+                    if let AppRequestInfo::LoadEvent(id) = description {
                         if let Some(ind) = self.events.iter().position(|e| e.id == id) {
                             self.clear_events_for_day(self.events[ind].start.date());
                             self.events.remove(ind);
@@ -727,27 +727,27 @@ impl State {
                     }
                 }
             },
-            AppRequest::LoadEvents(res) => {
+            AppRequestResponse::LoadEvents(res) => {
                 self.events = res.array;
                 self.clear_events();
             }
-            AppRequest::InsertEvent(_) => {
+            AppRequestResponse::InsertEvent(_) => {
                 self.load_events();
             }
-            AppRequest::UpdateEvent(_) => {
-                if let AppRequestDescription::UpdateEvent(id) = description {
+            AppRequestResponse::UpdateEvent(_) => {
+                if let AppRequestInfo::UpdateEvent(id) = description {
                     self.load_event(id);
                 }
             }
-            AppRequest::DeleteEvent(_) => {
-                if let AppRequestDescription::DeleteEvent(id) = description {
+            AppRequestResponse::DeleteEvent(_) => {
+                if let AppRequestInfo::DeleteEvent(id) = description {
                     if let Some(ind) = self.events.iter().position(|e| e.id == id) {
                         self.clear_events_for_day(self.events[ind].start.date());
                         self.events.remove(ind);
                     }
                 }
             }
-            AppRequest::LoadEventTemplate(res) => {
+            AppRequestResponse::LoadEventTemplate(res) => {
                 let template = res.value;
                 match self
                     .event_templates
@@ -759,34 +759,34 @@ impl State {
                 }
                 self.clear_events();
             }
-            AppRequest::LoadEventTemplateError(res) => match res {
+            AppRequestResponse::LoadEventTemplateError(res) => match res {
                 event_templates::load::BadRequestResponse::NotFound => {
-                    if let AppRequestDescription::LoadEventTemplate(id) = description {
+                    if let AppRequestInfo::LoadEventTemplate(id) = description {
                         if let Some(ind) = self.event_templates.iter().position(|t| t.id == id) {
                             self.event_templates.remove(ind);
                         }
                     }
                 }
             },
-            AppRequest::LoadEventTemplates(res) => {
+            AppRequestResponse::LoadEventTemplates(res) => {
                 self.event_templates = res.array;
             }
-            AppRequest::InsertEventTemplate(_) => {
+            AppRequestResponse::InsertEventTemplate(_) => {
                 self.load_event_templates();
             }
-            AppRequest::UpdateEventTemplate(_) => {
-                if let AppRequestDescription::UpdateEventTemplate(id) = description {
+            AppRequestResponse::UpdateEventTemplate(_) => {
+                if let AppRequestInfo::UpdateEventTemplate(id) = description {
                     self.load_event_template(id);
                 }
             }
-            AppRequest::DeleteEventTemplate(_) => {
-                if let AppRequestDescription::DeleteEventTemplate(id) = description {
+            AppRequestResponse::DeleteEventTemplate(_) => {
+                if let AppRequestInfo::DeleteEventTemplate(id) = description {
                     if let Some(ind) = self.event_templates.iter().position(|e| e.id == id) {
                         self.event_templates.remove(ind);
                     }
                 }
             }
-            AppRequest::LoadSchedule(res) => {
+            AppRequestResponse::LoadSchedule(res) => {
                 let schedule = res.value;
                 match self.schedules.iter_mut().find(|s| s.id == schedule.id) {
                     Some(s) => *s = schedule,
@@ -794,9 +794,9 @@ impl State {
                 }
                 self.clear_events();
             }
-            AppRequest::LoadScheduleError(res) => match res {
+            AppRequestResponse::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
-                    if let AppRequestDescription::LoadSchedule(id) = description {
+                    if let AppRequestInfo::LoadSchedule(id) = description {
                         if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
                             self.schedules.remove(ind);
                             self.clear_events();
@@ -804,43 +804,42 @@ impl State {
                     }
                 }
             },
-            AppRequest::LoadSchedules(res) => {
+            AppRequestResponse::LoadSchedules(res) => {
                 self.schedules = res.array;
                 self.clear_events();
             }
-            AppRequest::InsertSchedule(_) => {
+            AppRequestResponse::InsertSchedule(_) => {
                 self.load_schedules();
             }
-            AppRequest::UpdateSchedule(_) => {
-                if let AppRequestDescription::UpdateSchedule(id) = description {
+            AppRequestResponse::UpdateSchedule(_) => {
+                if let AppRequestInfo::UpdateSchedule(id) = description {
                     self.load_schedule(id);
                 }
             }
-            AppRequest::DeleteSchedule(_) => {
-                if let AppRequestDescription::DeleteSchedule(id) = description {
+            AppRequestResponse::DeleteSchedule(_) => {
+                if let AppRequestInfo::DeleteSchedule(id) = description {
                     if let Some(ind) = self.schedules.iter().position(|s| s.id == id) {
                         self.schedules.remove(ind);
                         self.clear_events();
                     }
                 }
             }
-            AppRequest::None => {}
-            AppRequest::Error(status, s) => {
+            AppRequestResponse::None => {}
+            AppRequestResponse::Error(status, s) => {
                 println!("smth went wrong: {status:?}=>{s:?}; description={description:?}");
             }
         }
     }
 
-    pub fn poll(&mut self) -> Vec<(AppRequest, AppRequestDescription)> {
+    pub fn poll(&mut self) {
         let actions = self.connector.poll();
         actions
-            .clone()
             .into_iter()
             .for_each(|(request, description)| self.parse_request(request, description));
-        actions
+        ;//actions
     }
 
-    pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestDescription> {
+    pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestInfo> {
         self.connector.get_active_requests_descriptions()
     }
 }

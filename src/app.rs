@@ -113,7 +113,7 @@ impl CalendarApp {
             .for_each(|signal| self.parse_signal(signal));
     }
 
-    fn parse_polled(&mut self, polled: Vec<(AppRequest, AppRequestDescription)>) {
+    fn parse_polled(&mut self, polled: Vec<(AppRequestResponse, AppRequestInfo)>) {
         let _polled = polled.into_iter().map(|(req, _)| req).collect_vec();
         /*
         REQUESTS REWORK
@@ -622,7 +622,7 @@ impl eframe::App for CalendarApp {
             self.top_panel(ui);
             ui.separator();
 
-            self.parse_polled(polled);
+            //self.parse_polled(polled);
 
             // CALENDAR
             if let Some(_me) = &self.state.me {
