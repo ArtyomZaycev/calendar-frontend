@@ -5,31 +5,7 @@ use reqwest::StatusCode;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-type RequestIndex = u16;
-
-pub struct RequestDescriptor<RequestInfo, RequestResponse> {
-    description: RequestInfo,
-    parser: RequestParser<RequestResponse>,
-}
-
-impl<RequestInfo, RequestResponse> RequestDescriptor<RequestInfo, RequestResponse> {
-    pub fn new(description: RequestInfo, parser: RequestParser<RequestResponse>) -> Self {
-        Self {
-            description,
-            parser,
-        }
-    }
-
-    pub fn no_description(parser: RequestParser<RequestResponse>) -> Self
-    where
-        RequestInfo: Default,
-    {
-        Self {
-            description: Default::default(),
-            parser,
-        }
-    }
-}
+pub type RequestIndex = u16;
 
 #[derive(Debug)]
 struct RequestResult {
@@ -42,55 +18,60 @@ impl RequestResult {
     }
 }
 
-struct RequestCounter<RequestInfo, RequestResponse> {
-    request_id: RequestIndex,
-    requests: HashMap<RequestIndex, RequestDescriptor<RequestInfo, RequestResponse>>,
+struct RequestCounter<RequestResponse, RequestInfo> where RequestInfo: Clone {
+    next_request_id: RequestIndex,
+    parsers: HashMap<RequestIndex, RequestParser<RequestResponse>>,
+    infos: HashMap<RequestIndex, RequestInfo>,
+    responses: HashMap<RequestIndex, RequestResponse>,
 }
 
-impl<RequestInfo, RequestResponse> RequestCounter<RequestInfo, RequestResponse> {
+impl<RequestResponse, RequestInfo> RequestCounter<RequestResponse, RequestInfo> where RequestInfo: Clone {
     fn new() -> Self {
         Self {
-            request_id: 0,
-            requests: HashMap::new(),
+            next_request_id: 0,
+            parsers: HashMap::new(),
+            infos: HashMap::new(),
+            responses: HashMap::new(),
         }
     }
 
-    fn put(&mut self, request: RequestDescriptor<RequestInfo, RequestResponse>) -> RequestIndex {
-        let cur_request_id = self.request_id;
-        self.request_id += 1;
+    fn push(&mut self, parser: RequestParser<RequestResponse>, info: RequestInfo) -> RequestIndex {
+        let request_id = self.next_request_id;
+        self.next_request_id += 1;
 
-        self.requests.insert(cur_request_id, request);
+        self.parsers.insert(request_id, parser);
+        self.infos.insert(request_id, info);
 
-        cur_request_id
+        request_id
+    }
+    
+    fn get_info(&mut self, id: RequestIndex) -> Option<RequestInfo> {
+        self.infos.get(&id).cloned()
     }
 
-    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<RequestInfo, RequestResponse>> {
-        self.requests.remove(id)
+    fn take_response(&mut self, id: RequestIndex) -> Option<RequestResponse> {
+        self.responses.remove(&id)
     }
 
-    fn get_requests_descriptions(&self) -> Vec<RequestInfo>
-    where
-        RequestInfo: Clone,
-    {
-        self.requests
-            .iter()
-            .map(|(_, descriptor)| descriptor.description.clone())
-            .collect()
+    fn parse(&mut self, id: RequestIndex, status_code: StatusCode, bytes: Bytes) {
+        if let Some(parser) = self.parsers.remove(&id) {
+            self.responses.insert(id, parser.parse(status_code, bytes));
+        }
     }
 }
 
-pub struct Connector<RequestInfo, RequestResponse> {
+pub struct Connector<RequestResponse, RequestInfo> where RequestInfo: Clone {
     client: reqwest::Client,
     server_url: String,
 
-    requests: RequestCounter<RequestInfo, RequestResponse>,
+    requests: RequestCounter<RequestResponse, RequestInfo>,
     sender: Sender<RequestResult>,
     reciever: Receiver<RequestResult>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<RequestInfo, RequestResponse> Connector<RequestInfo, RequestResponse> {
+impl<RequestResponse, RequestInfo> Connector<RequestResponse, RequestInfo> where RequestInfo: Clone {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
@@ -110,7 +91,7 @@ impl<RequestInfo, RequestResponse> Connector<RequestInfo, RequestResponse> {
             .header("Access-Control-Allow-Origin", "*")
     }
 
-    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<RequestInfo, RequestResponse>) {
+    pub fn request(&mut self, request: reqwest::Request, parser: RequestParser<RequestResponse>, info: RequestInfo) -> RequestIndex {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");
@@ -118,7 +99,7 @@ impl<RequestInfo, RequestResponse> Connector<RequestInfo, RequestResponse> {
         let client = self.client.clone();
         let sender = self.sender.clone();
 
-        let request_id = self.requests.put(descriptor);
+        let request_id = self.requests.push(parser, info);
 
         easy_spawn(async move {
             let res = client.execute(request).await;
@@ -141,28 +122,25 @@ impl<RequestInfo, RequestResponse> Connector<RequestInfo, RequestResponse> {
                 }
             };
         });
-    }
 
+        request_id
+    }
+    
     pub fn poll(&mut self) -> Vec<(RequestInfo, RequestResponse)> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
-            let descriptor = self.requests.take(&res.id).expect("Parser not found");
-
             match res.result {
-                Ok((status_code, bytes)) => polled.push((
-                    descriptor.description,
-                    descriptor.parser.parse(status_code, bytes),
-                )),
+                Ok((status_code, bytes)) => {
+                    self.requests.parse(res.id, status_code, bytes);
+                    polled.push(res.id)
+                },
                 Err(error) => (self.error_handler)(error),
             }
         }
-        polled
-    }
-
-    pub fn get_active_requests_descriptions(&self) -> Vec<RequestInfo>
-    where
-    RequestInfo: Clone,
-    {
-        self.requests.get_requests_descriptions()
+        polled.into_iter().filter_map(|id| {
+            self.requests.get_info(id).and_then(|info| {
+                self.requests.take_response(id).map(|response| (info, response))
+            })
+        }).collect()
     }
 }

@@ -3,7 +3,7 @@ use crate::{
     config::Config,
     db::{
         aliases::*,
-        connector::{Connector, RequestDescriptor},
+        connector::{Connector, RequestIndex},
         request_parser::RequestParser,
     },
     requests::AppRequestInfo,
@@ -154,24 +154,42 @@ impl State {
                 self.change_access_level(new_access_level);
             }
 
-            StateSignal::Login(email, password) => self.login(&email, &password),
-            StateSignal::Register(name, email, password) => self.register(&name, &email, &password),
+            StateSignal::Login(email, password) => {
+                self.login(&email, &password);
+            },
+            StateSignal::Register(name, email, password) => {
+                self.register(&name, &email, &password);
+            },
 
-            StateSignal::InsertEvent(new_event) => self.insert_event(new_event),
-            StateSignal::UpdateEvent(upd_event) => self.update_event(upd_event),
-            StateSignal::DeleteEvent(id) => self.delete_event(id),
+            StateSignal::InsertEvent(new_event) => {
+                self.insert_event(new_event);
+            },
+            StateSignal::UpdateEvent(upd_event) => {
+                self.update_event(upd_event);
+            },
+            StateSignal::DeleteEvent(id) => {
+                self.delete_event(id);
+            },
 
             StateSignal::InsertEventTemplate(new_event_template) => {
-                self.insert_event_template(new_event_template)
+                self.insert_event_template(new_event_template);
             }
             StateSignal::UpdateEventTemplate(upd_event_template) => {
                 self.update_event_template(upd_event_template);
             }
-            StateSignal::DeleteEventTemplate(id) => self.delete_event_template(id),
+            StateSignal::DeleteEventTemplate(id) => {
+                self.delete_event_template(id);
+            },
 
-            StateSignal::InsertSchedule(new_schedule) => self.insert_schedule(new_schedule),
-            StateSignal::UpdateSchedule(upd_schedule) => self.update_schedule(upd_schedule),
-            StateSignal::DeleteSchedule(id) => self.delete_schedule(id),
+            StateSignal::InsertSchedule(new_schedule) => {
+                self.insert_schedule(new_schedule);
+            },
+            StateSignal::UpdateSchedule(upd_schedule) => {
+                self.update_schedule(upd_schedule);
+            },
+            StateSignal::DeleteSchedule(id) => {
+                self.delete_schedule(id);
+            },
 
             StateSignal::InsertPassword(access_level, viewer_password, editor_password) => {
                 self.new_password(access_level, viewer_password, editor_password);
@@ -299,7 +317,7 @@ impl State {
         self.clear_events();
     }
 
-    pub fn load_access_levels(&mut self) {
+    pub fn load_access_levels(&mut self) -> RequestIndex {
         use auth::load_access_levels::*;
 
         let request = self
@@ -310,10 +328,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
-    pub fn load_user_roles(&mut self) {
+    pub fn load_user_roles(&mut self) -> RequestIndex {
         use user_roles::load_array::*;
 
         let request = self
@@ -324,10 +342,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadUserRoles(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
-    pub fn logout(&mut self) {
+    pub fn logout(&mut self) -> RequestIndex {
         use auth::logout::*;
 
         let request = self
@@ -351,10 +369,10 @@ impl State {
             |code, _| AppRequestResponse::Error(code, "Logout error".to_owned()),
         );
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
-    pub fn login(&mut self, email: &str, password: &str) {
+    pub fn login(&mut self, email: &str, password: &str) -> RequestIndex {
         use auth::login::*;
 
         let request = self
@@ -372,10 +390,10 @@ impl State {
             |r| AppRequestResponse::LoginError(r),
         );
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
-    pub fn register(&mut self, name: &str, email: &str, password: &str) {
+    pub fn register(&mut self, name: &str, email: &str, password: &str) -> RequestIndex {
         use auth::register::*;
 
         let request = self
@@ -394,7 +412,7 @@ impl State {
             |r| AppRequestResponse::RegisterError(r),
         );
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
     pub fn new_password(
@@ -402,7 +420,7 @@ impl State {
         access_level: i32,
         viewer: Option<NewPassword>,
         editor: Option<NewPassword>,
-    ) {
+    ) -> RequestIndex {
         use auth::new_password::*;
 
         let request = self
@@ -419,10 +437,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
 
-    pub fn load_event(&mut self, id: i32) {
+    pub fn load_event(&mut self, id: i32) -> RequestIndex {
         use events::load::*;
 
         let request = self
@@ -437,10 +455,10 @@ impl State {
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::LoadEvent(id), parser),
-        );
+            parser, AppRequestInfo::LoadEvent(id),
+        )
     }
-    pub fn load_events(&mut self) {
+    pub fn load_events(&mut self) -> RequestIndex {
         use events::load_array::*;
 
         let request = self
@@ -451,9 +469,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadEvents(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn insert_event(&mut self, mut new_event: NewEvent) {
+    pub fn insert_event(&mut self, mut new_event: NewEvent) -> RequestIndex {
         use events::insert::*;
 
         if new_event.user_id == -1 {
@@ -469,9 +487,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertEvent(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn update_event(&mut self, upd_event: UpdateEvent) {
+    pub fn update_event(&mut self, upd_event: UpdateEvent) -> RequestIndex {
         use events::update::*;
 
         let id = upd_event.id;
@@ -485,10 +503,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEvent(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::UpdateEvent(id), parser),
-        );
+            parser, AppRequestInfo::UpdateEvent(id),
+        )
     }
-    pub fn delete_event(&mut self, id: i32) {
+    pub fn delete_event(&mut self, id: i32) -> RequestIndex {
         use events::delete::*;
 
         let request = self
@@ -501,11 +519,11 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEvent(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::DeleteEvent(id), parser),
-        );
+            parser, AppRequestInfo::DeleteEvent(id),
+        )
     }
 
-    pub fn load_event_template(&mut self, id: i32) {
+    pub fn load_event_template(&mut self, id: i32) -> RequestIndex {
         use event_templates::load::*;
 
         let request = self
@@ -520,10 +538,10 @@ impl State {
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::LoadEventTemplate(id), parser),
-        );
+            parser, AppRequestInfo::LoadEventTemplate(id),
+        )
     }
-    pub fn load_event_templates(&mut self) {
+    pub fn load_event_templates(&mut self) -> RequestIndex {
         use event_templates::load_array::*;
 
         let request = self
@@ -534,9 +552,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate) {
+    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate) -> RequestIndex {
         use event_templates::insert::*;
 
         if new_event_template.user_id == -1 {
@@ -552,9 +570,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate) {
+    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate) -> RequestIndex {
         use event_templates::update::*;
 
         let id = upd_event_template.id;
@@ -568,10 +586,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::UpdateEventTemplate(id), parser),
-        );
+            parser, AppRequestInfo::UpdateEventTemplate(id),
+        )
     }
-    pub fn delete_event_template(&mut self, id: i32) {
+    pub fn delete_event_template(&mut self, id: i32) -> RequestIndex {
         use event_templates::delete::*;
 
         let request = self
@@ -584,11 +602,11 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::DeleteEventTemplate(id), parser),
-        );
+            parser, AppRequestInfo::DeleteEventTemplate(id),
+        )
     }
 
-    pub fn load_schedule(&mut self, id: i32) {
+    pub fn load_schedule(&mut self, id: i32) -> RequestIndex {
         use schedules::load::*;
 
         let request = self
@@ -603,10 +621,10 @@ impl State {
         );
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::LoadSchedule(id), parser),
-        );
+            parser, AppRequestInfo::LoadSchedule(id),
+        )
     }
-    pub fn load_schedules(&mut self) {
+    pub fn load_schedules(&mut self) -> RequestIndex {
         use schedules::load_array::*;
 
         let request = self
@@ -617,9 +635,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadSchedules(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule) {
+    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule) -> RequestIndex {
         use schedules::insert::*;
 
         if new_schedule.user_id == -1 {
@@ -635,9 +653,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertSchedule(r));
         self.connector
-            .request(request, RequestDescriptor::no_description(parser));
+            .request(request, parser, AppRequestInfo::None)
     }
-    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule) {
+    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule) -> RequestIndex {
         use schedules::update::*;
 
         let id = upd_schedule.id;
@@ -651,10 +669,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateSchedule(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::UpdateSchedule(id), parser),
-        );
+            parser, AppRequestInfo::UpdateSchedule(id),
+        )
     }
-    pub fn delete_schedule(&mut self, id: i32) {
+    pub fn delete_schedule(&mut self, id: i32) -> RequestIndex {
         use schedules::delete::*;
 
         let request = self
@@ -667,8 +685,8 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteSchedule(r));
         self.connector.request(
             request,
-            RequestDescriptor::new(AppRequestInfo::DeleteSchedule(id), parser),
-        );
+            parser, AppRequestInfo::DeleteSchedule(id),
+        )
     }
 }
 
@@ -681,8 +699,8 @@ impl State {
         self.load_schedules();
     }
 
-    fn parse_request(&mut self, request: AppRequestResponse, description: AppRequestInfo) {
-        match request {
+    fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
+        match response {
             AppRequestResponse::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
@@ -719,7 +737,7 @@ impl State {
             }
             AppRequestResponse::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
-                    if let AppRequestInfo::LoadEvent(id) = description {
+                    if let AppRequestInfo::LoadEvent(id) = info {
                         if let Some(ind) = self.events.iter().position(|e| e.id == id) {
                             self.clear_events_for_day(self.events[ind].start.date());
                             self.events.remove(ind);
@@ -735,12 +753,12 @@ impl State {
                 self.load_events();
             }
             AppRequestResponse::UpdateEvent(_) => {
-                if let AppRequestInfo::UpdateEvent(id) = description {
+                if let AppRequestInfo::UpdateEvent(id) = info {
                     self.load_event(id);
                 }
             }
             AppRequestResponse::DeleteEvent(_) => {
-                if let AppRequestInfo::DeleteEvent(id) = description {
+                if let AppRequestInfo::DeleteEvent(id) = info {
                     if let Some(ind) = self.events.iter().position(|e| e.id == id) {
                         self.clear_events_for_day(self.events[ind].start.date());
                         self.events.remove(ind);
@@ -761,7 +779,7 @@ impl State {
             }
             AppRequestResponse::LoadEventTemplateError(res) => match res {
                 event_templates::load::BadRequestResponse::NotFound => {
-                    if let AppRequestInfo::LoadEventTemplate(id) = description {
+                    if let AppRequestInfo::LoadEventTemplate(id) = info {
                         if let Some(ind) = self.event_templates.iter().position(|t| t.id == id) {
                             self.event_templates.remove(ind);
                         }
@@ -775,12 +793,12 @@ impl State {
                 self.load_event_templates();
             }
             AppRequestResponse::UpdateEventTemplate(_) => {
-                if let AppRequestInfo::UpdateEventTemplate(id) = description {
+                if let AppRequestInfo::UpdateEventTemplate(id) = info {
                     self.load_event_template(id);
                 }
             }
             AppRequestResponse::DeleteEventTemplate(_) => {
-                if let AppRequestInfo::DeleteEventTemplate(id) = description {
+                if let AppRequestInfo::DeleteEventTemplate(id) = info {
                     if let Some(ind) = self.event_templates.iter().position(|e| e.id == id) {
                         self.event_templates.remove(ind);
                     }
@@ -796,7 +814,7 @@ impl State {
             }
             AppRequestResponse::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
-                    if let AppRequestInfo::LoadSchedule(id) = description {
+                    if let AppRequestInfo::LoadSchedule(id) = info {
                         if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
                             self.schedules.remove(ind);
                             self.clear_events();
@@ -812,12 +830,12 @@ impl State {
                 self.load_schedules();
             }
             AppRequestResponse::UpdateSchedule(_) => {
-                if let AppRequestInfo::UpdateSchedule(id) = description {
+                if let AppRequestInfo::UpdateSchedule(id) = info {
                     self.load_schedule(id);
                 }
             }
             AppRequestResponse::DeleteSchedule(_) => {
-                if let AppRequestInfo::DeleteSchedule(id) = description {
+                if let AppRequestInfo::DeleteSchedule(id) = info {
                     if let Some(ind) = self.schedules.iter().position(|s| s.id == id) {
                         self.schedules.remove(ind);
                         self.clear_events();
@@ -826,20 +844,18 @@ impl State {
             }
             AppRequestResponse::None => {}
             AppRequestResponse::Error(status, s) => {
-                println!("smth went wrong: {status:?}=>{s:?}; description={description:?}");
+                println!("smth went wrong: {status:?}=>{s:?}; info={info:?}");
             }
         }
     }
 
     pub fn poll(&mut self) {
-        let actions = self.connector.poll();
-        actions
+        self.connector.poll()
             .into_iter()
-            .for_each(|(request, description)| self.parse_request(request, description));
-        ;//actions
+            .for_each(|(info, response)| self.parse_request(response, info));
     }
 
     pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestInfo> {
-        self.connector.get_active_requests_descriptions()
+        todo!()//self.connector.get_active_requests_descriptions()
     }
 }
