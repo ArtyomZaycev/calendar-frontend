@@ -1,10 +1,10 @@
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{access_level_picker::AccessLevelPicker, widget_signal::StateSignal},
 };
 use calendar_lib::api::auth::types::NewPassword;
-use egui::{InnerResponse, TextEdit};
+use egui::TextEdit;
 
 pub struct NewPasswordInput {
     pub next_password_level: i32,
@@ -34,17 +34,17 @@ impl NewPasswordInput {
     }
 }
 
-impl<'a> PopupBuilder<'a> for NewPasswordInput {
-    fn title(&self) -> Option<String> {
+impl PopupContent for NewPasswordInput {
+    fn get_title(&mut self) -> Option<String> {
         Some("New Password".to_owned())
     }
 
-    fn content(
-        &'a mut self,
+    fn show_content(
+        &mut self,
+        state: &State,
         ui: &mut egui::Ui,
-        _ctx: &'a egui::Context,
-        state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         let show_pass_input = |ui: &mut egui::Ui,
                                enabled: &mut bool,
                                name: &mut String,
@@ -82,29 +82,37 @@ impl<'a> PopupBuilder<'a> for NewPasswordInput {
                 "Editor",
             );
 
-            ContentUiInfo::new()
-                .error(
-                    !self.viewer_password_enabled && !self.editor_password_enabled,
-                    "At least 1 password must be set",
-                )
-                .error(
-                    self.viewer_password.password == self.editor_password.password,
-                    "Passwords must be different",
-                )
-                .close_button("Cancel")
-                .button(|ui, builder, is_error| {
-                    let response = ui.add_enabled(!is_error, egui::Button::new("Add"));
-                    if response.clicked() {
-                        builder.signal(StateSignal::InsertPassword(
-                            self.next_password_level - 1,
-                            self.viewer_password_enabled
-                                .then_some(self.viewer_password.clone()),
-                            self.editor_password_enabled
-                                .then_some(self.editor_password.clone()),
-                        ));
-                    }
-                    response
-                })
-        })
+            info.error(
+                !self.viewer_password_enabled && !self.editor_password_enabled,
+                "At least 1 password must be set",
+            );
+            info.error(
+                self.viewer_password.password == self.editor_password.password,
+                "Passwords must be different",
+            );
+        });
+    }
+
+    fn show_buttons(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
+        if ui
+            .add_enabled(!info.is_error(), egui::Button::new("Add"))
+            .clicked()
+        {
+            info.signal(StateSignal::InsertPassword(
+                self.next_password_level - 1,
+                self.viewer_password_enabled
+                    .then_some(self.viewer_password.clone()),
+                self.editor_password_enabled
+                    .then_some(self.editor_password.clone()),
+            ));
+        }
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
     }
 }

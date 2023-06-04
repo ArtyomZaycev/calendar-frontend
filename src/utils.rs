@@ -1,6 +1,7 @@
 use calendar_lib::api::{auth::types::AccessLevel, events::types::EventVisibility};
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
 use email_address::EmailAddress;
+use itertools::Itertools;
 use std::future::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -64,7 +65,7 @@ pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32
         .iter()
         .filter_map(|level| (level.level == access_level).then_some(level.name.as_str()))
         // Use intersperse: https://github.com/rust-lang/rust/issues/79524
-        .collect::<Vec<_>>()
+        .collect_vec()
         .join(" | ")
 }
 

@@ -285,7 +285,7 @@ impl State {
             .access_levels
             .iter()
             .filter(|l| l.level == self.current_access_level)
-            .collect::<Vec<_>>();
+            .collect_vec();
         if levels.len() == 0 {
             self.access_levels.last().unwrap().clone()
         } else if levels.len() == 1 {

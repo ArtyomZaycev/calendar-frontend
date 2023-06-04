@@ -1,10 +1,9 @@
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::widget_signal::StateSignal,
     utils::{is_password_strong_enough, is_valid_email},
 };
-use egui::InnerResponse;
 
 pub struct SignUp {
     pub name: String,
@@ -31,17 +30,17 @@ impl SignUp {
     }
 }
 
-impl<'a> PopupBuilder<'a> for SignUp {
-    fn title(&self) -> Option<String> {
+impl PopupContent for SignUp {
+    fn get_title(&mut self) -> Option<String> {
         Some("Sign Up".to_owned())
     }
 
-    fn content(
-        &'a mut self,
+    fn show_content(
+        &mut self,
+        _state: &State,
         ui: &mut egui::Ui,
-        _ctx: &'a egui::Context,
-        _state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(
@@ -58,36 +57,44 @@ impl<'a> PopupBuilder<'a> for SignUp {
             show_input_field(ui, &mut self.password, "Password", true);
             show_input_field(ui, &mut self.password2, "Confirm Password", true);
 
-            ContentUiInfo::new()
-                .error(self.name.len() < 6, "Name must be at least 6 symbols")
-                .error(self.name.len() > 30, "Name must be at most 30 symbols")
-                .error(!is_valid_email(&self.email), "Email is not valid")
-                .error(
-                    self.email_taken
-                        .as_ref()
-                        .map_or(false, |e| e == &self.email),
-                    "Account with this email is already registered",
-                )
-                .error(
-                    !is_password_strong_enough(&self.password),
-                    "Password is not strong enough",
-                )
-                .error(
-                    self.password != self.password2,
-                    "Passwords must be the same",
-                )
-                .close_button("Cancel")
-                .button(|ui, builder, is_error| {
-                    let response = ui.add_enabled(!is_error, egui::Button::new("Sign Up"));
-                    if response.clicked() {
-                        builder.signal(StateSignal::Register(
-                            self.name.clone(),
-                            self.email.clone(),
-                            self.password.clone(),
-                        ));
-                    }
-                    response
-                })
-        })
+            info.error(self.name.len() < 6, "Name must be at least 6 symbols");
+            info.error(self.name.len() > 30, "Name must be at most 30 symbols");
+            info.error(!is_valid_email(&self.email), "Email is not valid");
+            info.error(
+                self.email_taken
+                    .as_ref()
+                    .map_or(false, |e| e == &self.email),
+                "Account with this email is already registered",
+            );
+            info.error(
+                !is_password_strong_enough(&self.password),
+                "Password is not strong enough",
+            );
+            info.error(
+                self.password != self.password2,
+                "Passwords must be the same",
+            );
+        });
+    }
+
+    fn show_buttons(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
+        if ui
+            .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
+            .clicked()
+        {
+            info.signal(StateSignal::Register(
+                self.name.clone(),
+                self.email.clone(),
+                self.password.clone(),
+            ));
+        }
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
     }
 }

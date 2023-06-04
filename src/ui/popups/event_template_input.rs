@@ -1,4 +1,4 @@
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{
@@ -9,7 +9,7 @@ use crate::{
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
-use egui::{InnerResponse, TextEdit};
+use egui::TextEdit;
 use std::hash::Hash;
 
 pub struct EventTemplateInput {
@@ -54,8 +54,8 @@ impl EventTemplateInput {
     }
 }
 
-impl<'a> PopupBuilder<'a> for EventTemplateInput {
-    fn title(&self) -> Option<String> {
+impl PopupContent for EventTemplateInput {
+    fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Event Template", self.orig_name))
         } else {
@@ -63,12 +63,12 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
         }
     }
 
-    fn content(
-        &'a mut self,
+    fn show_content(
+        &mut self,
+        state: &State,
         ui: &mut egui::Ui,
-        _ctx: &'a egui::Context,
-        state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -97,68 +97,71 @@ impl<'a> PopupBuilder<'a> for EventTemplateInput {
                 ));
             });
 
-            ContentUiInfo::new()
-                .error(self.name.is_empty(), "Name cannot be empty")
-                .error(self.name.len() > 80, "Name is too long")
-                .error(self.event_name.is_empty(), "Event name cannot be empty")
-                .error(self.event_name.len() > 80, "Event name is too long")
-                .error(
-                    self.event_description.len() > 250,
-                    "Event description is too long",
-                )
-                .button(|ui, builder, _| {
-                    let response = ui.button("Cancel");
-                    if response.clicked() {
-                        builder.close();
-                    }
-                    response
-                })
-                .button(|ui, builder, is_error| {
-                    if let Some(id) = self.id {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Update"));
-                        if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(
-                                StateSignal::UpdateEventTemplate(UpdateEventTemplate {
-                                    id,
-                                    name: USome(self.name.clone()),
-                                    event_name: USome(self.event_name.clone()),
-                                    event_description: USome(
-                                        (!self.event_description.is_empty())
-                                            .then_some(self.event_description.clone()),
-                                    ),
-                                    duration: USome(
-                                        self.duration
-                                            .signed_duration_since(NaiveTime::default())
-                                            .to_std()
-                                            .unwrap(),
-                                    ),
-                                    access_level: USome(self.access_level),
-                                }),
-                            ));
-                        }
-                        response
-                    } else {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
-                        if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(
-                                StateSignal::InsertEventTemplate(NewEventTemplate {
-                                    user_id: -1,
-                                    name: self.name.clone(),
-                                    event_name: self.event_name.clone(),
-                                    event_description: (!self.event_description.is_empty())
-                                        .then_some(self.event_description.clone()),
-                                    duration: self
-                                        .duration
-                                        .signed_duration_since(NaiveTime::default())
-                                        .to_std()
-                                        .unwrap(),
-                                    access_level: self.access_level,
-                                }),
-                            ));
-                        }
-                        response
-                    }
-                })
-        })
+            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.len() > 80, "Name is too long");
+            info.error(self.event_name.is_empty(), "Event name cannot be empty");
+            info.error(self.event_name.len() > 80, "Event name is too long");
+            info.error(
+                self.event_description.len() > 250,
+                "Event description is too long",
+            );
+        });
+    }
+
+    fn show_buttons(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
+        if let Some(id) = self.id {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Update"))
+                .clicked()
+            {
+                info.signal(AppSignal::StateSignal(StateSignal::UpdateEventTemplate(
+                    UpdateEventTemplate {
+                        id,
+                        name: USome(self.name.clone()),
+                        event_name: USome(self.event_name.clone()),
+                        event_description: USome(
+                            (!self.event_description.is_empty())
+                                .then_some(self.event_description.clone()),
+                        ),
+                        duration: USome(
+                            self.duration
+                                .signed_duration_since(NaiveTime::default())
+                                .to_std()
+                                .unwrap(),
+                        ),
+                        access_level: USome(self.access_level),
+                    },
+                )));
+            }
+        } else {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .clicked()
+            {
+                info.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
+                    NewEventTemplate {
+                        user_id: -1,
+                        name: self.name.clone(),
+                        event_name: self.event_name.clone(),
+                        event_description: (!self.event_description.is_empty())
+                            .then_some(self.event_description.clone()),
+                        duration: self
+                            .duration
+                            .signed_duration_since(NaiveTime::default())
+                            .to_std()
+                            .unwrap(),
+                        access_level: self.access_level,
+                    },
+                )));
+            }
+        }
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
     }
 }

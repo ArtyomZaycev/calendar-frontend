@@ -1,4 +1,4 @@
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{
@@ -11,7 +11,7 @@ use crate::{
 };
 use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
-use egui::{InnerResponse, TextEdit};
+use egui::TextEdit;
 use std::hash::Hash;
 
 pub struct EventInput {
@@ -62,8 +62,8 @@ impl EventInput {
     }
 }
 
-impl<'a> PopupBuilder<'a> for EventInput {
-    fn title(&self) -> Option<String> {
+impl PopupContent for EventInput {
+    fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Event", self.orig_name))
         } else {
@@ -71,12 +71,12 @@ impl<'a> PopupBuilder<'a> for EventInput {
         }
     }
 
-    fn content(
-        &'a mut self,
+    fn show_content(
+        &mut self,
+        state: &State,
         ui: &mut egui::Ui,
-        _ctx: &'a egui::Context,
-        state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -110,58 +110,57 @@ impl<'a> PopupBuilder<'a> for EventInput {
                 ui.add(TimePicker::new(self.eid.with("time_end"), &mut self.end));
             });
 
-            ContentUiInfo::new()
-                .error(self.name.is_empty(), "Name cannot be empty")
-                .error(self.name.len() > 80, "Name is too long")
-                .error(self.description.len() > 250, "Description is too long")
-                .button(|ui, builder, _| {
-                    let response = ui.button("Cancel");
-                    if response.clicked() {
-                        builder.close();
-                    }
-                    response
-                })
-                .button(|ui, builder, is_error| {
-                    if let Some(id) = self.id {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Save"));
-                        if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
-                                UpdateEvent {
-                                    id,
-                                    name: USome(self.name.clone()),
-                                    description: USome(
-                                        (!self.description.is_empty())
-                                            .then_some(self.description.clone()),
-                                    ),
-                                    start: USome(NaiveDateTime::new(self.date, self.start)),
-                                    end: USome(NaiveDateTime::new(self.date, self.end)),
-                                    access_level: USome(self.access_level),
-                                    visibility: USome(self.visibility),
-                                    plan_id: UNone,
-                                },
-                            )));
-                        }
-                        response
-                    } else {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
-                        if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::InsertEvent(
-                                NewEvent {
-                                    user_id: -1,
-                                    name: self.name.clone(),
-                                    description: (!self.description.is_empty())
-                                        .then_some(self.description.clone()),
-                                    start: NaiveDateTime::new(self.date, self.start),
-                                    end: NaiveDateTime::new(self.date, self.end),
-                                    access_level: self.access_level,
-                                    visibility: self.visibility,
-                                    plan_id: None,
-                                },
-                            )));
-                        }
-                        response
-                    }
-                })
-        })
+            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.len() > 80, "Name is too long");
+            info.error(self.description.len() > 250, "Description is too long");
+        });
+    }
+
+    fn show_buttons(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
+        if let Some(id) = self.id {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Save"))
+                .clicked()
+            {
+                info.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
+                    UpdateEvent {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        start: USome(NaiveDateTime::new(self.date, self.start)),
+                        end: USome(NaiveDateTime::new(self.date, self.end)),
+                        access_level: USome(self.access_level),
+                        visibility: USome(self.visibility),
+                        plan_id: UNone,
+                    },
+                )));
+            }
+        } else {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .clicked()
+            {
+                info.signal(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
+                    user_id: -1,
+                    name: self.name.clone(),
+                    description: (!self.description.is_empty()).then_some(self.description.clone()),
+                    start: NaiveDateTime::new(self.date, self.start),
+                    end: NaiveDateTime::new(self.date, self.end),
+                    access_level: self.access_level,
+                    visibility: self.visibility,
+                    plan_id: None,
+                })));
+            }
+        }
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
     }
 }

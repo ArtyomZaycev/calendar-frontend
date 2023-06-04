@@ -3,34 +3,17 @@ use crate::{
     requests::*,
     state::State,
     ui::{
-        event_card::EventCard,
-        event_template_card::EventTemplateCard,
-        layout_info::GridLayoutInfo,
-        popups::{
-            event_input::EventInput,
-            event_template_input::EventTemplateInput,
-            login::Login,
-            new_password_input::NewPasswordInput,
-            popup::{Popup, PopupType},
-            profile::Profile,
-            schedule_input::ScheduleInput,
-            sign_up::SignUp,
-        },
-        schedule_card::ScheduleCard,
-        utils::UiUtils,
+        event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
+        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
         widget_signal::AppSignal,
     },
     utils::*,
 };
-use calendar_lib::api::{
-    auth::{login, register},
-    event_templates::types::EventTemplate,
-    events::types::Event,
-    schedules::types::Schedule,
-};
+
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
+use itertools::Itertools;
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +42,7 @@ pub struct CalendarApp {
     view: CalendarView,
 
     #[serde(skip)]
-    popups: Vec<Popup>,
+    popup_manager: PopupManager,
 }
 
 impl Default for CalendarApp {
@@ -68,7 +51,7 @@ impl Default for CalendarApp {
         Self {
             state: State::new(&config),
             view: CalendarView::Events(EventsView::Days(chrono::Local::now().naive_local().date())),
-            popups: Vec::default(),
+            popup_manager: PopupManager::new(),
         }
     }
 }
@@ -84,125 +67,8 @@ impl CalendarApp {
 }
 
 impl CalendarApp {
-    pub fn get_login_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_login().then_some(p))
-    }
-    pub fn get_sign_up_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_sign_up().then_some(p))
-    }
-    pub fn get_new_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_new_event().then_some(p))
-    }
-    pub fn get_update_event_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_update_event().then_some(p))
-    }
-    pub fn get_new_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_new_schedule().then_some(p))
-    }
-    pub fn get_update_schedule_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_update_schedule().then_some(p))
-    }
-    pub fn get_new_event_template_popup<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| p.get_type().is_new_event_template().then_some(p))
-    }
-
-    pub fn is_open_profile(&self) -> bool {
-        self.popups.iter().any(|p| p.get_type().is_profile())
-    }
-    pub fn is_open_login(&self) -> bool {
-        self.popups.iter().any(|p| p.get_type().is_login())
-    }
-    pub fn is_open_sign_up(&self) -> bool {
-        self.popups.iter().any(|p| p.get_type().is_sign_up())
-    }
-    pub fn is_open_new_event(&self) -> bool {
-        self.popups.iter().any(|p| p.get_type().is_new_event())
-    }
-    pub fn is_open_new_schedule(&self) -> bool {
-        self.popups.iter().any(|p| p.get_type().is_new_schedule())
-    }
-    pub fn is_open_new_event_template(&self) -> bool {
-        self.popups
-            .iter()
-            .any(|p| p.get_type().is_new_event_template())
-    }
-
-    pub fn open_profile(&mut self) {
-        self.popups.push(PopupType::Profile(Profile::new()).popup());
-    }
-    pub fn open_login(&mut self) {
-        self.popups.push(PopupType::Login(Login::new()).popup());
-    }
-    pub fn open_sign_up(&mut self) {
-        self.popups.push(PopupType::SignUp(SignUp::new()).popup());
-    }
-    pub fn open_new_event(&mut self) {
-        self.popups
-            .push(PopupType::NewEvent(EventInput::new("new_event_popup")).popup());
-    }
-    pub fn open_change_event(&mut self, event: &Event) {
-        self.popups.push(
-            PopupType::UpdateEvent(EventInput::change(
-                format!("change_event_popup_{}", event.id),
-                event,
-            ))
-            .popup(),
-        );
-    }
-    pub fn open_change_event_template(&mut self, template: &EventTemplate) {
-        self.popups.push(
-            PopupType::UpdateEventTemplate(EventTemplateInput::change(
-                format!("change_event_template_popup_{}", template.id),
-                template,
-            ))
-            .popup(),
-        );
-    }
-    pub fn open_new_schedule(&mut self) {
-        self.popups.push(
-            PopupType::NewSchedule(ScheduleInput::new(self.state.get_access_level().level)).popup(),
-        );
-    }
-    pub fn open_change_schedule(&mut self, schedule: &Schedule) {
-        self.popups.push(
-            PopupType::UpdateSchedule(ScheduleInput::change(
-                self.state.get_access_level().level,
-                schedule,
-            ))
-            .popup(),
-        );
-    }
-    pub fn open_new_event_template(&mut self) {
-        self.popups.push(
-            PopupType::NewEventTemplate(EventTemplateInput::new(
-                self.state.get_access_level().level,
-            ))
-            .popup(),
-        );
-    }
-    pub fn open_new_password(&mut self) {
-        self.popups
-            .push(PopupType::NewPassword(NewPasswordInput::new()).popup());
-    }
-}
-
-impl CalendarApp {
     fn logout(&mut self) {
-        self.popups.clear();
+        self.popup_manager.clear();
         self.state.logout();
     }
 
@@ -211,7 +77,7 @@ impl CalendarApp {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
-                    self.open_change_event(&event.clone());
+                    self.popup_manager.open_update_event(&event.clone());
                 }
             }
             AppSignal::ChangeEventTemplate(template_id) => {
@@ -221,7 +87,8 @@ impl CalendarApp {
                     .iter()
                     .find(|template| template.id == template_id)
                 {
-                    self.open_change_event_template(&template.clone());
+                    self.popup_manager
+                        .open_update_event_template(&template.clone());
                 }
             }
             AppSignal::ChangeSchedule(schedule_id) => {
@@ -231,11 +98,11 @@ impl CalendarApp {
                     .iter()
                     .find(|schedule| schedule.id == schedule_id)
                 {
-                    self.open_change_schedule(&schedule.clone());
+                    self.popup_manager.open_update_schedule(&schedule.clone());
                 }
             }
             AppSignal::AddPassword => {
-                self.open_new_password();
+                self.popup_manager.open_new_password();
             }
         }
     }
@@ -247,8 +114,9 @@ impl CalendarApp {
     }
 
     fn parse_polled(&mut self, polled: Vec<(AppRequest, AppRequestDescription)>) {
-        let polled = polled.into_iter().map(|(req, _)| req).collect::<Vec<_>>();
-
+        let _polled = polled.into_iter().map(|(req, _)| req).collect_vec();
+        /*
+        REQUESTS REWORK
         if let Some(popup) = self.get_login_popup() {
             if polled.has_login() {
                 popup.close();
@@ -300,6 +168,7 @@ impl CalendarApp {
                 popup.close();
             }
         }
+        */
     }
 }
 
@@ -312,11 +181,11 @@ impl CalendarApp {
                 // RTL
                 if let Some(me) = &self.state.me {
                     let profile = egui::Label::new(&me.user.name);
-                    if self.is_open_profile() {
+                    if self.popup_manager.is_open_profile() {
                         ui.add(profile);
                     } else {
                         if ui.add(profile.sense(Sense::click())).clicked() {
-                            self.open_profile();
+                            self.popup_manager.open_profile();
                         }
                     }
                     if ui.button("Logout").clicked() {
@@ -324,16 +193,22 @@ impl CalendarApp {
                     }
                 } else {
                     if ui
-                        .add_enabled(!self.is_open_login(), egui::Button::new("Login"))
+                        .add_enabled(
+                            !self.popup_manager.is_open_login(),
+                            egui::Button::new("Login"),
+                        )
                         .clicked()
                     {
-                        self.open_login();
+                        self.popup_manager.open_login();
                     }
                     if ui
-                        .add_enabled(!self.is_open_sign_up(), egui::Button::new("Sign Up"))
+                        .add_enabled(
+                            !self.popup_manager.is_open_sign_up(),
+                            egui::Button::new("Sign Up"),
+                        )
                         .clicked()
                     {
-                        self.open_sign_up();
+                        self.popup_manager.open_sign_up();
                     }
                 }
 
@@ -362,32 +237,35 @@ impl CalendarApp {
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| match self.view {
                 CalendarView::Events(_) => {
                     if ui
-                        .add_enabled(!self.is_open_new_event(), egui::Button::new("Add Event"))
+                        .add_enabled(
+                            !self.popup_manager.is_open_new_event(),
+                            egui::Button::new("Add Event"),
+                        )
                         .clicked()
                     {
-                        self.open_new_event();
+                        self.popup_manager.open_new_event();
                     }
                 }
                 CalendarView::Schedules => {
                     if ui
                         .add_enabled(
-                            !self.is_open_new_schedule(),
+                            !self.popup_manager.is_open_new_schedule(),
                             egui::Button::new("Add Schedule"),
                         )
                         .clicked()
                     {
-                        self.open_new_schedule();
+                        self.popup_manager.open_new_schedule();
                     }
                 }
                 CalendarView::EventTemplates => {
                     if ui
                         .add_enabled(
-                            !self.is_open_new_event_template(),
+                            !self.popup_manager.is_open_new_event_template(),
                             egui::Button::new("Add Template"),
                         )
                         .clicked()
                     {
-                        self.open_new_event_template();
+                        self.popup_manager.open_new_event_template();
                     }
                 }
             });
@@ -736,26 +614,10 @@ impl eframe::App for CalendarApp {
         let polled = self.state.poll();
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let signals = self
-                .popups
-                .iter_mut()
-                .flat_map(|popup| {
-                    popup.show(ctx, &self.state);
-                    popup.signals()
-                })
-                .collect::<Vec<_>>();
+            self.popup_manager.show(&self.state, ctx);
+            let signals = self.popup_manager.get_signals();
             self.parse_signals(signals);
-
-            self.popups
-                .iter_mut()
-                .enumerate()
-                .filter_map(|(i, popup)| popup.is_closed().then_some(i))
-                .collect::<Vec<_>>()
-                .iter()
-                .rev()
-                .for_each(|&i| {
-                    self.popups.swap_remove(i);
-                });
+            self.popup_manager.update();
 
             self.top_panel(ui);
             ui.separator();

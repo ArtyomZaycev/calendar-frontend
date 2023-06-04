@@ -1,4 +1,4 @@
-use super::popup_builder::{ContentUiInfo, PopupBuilder};
+use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{
@@ -10,7 +10,8 @@ use crate::{
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{Button, InnerResponse, TextEdit, Vec2};
+use egui::{Button, TextEdit, Vec2};
+use itertools::Itertools;
 use num_traits::FromPrimitive;
 use std::hash::Hash;
 
@@ -97,8 +98,8 @@ impl ScheduleInput {
     }
 }
 
-impl<'a> PopupBuilder<'a> for ScheduleInput {
-    fn title(&self) -> Option<String> {
+impl PopupContent for ScheduleInput {
+    fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Schedule", self.orig_name))
         } else {
@@ -106,12 +107,12 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
         }
     }
 
-    fn content(
-        &'a mut self,
+    fn show_content(
+        &mut self,
+        state: &State,
         ui: &mut egui::Ui,
-        _ctx: &'a egui::Context,
-        state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -217,78 +218,86 @@ impl<'a> PopupBuilder<'a> for ScheduleInput {
                     });
                 });
 
-            ContentUiInfo::new()
-                .error(self.name.is_empty(), "Name cannot be empty")
-                .error(self.name.len() > 80, "Name is too long")
-                .error(self.description.len() > 250, "Description is too long")
-                .error(
-                    self.id.is_none() && self.template_id.is_none(),
-                    "Template must be set",
-                )
-                .close_button("Cancel")
-                .button(|ui, builder, is_error| {
-                    if let Some(id) = self.id {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Save"));
-                        if response.clicked() {
-                            let events = self.events.iter().flatten().collect::<Vec<_>>();
-                            let init_events = self.init_events.clone().unwrap_or(vec![]);
-                            let delete_events = init_events
-                                .iter()
-                                .filter_map(|event_plan| {
-                                    (!events.iter().any(|new_event_plan| {
-                                        event_plan.weekday == new_event_plan.weekday
-                                            && event_plan.time == new_event_plan.time
-                                    }))
-                                    .then_some(event_plan.id)
-                                })
-                                .collect::<Vec<_>>();
-                            let new_events = events
-                                .iter()
-                                .filter_map(|&new_event_plan| {
-                                    (!init_events.iter().any(|event_plan| {
-                                        event_plan.weekday == new_event_plan.weekday
-                                            && event_plan.time == new_event_plan.time
-                                    }))
-                                    .then_some(new_event_plan.clone())
-                                })
-                                .collect::<Vec<_>>();
-                            builder.signal(AppSignal::StateSignal(StateSignal::UpdateSchedule(
-                                UpdateSchedule {
-                                    id,
-                                    name: USome(self.name.clone()),
-                                    description: USome(
-                                        (!self.description.is_empty())
-                                            .then_some(self.description.clone()),
-                                    ),
-                                    first_day: USome(self.first_day),
-                                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                                    access_level: USome(self.access_level),
-                                    delete_events,
-                                    new_events,
-                                },
-                            )));
-                        }
-                        response
-                    } else {
-                        let response = ui.add_enabled(!is_error, egui::Button::new("Create"));
-                        if response.clicked() {
-                            builder.signal(AppSignal::StateSignal(StateSignal::InsertSchedule(
-                                NewSchedule {
-                                    user_id: -1,
-                                    template_id: self.template_id.unwrap(),
-                                    name: self.name.clone(),
-                                    description: (!self.description.is_empty())
-                                        .then_some(self.description.clone()),
-                                    first_day: self.first_day,
-                                    last_day: self.last_day_enabled.then_some(self.last_day),
-                                    access_level: self.access_level,
-                                    events: self.events.clone().into_iter().flatten().collect(),
-                                },
-                            )));
-                        }
-                        response
-                    }
-                })
-        })
+            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.len() > 80, "Name is too long");
+            info.error(self.description.len() > 250, "Description is too long");
+            info.error(
+                self.id.is_none() && self.template_id.is_none(),
+                "Template must be set",
+            );
+        });
+    }
+
+    fn show_buttons(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
+        if let Some(id) = self.id {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Save"))
+                .clicked()
+            {
+                let events = self.events.iter().flatten().collect_vec();
+                let init_events = self.init_events.clone().unwrap_or(vec![]);
+                let delete_events = init_events
+                    .iter()
+                    .filter_map(|event_plan| {
+                        (!events.iter().any(|new_event_plan| {
+                            event_plan.weekday == new_event_plan.weekday
+                                && event_plan.time == new_event_plan.time
+                        }))
+                        .then_some(event_plan.id)
+                    })
+                    .collect_vec();
+                let new_events = events
+                    .iter()
+                    .filter_map(|&new_event_plan| {
+                        (!init_events.iter().any(|event_plan| {
+                            event_plan.weekday == new_event_plan.weekday
+                                && event_plan.time == new_event_plan.time
+                        }))
+                        .then_some(new_event_plan.clone())
+                    })
+                    .collect_vec();
+                info.signal(AppSignal::StateSignal(StateSignal::UpdateSchedule(
+                    UpdateSchedule {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        first_day: USome(self.first_day),
+                        last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                        access_level: USome(self.access_level),
+                        delete_events,
+                        new_events,
+                    },
+                )));
+            }
+        } else {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .clicked()
+            {
+                info.signal(AppSignal::StateSignal(StateSignal::InsertSchedule(
+                    NewSchedule {
+                        user_id: -1,
+                        template_id: self.template_id.unwrap(),
+                        name: self.name.clone(),
+                        description: (!self.description.is_empty())
+                            .then_some(self.description.clone()),
+                        first_day: self.first_day,
+                        last_day: self.last_day_enabled.then_some(self.last_day),
+                        access_level: self.access_level,
+                        events: self.events.clone().into_iter().flatten().collect(),
+                    },
+                )));
+            }
+        }
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
     }
 }

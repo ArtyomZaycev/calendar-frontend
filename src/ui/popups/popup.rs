@@ -3,14 +3,14 @@ use super::{
     event_template_input::EventTemplateInput,
     login::Login,
     new_password_input::NewPasswordInput,
-    popup_builder::{ContentUiInfo, PopupBuilder},
+    popup_content::{ContentInfo, PopupContent},
     profile::Profile,
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
 use crate::{state::State, ui::widget_signal::AppSignal};
 use derive_is_enum_variant::is_enum_variant;
-use egui::{InnerResponse, Vec2};
+use egui::{Align, Layout, Vec2};
 
 #[derive(is_enum_variant)]
 pub enum PopupType {
@@ -26,39 +26,49 @@ pub enum PopupType {
     NewPassword(NewPasswordInput),
 }
 
-impl<'a> PopupBuilder<'a> for PopupType {
-    fn title(&self) -> Option<String> {
+impl PopupContent for PopupType {
+    fn get_title(&mut self) -> Option<String> {
         match self {
-            PopupType::Profile(w) => w.title(),
-            PopupType::Login(w) => w.title(),
-            PopupType::SignUp(w) => w.title(),
-            PopupType::NewEvent(w) => w.title(),
-            PopupType::UpdateEvent(w) => w.title(),
-            PopupType::NewEventTemplate(w) => w.title(),
-            PopupType::UpdateEventTemplate(w) => w.title(),
-            PopupType::NewSchedule(w) => w.title(),
-            PopupType::UpdateSchedule(w) => w.title(),
-            PopupType::NewPassword(w) => w.title(),
+            PopupType::Profile(w) => w.get_title(),
+            PopupType::Login(w) => w.get_title(),
+            PopupType::SignUp(w) => w.get_title(),
+            PopupType::NewEvent(w) => w.get_title(),
+            PopupType::UpdateEvent(w) => w.get_title(),
+            PopupType::NewEventTemplate(w) => w.get_title(),
+            PopupType::UpdateEventTemplate(w) => w.get_title(),
+            PopupType::NewSchedule(w) => w.get_title(),
+            PopupType::UpdateSchedule(w) => w.get_title(),
+            PopupType::NewPassword(w) => w.get_title(),
         }
     }
 
-    fn content(
-        &'a mut self,
-        ui: &mut egui::Ui,
-        ctx: &'a egui::Context,
-        state: &'a State,
-    ) -> InnerResponse<ContentUiInfo<'a>> {
+    fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
-            PopupType::Profile(w) => w.content(ui, ctx, state),
-            PopupType::Login(w) => w.content(ui, ctx, state),
-            PopupType::SignUp(w) => w.content(ui, ctx, state),
-            PopupType::NewEvent(w) => w.content(ui, ctx, state),
-            PopupType::UpdateEvent(w) => w.content(ui, ctx, state),
-            PopupType::NewEventTemplate(w) => w.content(ui, ctx, state),
-            PopupType::UpdateEventTemplate(w) => w.content(ui, ctx, state),
-            PopupType::NewSchedule(w) => w.content(ui, ctx, state),
-            PopupType::UpdateSchedule(w) => w.content(ui, ctx, state),
-            PopupType::NewPassword(w) => w.content(ui, ctx, state),
+            PopupType::Profile(w) => w.show_content(state, ui, info),
+            PopupType::Login(w) => w.show_content(state, ui, info),
+            PopupType::SignUp(w) => w.show_content(state, ui, info),
+            PopupType::NewEvent(w) => w.show_content(state, ui, info),
+            PopupType::UpdateEvent(w) => w.show_content(state, ui, info),
+            PopupType::NewEventTemplate(w) => w.show_content(state, ui, info),
+            PopupType::UpdateEventTemplate(w) => w.show_content(state, ui, info),
+            PopupType::NewSchedule(w) => w.show_content(state, ui, info),
+            PopupType::UpdateSchedule(w) => w.show_content(state, ui, info),
+            PopupType::NewPassword(w) => w.show_content(state, ui, info),
+        }
+    }
+
+    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+        match self {
+            PopupType::Profile(w) => w.show_buttons(state, ui, info),
+            PopupType::Login(w) => w.show_buttons(state, ui, info),
+            PopupType::SignUp(w) => w.show_buttons(state, ui, info),
+            PopupType::NewEvent(w) => w.show_buttons(state, ui, info),
+            PopupType::UpdateEvent(w) => w.show_buttons(state, ui, info),
+            PopupType::NewEventTemplate(w) => w.show_buttons(state, ui, info),
+            PopupType::UpdateEventTemplate(w) => w.show_buttons(state, ui, info),
+            PopupType::NewSchedule(w) => w.show_buttons(state, ui, info),
+            PopupType::UpdateSchedule(w) => w.show_buttons(state, ui, info),
+            PopupType::NewPassword(w) => w.show_buttons(state, ui, info),
         }
     }
 }
@@ -78,7 +88,8 @@ pub struct Popup {
 }
 
 impl Popup {
-    pub fn show(&mut self, ctx: &egui::Context, state: &State) -> egui::Response {
+    pub fn show(&mut self, state: &State, ctx: &egui::Context) {
+        let mut info = ContentInfo::new();
         egui::Window::new("")
             .id(self.id)
             .title_bar(false)
@@ -86,17 +97,20 @@ impl Popup {
             .resizable(false)
             .default_size(Vec2::new(320., 0.))
             .show(ctx, |ui| {
-                let InnerResponse {
-                    mut inner,
-                    response,
-                } = self.t.show(ui, ctx, state);
-                self.signals.append(&mut inner.signals);
-                self.is_closed = self.is_closed || inner.is_closed;
-                response
-            })
-            .unwrap()
-            .inner
-            .unwrap()
+                self.t.show_title(state, ui, &mut info);
+                self.t.show_content(state, ui, &mut info);
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    self.t.show_buttons(state, ui, &mut info);
+                    if let Some(error) = info.get_error() {
+                        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                            self.t.show_error(state, ui, &error);
+                        });
+                    }
+                });
+            });
+        let (signals, is_closed) = info.take();
+        self.is_closed = is_closed;
+        self.signals = signals;
     }
 }
 
@@ -124,7 +138,7 @@ impl Popup {
     pub fn is_closed(&self) -> bool {
         self.is_closed
     }
-    pub fn signals(&mut self) -> Vec<AppSignal> {
+    pub fn get_signals(&mut self) -> Vec<AppSignal> {
         self.signals.drain(..).collect()
     }
 }
