@@ -4,6 +4,7 @@ use calendar_lib::api::{
 };
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
+use crate::db::request_parser::FromResponse;
 
 #[derive(Debug, is_enum_variant)]
 pub enum AppRequestResponse {
@@ -45,21 +46,6 @@ pub enum AppRequestResponse {
     Error(StatusCode, String),
 }
 
-/// Lightweight request response info
-#[derive(Clone, Debug, Default, is_enum_variant)]
-pub enum AppRequestResponseInfo {
-    LoginError(login::BadRequestResponse),
-    RegisterError(register::BadRequestResponse),
-    LoadEventError(events::load::BadRequestResponse),
-    LoadEventTemplateError(event_templates::load::BadRequestResponse),
-    LoadScheduleError(schedules::load::BadRequestResponse),
-
-    #[allow(dead_code)]
-    #[default]
-    None,
-    Error(StatusCode, String),
-}
-
 /// Lightweight request info
 #[derive(Clone, Debug, Default, is_enum_variant)]
 pub enum AppRequestInfo {
@@ -81,4 +67,33 @@ pub enum AppRequestInfo {
     #[allow(dead_code)]
     #[default]
     None,
+}
+
+/// Lightweight request response info
+#[derive(Clone, Debug, Default, is_enum_variant)]
+pub enum AppRequestResponseInfo {
+    LoginError(login::BadRequestResponse),
+    RegisterError(register::BadRequestResponse),
+    LoadEventError(events::load::BadRequestResponse),
+    LoadEventTemplateError(event_templates::load::BadRequestResponse),
+    LoadScheduleError(schedules::load::BadRequestResponse),
+
+    #[allow(dead_code)]
+    #[default]
+    None,
+    Error(StatusCode, String),
+}
+
+impl FromResponse<AppRequestResponse> for AppRequestResponseInfo {
+    fn from_response(response: &AppRequestResponse) -> Self {
+        match response {
+            AppRequestResponse::LoginError(r) => Self::LoginError(r.clone()),
+            AppRequestResponse::RegisterError(r) => Self::RegisterError(r.clone()),
+            AppRequestResponse::LoadEventError(r) => Self::LoadEventError(r.clone()),
+            AppRequestResponse::LoadEventTemplateError(r) => Self::LoadEventTemplateError(r.clone()),
+            AppRequestResponse::LoadScheduleError(r) => Self::LoadScheduleError(r.clone()),
+            AppRequestResponse::Error(status_code, error) => Self::Error(*status_code, error.clone()),
+            _ => Self::None
+        }
+    }
 }

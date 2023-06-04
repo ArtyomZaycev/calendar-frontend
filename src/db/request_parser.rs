@@ -47,6 +47,10 @@ impl<T> RequestParser<T> {
     }
 }
 
+pub trait FromResponse<Response> {
+    fn from_response(response: &Response) -> Self;
+}
+
 #[cfg(test)]
 mod tests {
     use reqwest::StatusCode;

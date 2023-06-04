@@ -1,4 +1,4 @@
-use super::request_parser::RequestParser;
+use super::request_parser::{RequestParser, FromResponse};
 use crate::config::Config;
 use bytes::Bytes;
 use reqwest::StatusCode;
@@ -18,20 +18,22 @@ impl RequestResult {
     }
 }
 
-struct RequestCounter<RequestResponse, RequestInfo> where RequestInfo: Clone {
+struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     next_request_id: RequestIndex,
     parsers: HashMap<RequestIndex, RequestParser<RequestResponse>>,
     infos: HashMap<RequestIndex, RequestInfo>,
     responses: HashMap<RequestIndex, RequestResponse>,
+    response_infos: HashMap<RequestIndex, RequestResponseInfo>,
 }
 
-impl<RequestResponse, RequestInfo> RequestCounter<RequestResponse, RequestInfo> where RequestInfo: Clone {
+impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     fn new() -> Self {
         Self {
             next_request_id: 0,
             parsers: HashMap::new(),
             infos: HashMap::new(),
             responses: HashMap::new(),
+            response_infos: HashMap::new(),
         }
     }
 
@@ -48,6 +50,9 @@ impl<RequestResponse, RequestInfo> RequestCounter<RequestResponse, RequestInfo> 
     fn get_info(&mut self, id: RequestIndex) -> Option<RequestInfo> {
         self.infos.get(&id).cloned()
     }
+    fn get_response_info(&mut self, id: RequestIndex) -> Option<RequestResponseInfo> {
+        self.response_infos.get(&id).cloned()
+    }
 
     fn take_response(&mut self, id: RequestIndex) -> Option<RequestResponse> {
         self.responses.remove(&id)
@@ -55,23 +60,26 @@ impl<RequestResponse, RequestInfo> RequestCounter<RequestResponse, RequestInfo> 
 
     fn parse(&mut self, id: RequestIndex, status_code: StatusCode, bytes: Bytes) {
         if let Some(parser) = self.parsers.remove(&id) {
-            self.responses.insert(id, parser.parse(status_code, bytes));
+            let response = parser.parse(status_code, bytes);
+            let response_info = RequestResponseInfo::from_response(&response);
+            self.responses.insert(id, response);
+            self.response_infos.insert(id, response_info);
         }
     }
 }
 
-pub struct Connector<RequestResponse, RequestInfo> where RequestInfo: Clone {
+pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     client: reqwest::Client,
     server_url: String,
 
-    requests: RequestCounter<RequestResponse, RequestInfo>,
+    requests: RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>,
     sender: Sender<RequestResult>,
     reciever: Receiver<RequestResult>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<RequestResponse, RequestInfo> Connector<RequestResponse, RequestInfo> where RequestInfo: Clone {
+impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
