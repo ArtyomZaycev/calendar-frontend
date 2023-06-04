@@ -7,22 +7,22 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 
 type RequestIndex = u16;
 
-pub struct RequestDescriptor<Request, RequestDescription> {
-    description: RequestDescription,
-    parser: RequestParser<Request>,
+pub struct RequestDescriptor<RequestInfo, RequestResponse> {
+    description: RequestInfo,
+    parser: RequestParser<RequestResponse>,
 }
 
-impl<Request, RequestDescription> RequestDescriptor<Request, RequestDescription> {
-    pub fn new(description: RequestDescription, parser: RequestParser<Request>) -> Self {
+impl<RequestInfo, RequestResponse> RequestDescriptor<RequestInfo, RequestResponse> {
+    pub fn new(description: RequestInfo, parser: RequestParser<RequestResponse>) -> Self {
         Self {
             description,
             parser,
         }
     }
 
-    pub fn no_description(parser: RequestParser<Request>) -> Self
+    pub fn no_description(parser: RequestParser<RequestResponse>) -> Self
     where
-        RequestDescription: Default,
+        RequestInfo: Default,
     {
         Self {
             description: Default::default(),
@@ -42,12 +42,12 @@ impl RequestResult {
     }
 }
 
-struct RequestCounter<Request, RequestDescription> {
+struct RequestCounter<RequestInfo, RequestResponse> {
     request_id: RequestIndex,
-    requests: HashMap<RequestIndex, RequestDescriptor<Request, RequestDescription>>,
+    requests: HashMap<RequestIndex, RequestDescriptor<RequestInfo, RequestResponse>>,
 }
 
-impl<T, U> RequestCounter<T, U> {
+impl<RequestInfo, RequestResponse> RequestCounter<RequestInfo, RequestResponse> {
     fn new() -> Self {
         Self {
             request_id: 0,
@@ -55,7 +55,7 @@ impl<T, U> RequestCounter<T, U> {
         }
     }
 
-    fn put(&mut self, request: RequestDescriptor<T, U>) -> RequestIndex {
+    fn put(&mut self, request: RequestDescriptor<RequestInfo, RequestResponse>) -> RequestIndex {
         let cur_request_id = self.request_id;
         self.request_id += 1;
 
@@ -64,13 +64,13 @@ impl<T, U> RequestCounter<T, U> {
         cur_request_id
     }
 
-    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<T, U>> {
+    fn take(&mut self, id: &RequestIndex) -> Option<RequestDescriptor<RequestInfo, RequestResponse>> {
         self.requests.remove(id)
     }
 
-    fn get_requests_descriptions(&self) -> Vec<U>
+    fn get_requests_descriptions(&self) -> Vec<RequestInfo>
     where
-        U: Clone,
+        RequestInfo: Clone,
     {
         self.requests
             .iter()
@@ -79,18 +79,18 @@ impl<T, U> RequestCounter<T, U> {
     }
 }
 
-pub struct Connector<Request, RequestDescription> {
+pub struct Connector<RequestInfo, RequestResponse> {
     client: reqwest::Client,
     server_url: String,
 
-    requests: RequestCounter<Request, RequestDescription>,
+    requests: RequestCounter<RequestInfo, RequestResponse>,
     sender: Sender<RequestResult>,
     reciever: Receiver<RequestResult>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<T, U> Connector<T, U> {
+impl<RequestInfo, RequestResponse> Connector<RequestInfo, RequestResponse> {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
@@ -110,7 +110,7 @@ impl<T, U> Connector<T, U> {
             .header("Access-Control-Allow-Origin", "*")
     }
 
-    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<T, U>) {
+    pub fn request(&mut self, request: reqwest::Request, descriptor: RequestDescriptor<RequestInfo, RequestResponse>) {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");
@@ -143,15 +143,15 @@ impl<T, U> Connector<T, U> {
         });
     }
 
-    pub fn poll(&mut self) -> Vec<(T, U)> {
+    pub fn poll(&mut self) -> Vec<(RequestInfo, RequestResponse)> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
             let descriptor = self.requests.take(&res.id).expect("Parser not found");
 
             match res.result {
                 Ok((status_code, bytes)) => polled.push((
-                    descriptor.parser.parse(status_code, bytes),
                     descriptor.description,
+                    descriptor.parser.parse(status_code, bytes),
                 )),
                 Err(error) => (self.error_handler)(error),
             }
@@ -159,9 +159,9 @@ impl<T, U> Connector<T, U> {
         polled
     }
 
-    pub fn get_active_requests_descriptions(&self) -> Vec<U>
+    pub fn get_active_requests_descriptions(&self) -> Vec<RequestInfo>
     where
-        U: Clone,
+    RequestInfo: Clone,
     {
         self.requests.get_requests_descriptions()
     }
