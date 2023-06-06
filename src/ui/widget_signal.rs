@@ -22,6 +22,7 @@ pub enum AppSignal {
 pub enum StateSignal {
     ChangeAccessLevel(i32),
 
+    // TODO: Named
     /// (email, password)
     Login(String, String),
     /// (name, email, password)
@@ -39,6 +40,7 @@ pub enum StateSignal {
     UpdateSchedule(UpdateSchedule),
     DeleteSchedule(i32),
 
+    // TODO: Named
     /// (access_level, viewer_password, editor_password)
     InsertPassword(i32, Option<NewPassword>, Option<NewPassword>),
     /// (date, plan_id)
