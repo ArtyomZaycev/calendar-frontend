@@ -7,7 +7,7 @@ use crate::{
         popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
         signal::AppSignal,
     },
-    utils::*,
+    utils::*, db::request::RequestDescription,
 };
 
 use chrono::{Days, Months, NaiveDate};
@@ -69,7 +69,7 @@ impl CalendarApp {
 impl CalendarApp {
     fn logout(&mut self) {
         self.popup_manager.clear();
-        self.state.logout();
+        self.state.logout(RequestDescription::default());
     }
 
     fn parse_signal(&mut self, signal: AppSignal) {

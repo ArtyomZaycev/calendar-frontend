@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::signal::StateSignal,
+    ui::signal::{StateSignal, RequestSignal},
     utils::{is_password_strong_enough, is_password_valid, is_valid_email},
 };
 
@@ -85,7 +85,7 @@ impl PopupContent for Login {
             .add_enabled(!info.is_error(), egui::Button::new("Login"))
             .clicked()
         {
-            info.signal(StateSignal::Login(
+            info.signal(RequestSignal::Login(
                 self.email.clone(),
                 self.password.clone(),
             ));

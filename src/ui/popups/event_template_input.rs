@@ -4,7 +4,7 @@ use crate::{
     ui::{
         access_level_picker::AccessLevelPicker,
         time_picker::TimePicker,
-        signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal, RequestSignal},
     },
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
@@ -119,7 +119,7 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Update"))
                 .clicked()
             {
-                info.signal(AppSignal::StateSignal(StateSignal::UpdateEventTemplate(
+                info.signal(RequestSignal::UpdateEventTemplate(
                     UpdateEventTemplate {
                         id,
                         name: USome(self.name.clone()),
@@ -136,14 +136,14 @@ impl PopupContent for EventTemplateInput {
                         ),
                         access_level: USome(self.access_level),
                     },
-                )));
+                ));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                info.signal(AppSignal::StateSignal(StateSignal::InsertEventTemplate(
+                info.signal(RequestSignal::InsertEventTemplate(
                     NewEventTemplate {
                         user_id: -1,
                         name: self.name.clone(),
@@ -157,7 +157,7 @@ impl PopupContent for EventTemplateInput {
                             .unwrap(),
                         access_level: self.access_level,
                     },
-                )));
+                ));
             }
         }
         if ui.button("Cancel").clicked() {

@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::StateSignal},
+    ui::{access_level_picker::AccessLevelPicker, signal::{StateSignal, RequestSignal}},
 };
 use calendar_lib::api::auth::types::NewPassword;
 use egui::TextEdit;
@@ -103,7 +103,7 @@ impl PopupContent for NewPasswordInput {
             .add_enabled(!info.is_error(), egui::Button::new("Add"))
             .clicked()
         {
-            info.signal(StateSignal::InsertPassword(
+            info.signal(RequestSignal::InsertPassword(
                 self.next_password_level - 1,
                 self.viewer_password_enabled
                     .then_some(self.viewer_password.clone()),

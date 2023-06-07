@@ -6,7 +6,7 @@ use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 use crate::db::request_parser::FromResponse;
 
-#[derive(Debug, is_enum_variant)]
+#[derive(Clone, Debug, is_enum_variant)]
 pub enum AppRequestResponse {
     Login(login::Response),
     LoginError(login::BadRequestResponse),

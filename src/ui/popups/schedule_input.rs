@@ -5,7 +5,7 @@ use crate::{
         access_level_picker::AccessLevelPicker,
         date_picker::DatePicker,
         time_picker::TimePicker,
-        signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal, RequestSignal},
     },
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
@@ -261,7 +261,7 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                info.signal(AppSignal::StateSignal(StateSignal::UpdateSchedule(
+                info.signal(RequestSignal::UpdateSchedule(
                     UpdateSchedule {
                         id,
                         name: USome(self.name.clone()),
@@ -274,14 +274,14 @@ impl PopupContent for ScheduleInput {
                         delete_events,
                         new_events,
                     },
-                )));
+                ));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                info.signal(AppSignal::StateSignal(StateSignal::InsertSchedule(
+                info.signal(RequestSignal::InsertSchedule(
                     NewSchedule {
                         user_id: -1,
                         template_id: self.template_id.unwrap(),
@@ -293,7 +293,7 @@ impl PopupContent for ScheduleInput {
                         access_level: self.access_level,
                         events: self.events.clone().into_iter().flatten().collect(),
                     },
-                )));
+                ));
             }
         }
         if ui.button("Cancel").clicked() {

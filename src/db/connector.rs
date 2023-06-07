@@ -1,74 +1,24 @@
+use super::request::{RequestId, RequestDescription};
 use super::request_parser::{RequestParser, FromResponse};
+use super::requests_container::RequestCounter;
 use crate::config::Config;
 use bytes::Bytes;
 use reqwest::StatusCode;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-pub type RequestIndex = u16;
-
 #[derive(Debug)]
 struct RequestResult {
-    id: RequestIndex,
+    id: RequestId,
     result: reqwest::Result<(StatusCode, Bytes)>,
 }
 impl RequestResult {
-    fn new(id: RequestIndex, result: reqwest::Result<(StatusCode, Bytes)>) -> Self {
+    fn new(id: RequestId, result: reqwest::Result<(StatusCode, Bytes)>) -> Self {
         Self { id, result }
     }
 }
 
-struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
-    next_request_id: RequestIndex,
-    parsers: HashMap<RequestIndex, RequestParser<RequestResponse>>,
-    infos: HashMap<RequestIndex, RequestInfo>,
-    responses: HashMap<RequestIndex, RequestResponse>,
-    response_infos: HashMap<RequestIndex, RequestResponseInfo>,
-}
-
-impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
-    fn new() -> Self {
-        Self {
-            next_request_id: 0,
-            parsers: HashMap::new(),
-            infos: HashMap::new(),
-            responses: HashMap::new(),
-            response_infos: HashMap::new(),
-        }
-    }
-
-    fn push(&mut self, parser: RequestParser<RequestResponse>, info: RequestInfo) -> RequestIndex {
-        let request_id = self.next_request_id;
-        self.next_request_id += 1;
-
-        self.parsers.insert(request_id, parser);
-        self.infos.insert(request_id, info);
-
-        request_id
-    }
-    
-    fn get_info(&mut self, id: RequestIndex) -> Option<RequestInfo> {
-        self.infos.get(&id).cloned()
-    }
-    fn get_response_info(&mut self, id: RequestIndex) -> Option<RequestResponseInfo> {
-        self.response_infos.get(&id).cloned()
-    }
-
-    fn take_response(&mut self, id: RequestIndex) -> Option<RequestResponse> {
-        self.responses.remove(&id)
-    }
-
-    fn parse(&mut self, id: RequestIndex, status_code: StatusCode, bytes: Bytes) {
-        if let Some(parser) = self.parsers.remove(&id) {
-            let response = parser.parse(status_code, bytes);
-            let response_info = RequestResponseInfo::from_response(&response);
-            self.responses.insert(id, response);
-            self.response_infos.insert(id, response_info);
-        }
-    }
-}
-
-pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     client: reqwest::Client,
     server_url: String,
 
@@ -79,7 +29,7 @@ pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where Re
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
@@ -99,7 +49,11 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
             .header("Access-Control-Allow-Origin", "*")
     }
 
-    pub fn request(&mut self, request: reqwest::Request, parser: RequestParser<RequestResponse>, info: RequestInfo) -> RequestIndex {
+    pub fn reserve_request_id(&self) -> RequestId {
+        self.requests.reserve_id()
+    }
+
+    pub fn request(&mut self, request: reqwest::Request, parser: RequestParser<RequestResponse>, info: RequestInfo, description: RequestDescription) -> RequestId {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");
@@ -107,7 +61,7 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
         let client = self.client.clone();
         let sender = self.sender.clone();
 
-        let request_id = self.requests.push(parser, info);
+        let request_id = self.requests.push(parser, info, description);
 
         easy_spawn(async move {
             let res = client.execute(request).await;
@@ -147,8 +101,18 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
         }
         polled.into_iter().filter_map(|id| {
             self.requests.get_info(id).and_then(|info| {
-                self.requests.take_response(id).map(|response| (info, response))
+                self.requests.get_response(id).map(|response| (info, response))
             })
         }).collect()
+    }
+
+    pub fn get_request_info(&self, request_id: RequestId) -> Option<RequestInfo> {
+        self.requests.get_info(request_id)
+    }
+    pub fn get_response(&mut self, request_id: RequestId) -> Option<RequestResponse> {
+        self.requests.get_response(request_id)
+    }
+    pub fn clone_response(&self, request_id: RequestId) -> Option<RequestResponse> {
+        self.requests.clone_response(request_id)
     }
 }

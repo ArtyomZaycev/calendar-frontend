@@ -1,4 +1,4 @@
-use super::signal::{AppSignal, StateSignal};
+use super::signal::{AppSignal, StateSignal, RequestSignal};
 use crate::db::aliases::Schedule;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
@@ -45,7 +45,7 @@ impl<'a> Widget for ScheduleCard<'a> {
                                 }
                                 if ui.button("Delete").clicked() {
                                     self.signals
-                                        .push(StateSignal::DeleteSchedule(*schedule_id).into());
+                                        .push(RequestSignal::DeleteSchedule(*schedule_id).into());
                                     ui.close_menu();
                                 }
                             });

@@ -6,7 +6,7 @@ use crate::{
         date_picker::DatePicker,
         event_visibility_picker::EventVisibilityPicker,
         time_picker::TimePicker,
-        signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal, RequestSignal},
     },
 };
 use calendar_lib::api::{events::types::*, utils::*};
@@ -127,7 +127,7 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                info.signal(AppSignal::StateSignal(StateSignal::UpdateEvent(
+                info.signal(RequestSignal::UpdateEvent(
                     UpdateEvent {
                         id,
                         name: USome(self.name.clone()),
@@ -140,14 +140,14 @@ impl PopupContent for EventInput {
                         visibility: USome(self.visibility),
                         plan_id: UNone,
                     },
-                )));
+                ));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                info.signal(AppSignal::StateSignal(StateSignal::InsertEvent(NewEvent {
+                info.signal(RequestSignal::InsertEvent(NewEvent {
                     user_id: -1,
                     name: self.name.clone(),
                     description: (!self.description.is_empty()).then_some(self.description.clone()),
@@ -156,7 +156,7 @@ impl PopupContent for EventInput {
                     access_level: self.access_level,
                     visibility: self.visibility,
                     plan_id: None,
-                })));
+                }));
             }
         }
         if ui.button("Cancel").clicked() {

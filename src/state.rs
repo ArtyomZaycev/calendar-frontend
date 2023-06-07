@@ -3,11 +3,11 @@ use crate::{
     config::Config,
     db::{
         aliases::*,
-        connector::{Connector, RequestIndex},
-        request_parser::RequestParser,
+        connector::{Connector},
+        request_parser::RequestParser, request::{RequestId, RequestDescription},
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
-    ui::signal::StateSignal,
+    ui::signal::{StateSignal, RequestSignal},
 };
 use calendar_lib::api::{
     auth::{
@@ -154,72 +154,77 @@ impl State {
                 self.change_access_level(new_access_level);
             }
 
-            StateSignal::Login(email, password) => {
-                self.login(&email, &password);
-            },
-            StateSignal::Register(name, email, password) => {
-                self.register(&name, &email, &password);
-            },
-
-            StateSignal::InsertEvent(new_event) => {
-                self.insert_event(new_event);
-            },
-            StateSignal::UpdateEvent(upd_event) => {
-                self.update_event(upd_event);
-            },
-            StateSignal::DeleteEvent(id) => {
-                self.delete_event(id);
-            },
-
-            StateSignal::InsertEventTemplate(new_event_template) => {
-                self.insert_event_template(new_event_template);
-            }
-            StateSignal::UpdateEventTemplate(upd_event_template) => {
-                self.update_event_template(upd_event_template);
-            }
-            StateSignal::DeleteEventTemplate(id) => {
-                self.delete_event_template(id);
-            },
-
-            StateSignal::InsertSchedule(new_schedule) => {
-                self.insert_schedule(new_schedule);
-            },
-            StateSignal::UpdateSchedule(upd_schedule) => {
-                self.update_schedule(upd_schedule);
-            },
-            StateSignal::DeleteSchedule(id) => {
-                self.delete_schedule(id);
-            },
-
-            StateSignal::InsertPassword(access_level, viewer_password, editor_password) => {
-                self.new_password(access_level, viewer_password, editor_password);
-            }
-            StateSignal::AcceptScheduledEvent(date, plan_id) => {
-                if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
-                    schedule
-                        .event_plans
-                        .iter()
-                        .find(|plan| plan.id == plan_id)
-                        .map(|plan| (schedule, plan))
-                }) {
-                    if let Some(template) = self
-                        .event_templates
-                        .iter()
-                        .find(|template| schedule.template_id == template.id)
-                    {
-                        let start = NaiveDateTime::new(date, plan.time);
-                        self.insert_event(NewEvent {
-                            user_id: -1,
-                            name: template.event_name.clone(),
-                            description: template.event_description.clone(),
-                            start,
-                            end: start
-                                .checked_add_signed(Duration::from_std(template.duration).unwrap())
-                                .unwrap(),
-                            access_level: template.access_level,
-                            visibility: EventVisibility::HideAll,
-                            plan_id: Some(plan_id),
-                        });
+            StateSignal::RequestSignal(description, signal) => {
+                match signal {
+                    RequestSignal::Login(email, password) => {
+                        self.login(&email, &password, description);
+                    },
+                    RequestSignal::Register(name, email, password) => {
+                        self.register(&name, &email, &password, description);
+                    },
+        
+                    RequestSignal::InsertEvent(new_event) => {
+                        self.insert_event(new_event, description);
+                    },
+                    RequestSignal::UpdateEvent(upd_event) => {
+                        self.update_event(upd_event, description);
+                    },
+                    RequestSignal::DeleteEvent(id) => {
+                        self.delete_event(id, description);
+                    },
+        
+                    RequestSignal::InsertEventTemplate(new_event_template) => {
+                        self.insert_event_template(new_event_template, description);
+                    }
+                    RequestSignal::UpdateEventTemplate(upd_event_template) => {
+                        self.update_event_template(upd_event_template, description);
+                    }
+                    RequestSignal::DeleteEventTemplate(id) => {
+                        self.delete_event_template(id, description);
+                    },
+        
+                    RequestSignal::InsertSchedule(new_schedule) => {
+                        self.insert_schedule(new_schedule, description);
+                    },
+                    RequestSignal::UpdateSchedule(upd_schedule) => {
+                        self.update_schedule(upd_schedule, description);
+                    },
+                    RequestSignal::DeleteSchedule(id) => {
+                        self.delete_schedule(id, description);
+                    },
+        
+                    RequestSignal::InsertPassword(access_level, viewer_password, editor_password) => {
+                        self.new_password(access_level, viewer_password, editor_password, description);
+                    }
+                    RequestSignal::AcceptScheduledEvent(date, plan_id) => {
+                        if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
+                            schedule
+                                .event_plans
+                                .iter()
+                                .find(|plan| plan.id == plan_id)
+                                .map(|plan| (schedule, plan))
+                        }) {
+                            if let Some(template) = self
+                                .event_templates
+                                .iter()
+                                .find(|template| schedule.template_id == template.id)
+                            {
+                                let start = NaiveDateTime::new(date, plan.time);
+                                let new_event = NewEvent {
+                                    user_id: -1,
+                                    name: template.event_name.clone(),
+                                    description: template.event_description.clone(),
+                                    start,
+                                    end: start
+                                        .checked_add_signed(Duration::from_std(template.duration).unwrap())
+                                        .unwrap(),
+                                    access_level: template.access_level,
+                                    visibility: EventVisibility::HideAll,
+                                    plan_id: Some(plan_id),
+                                };
+                                self.insert_event(new_event, description);
+                            }
+                        }
                     }
                 }
             }
@@ -317,7 +322,7 @@ impl State {
         self.clear_events();
     }
 
-    pub fn load_access_levels(&mut self) -> RequestIndex {
+    pub fn load_access_levels(&mut self, description: RequestDescription) -> RequestId {
         use auth::load_access_levels::*;
 
         let request = self
@@ -328,10 +333,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn load_user_roles(&mut self) -> RequestIndex {
+    pub fn load_user_roles(&mut self, description: RequestDescription) -> RequestId {
         use user_roles::load_array::*;
 
         let request = self
@@ -342,10 +347,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadUserRoles(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn logout(&mut self) -> RequestIndex {
+    pub fn logout(&mut self, description: RequestDescription) -> RequestId {
         use auth::logout::*;
 
         let request = self
@@ -369,10 +374,10 @@ impl State {
             |code, _| AppRequestResponse::Error(code, "Logout error".to_owned()),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn login(&mut self, email: &str, password: &str) -> RequestIndex {
+    pub fn login(&mut self, email: &str, password: &str, description: RequestDescription) -> RequestId {
         use auth::login::*;
 
         let request = self
@@ -390,10 +395,10 @@ impl State {
             |r| AppRequestResponse::LoginError(r),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn register(&mut self, name: &str, email: &str, password: &str) -> RequestIndex {
+    pub fn register(&mut self, name: &str, email: &str, password: &str, description: RequestDescription) -> RequestId {
         use auth::register::*;
 
         let request = self
@@ -412,15 +417,15 @@ impl State {
             |r| AppRequestResponse::RegisterError(r),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
     pub fn new_password(
         &mut self,
         access_level: i32,
         viewer: Option<NewPassword>,
-        editor: Option<NewPassword>,
-    ) -> RequestIndex {
+        editor: Option<NewPassword>, description: RequestDescription
+    ) -> RequestId {
         use auth::new_password::*;
 
         let request = self
@@ -437,10 +442,10 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn load_event(&mut self, id: i32) -> RequestIndex {
+    pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use events::load::*;
 
         let request = self
@@ -455,10 +460,10 @@ impl State {
         );
         self.connector.request(
             request,
-            parser, AppRequestInfo::LoadEvent(id),
+            parser, AppRequestInfo::LoadEvent(id), description
         )
     }
-    pub fn load_events(&mut self) -> RequestIndex {
+    pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
         use events::load_array::*;
 
         let request = self
@@ -469,9 +474,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadEvents(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_event(&mut self, mut new_event: NewEvent) -> RequestIndex {
+    pub fn insert_event(&mut self, mut new_event: NewEvent, description: RequestDescription) -> RequestId {
         use events::insert::*;
 
         if new_event.user_id == -1 {
@@ -487,9 +492,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertEvent(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_event(&mut self, upd_event: UpdateEvent) -> RequestIndex {
+    pub fn update_event(&mut self, upd_event: UpdateEvent, description: RequestDescription) -> RequestId {
         use events::update::*;
 
         let id = upd_event.id;
@@ -503,10 +508,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEvent(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateEvent(id),
+            parser, AppRequestInfo::UpdateEvent(id), description
         )
     }
-    pub fn delete_event(&mut self, id: i32) -> RequestIndex {
+    pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use events::delete::*;
 
         let request = self
@@ -519,11 +524,11 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEvent(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteEvent(id),
+            parser, AppRequestInfo::DeleteEvent(id), description
         )
     }
 
-    pub fn load_event_template(&mut self, id: i32) -> RequestIndex {
+    pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use event_templates::load::*;
 
         let request = self
@@ -538,10 +543,10 @@ impl State {
         );
         self.connector.request(
             request,
-            parser, AppRequestInfo::LoadEventTemplate(id),
+            parser, AppRequestInfo::LoadEventTemplate(id), description
         )
     }
-    pub fn load_event_templates(&mut self) -> RequestIndex {
+    pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
         use event_templates::load_array::*;
 
         let request = self
@@ -552,9 +557,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate) -> RequestIndex {
+    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate, description: RequestDescription) -> RequestId {
         use event_templates::insert::*;
 
         if new_event_template.user_id == -1 {
@@ -570,9 +575,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate) -> RequestIndex {
+    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate, description: RequestDescription) -> RequestId {
         use event_templates::update::*;
 
         let id = upd_event_template.id;
@@ -586,10 +591,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateEventTemplate(id),
+            parser, AppRequestInfo::UpdateEventTemplate(id), description
         )
     }
-    pub fn delete_event_template(&mut self, id: i32) -> RequestIndex {
+    pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use event_templates::delete::*;
 
         let request = self
@@ -602,11 +607,11 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteEventTemplate(id),
+            parser, AppRequestInfo::DeleteEventTemplate(id), description
         )
     }
 
-    pub fn load_schedule(&mut self, id: i32) -> RequestIndex {
+    pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use schedules::load::*;
 
         let request = self
@@ -621,10 +626,10 @@ impl State {
         );
         self.connector.request(
             request,
-            parser, AppRequestInfo::LoadSchedule(id),
+            parser, AppRequestInfo::LoadSchedule(id), description
         )
     }
-    pub fn load_schedules(&mut self) -> RequestIndex {
+    pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
         use schedules::load_array::*;
 
         let request = self
@@ -635,9 +640,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::LoadSchedules(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule) -> RequestIndex {
+    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule, description: RequestDescription) -> RequestId {
         use schedules::insert::*;
 
         if new_schedule.user_id == -1 {
@@ -653,9 +658,9 @@ impl State {
 
         let parser = Self::make_parser(|r| AppRequestResponse::InsertSchedule(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None)
+            .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule) -> RequestIndex {
+    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule, description: RequestDescription) -> RequestId {
         use schedules::update::*;
 
         let id = upd_schedule.id;
@@ -669,10 +674,10 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateSchedule(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateSchedule(id),
+            parser, AppRequestInfo::UpdateSchedule(id), description
         )
     }
-    pub fn delete_schedule(&mut self, id: i32) -> RequestIndex {
+    pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
         use schedules::delete::*;
 
         let request = self
@@ -685,18 +690,18 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteSchedule(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteSchedule(id),
+            parser, AppRequestInfo::DeleteSchedule(id), description
         )
     }
 }
 
 impl State {
     fn load_state(&mut self) {
-        self.load_access_levels();
-        self.load_events();
-        self.load_user_roles();
-        self.load_event_templates();
-        self.load_schedules();
+        self.load_access_levels(RequestDescription::default());
+        self.load_events(RequestDescription::default());
+        self.load_user_roles(RequestDescription::default());
+        self.load_event_templates(RequestDescription::default());
+        self.load_schedules(RequestDescription::default());
     }
 
     fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
@@ -715,7 +720,7 @@ impl State {
             AppRequestResponse::Register(_) => {}
             AppRequestResponse::RegisterError(_) => {}
             AppRequestResponse::NewPassword(_) => {
-                self.load_access_levels();
+                self.load_access_levels(RequestDescription::default());
             }
             AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));
@@ -750,11 +755,11 @@ impl State {
                 self.clear_events();
             }
             AppRequestResponse::InsertEvent(_) => {
-                self.load_events();
+                self.load_events(RequestDescription::default());
             }
             AppRequestResponse::UpdateEvent(_) => {
                 if let AppRequestInfo::UpdateEvent(id) = info {
-                    self.load_event(id);
+                    self.load_event(id, RequestDescription::default());
                 }
             }
             AppRequestResponse::DeleteEvent(_) => {
@@ -790,11 +795,11 @@ impl State {
                 self.event_templates = res.array;
             }
             AppRequestResponse::InsertEventTemplate(_) => {
-                self.load_event_templates();
+                self.load_event_templates(RequestDescription::default());
             }
             AppRequestResponse::UpdateEventTemplate(_) => {
                 if let AppRequestInfo::UpdateEventTemplate(id) = info {
-                    self.load_event_template(id);
+                    self.load_event_template(id, RequestDescription::default());
                 }
             }
             AppRequestResponse::DeleteEventTemplate(_) => {
@@ -827,11 +832,11 @@ impl State {
                 self.clear_events();
             }
             AppRequestResponse::InsertSchedule(_) => {
-                self.load_schedules();
+                self.load_schedules(RequestDescription::default());
             }
             AppRequestResponse::UpdateSchedule(_) => {
                 if let AppRequestInfo::UpdateSchedule(id) = info {
-                    self.load_schedule(id);
+                    self.load_schedule(id, RequestDescription::default());
                 }
             }
             AppRequestResponse::DeleteSchedule(_) => {
@@ -856,6 +861,7 @@ impl State {
     }
 
     pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestInfo> {
-        todo!()//self.connector.get_active_requests_descriptions()
+        //todo!()//self.connector.get_active_requests_descriptions()
+        vec![]
     }
 }

@@ -1,4 +1,4 @@
-use super::signal::{AppSignal, StateSignal};
+use super::signal::{AppSignal, StateSignal, RequestSignal};
 use crate::db::aliases::EventTemplate;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
@@ -56,7 +56,7 @@ impl<'a> Widget for EventTemplateCard<'a> {
                                 }
                                 if ui.button("Delete").clicked() {
                                     self.signals.push(
-                                        StateSignal::DeleteEventTemplate(*template_id).into(),
+                                        RequestSignal::DeleteEventTemplate(*template_id).into(),
                                     );
                                     ui.close_menu();
                                 }

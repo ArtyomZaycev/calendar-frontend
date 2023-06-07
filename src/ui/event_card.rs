@@ -1,4 +1,4 @@
-use super::signal::{AppSignal, StateSignal};
+use super::signal::{AppSignal, StateSignal, RequestSignal};
 use crate::db::aliases::Event;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
@@ -91,7 +91,7 @@ impl<'a> Widget for EventCard<'a> {
                                     }
                                     if ui.button("Delete").clicked() {
                                         self.signals
-                                            .push(StateSignal::DeleteEvent(*event_id).into());
+                                            .push(RequestSignal::DeleteEvent(*event_id).into());
                                         ui.close_menu();
                                     }
                                 });
@@ -140,7 +140,7 @@ impl<'a> Widget for EventCard<'a> {
                                 ui.vertical_centered(|ui| {
                                     if ui.button("Accept").clicked() {
                                         self.signals.push(
-                                            StateSignal::AcceptScheduledEvent(
+                                            RequestSignal::AcceptScheduledEvent(
                                                 start.date(),
                                                 *plan_id,
                                             )

@@ -5,6 +5,7 @@ use calendar_lib::api::{
     schedules::types::{NewSchedule, UpdateSchedule},
 };
 use chrono::NaiveDate;
+use crate::db::request::RequestDescription;
 
 #[derive(Debug, Clone)]
 pub enum AppSignal {
@@ -21,7 +22,11 @@ pub enum AppSignal {
 #[derive(Debug, Clone)]
 pub enum StateSignal {
     ChangeAccessLevel(i32),
+    RequestSignal(RequestDescription, RequestSignal),
+}
 
+#[derive(Debug, Clone)]
+pub enum RequestSignal {
     // TODO: Named
     /// (email, password)
     Login(String, String),
@@ -50,5 +55,26 @@ pub enum StateSignal {
 impl Into<AppSignal> for StateSignal {
     fn into(self) -> AppSignal {
         AppSignal::StateSignal(self)
+    }
+}
+
+impl Into<StateSignal> for RequestSignal {
+    fn into(self) -> StateSignal {
+        StateSignal::RequestSignal(RequestDescription::default(), self)
+    }
+}
+
+impl Into<AppSignal> for RequestSignal {
+    fn into(self) -> AppSignal {
+        AppSignal::StateSignal(StateSignal::RequestSignal(RequestDescription::default(), self))
+    }
+}
+
+impl RequestSignal {
+    pub fn with_description(self, description: RequestDescription) -> StateSignal {
+        StateSignal::RequestSignal(description, self)
+    }
+    pub fn app_with_description(self, description: RequestDescription) -> AppSignal {
+        StateSignal::RequestSignal(description, self).into()
     }
 }
