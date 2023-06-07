@@ -35,16 +35,7 @@ impl SignUp {
 }
 
 impl PopupContent for SignUp {
-    fn get_title(&mut self) -> Option<String> {
-        Some("Sign Up".to_owned())
-    }
-
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
         if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
@@ -57,7 +48,18 @@ impl PopupContent for SignUp {
                 }
             }
         }
+    }
 
+    fn get_title(&mut self) -> Option<String> {
+        Some("Sign Up".to_owned())
+    }
+
+    fn show_content(
+        &mut self,
+        _state: &State,
+        ui: &mut egui::Ui,
+        info: &mut super::popup_content::ContentInfo,
+    ) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(

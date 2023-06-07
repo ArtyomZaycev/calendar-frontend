@@ -27,6 +27,21 @@ pub enum PopupType {
 }
 
 impl PopupContent for PopupType {
+    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
+        match self {
+            PopupType::Profile(w) => w.init_frame(state, info),
+            PopupType::Login(w) => w.init_frame(state, info),
+            PopupType::SignUp(w) => w.init_frame(state, info),
+            PopupType::NewEvent(w) => w.init_frame(state, info),
+            PopupType::UpdateEvent(w) => w.init_frame(state, info),
+            PopupType::NewEventTemplate(w) => w.init_frame(state, info),
+            PopupType::UpdateEventTemplate(w) => w.init_frame(state, info),
+            PopupType::NewSchedule(w) => w.init_frame(state, info),
+            PopupType::UpdateSchedule(w) => w.init_frame(state, info),
+            PopupType::NewPassword(w) => w.init_frame(state, info),
+        }
+    }
+
     fn get_title(&mut self) -> Option<String> {
         match self {
             PopupType::Profile(w) => w.get_title(),
@@ -39,6 +54,21 @@ impl PopupContent for PopupType {
             PopupType::NewSchedule(w) => w.get_title(),
             PopupType::UpdateSchedule(w) => w.get_title(),
             PopupType::NewPassword(w) => w.get_title(),
+        }
+    }
+
+    fn show_title(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+        match self {
+            PopupType::Profile(w) => w.show_title(state, ui, info),
+            PopupType::Login(w) => w.show_title(state, ui, info),
+            PopupType::SignUp(w) => w.show_title(state, ui, info),
+            PopupType::NewEvent(w) => w.show_title(state, ui, info),
+            PopupType::UpdateEvent(w) => w.show_title(state, ui, info),
+            PopupType::NewEventTemplate(w) => w.show_title(state, ui, info),
+            PopupType::UpdateEventTemplate(w) => w.show_title(state, ui, info),
+            PopupType::NewSchedule(w) => w.show_title(state, ui, info),
+            PopupType::UpdateSchedule(w) => w.show_title(state, ui, info),
+            PopupType::NewPassword(w) => w.show_title(state, ui, info),
         }
     }
 
@@ -97,6 +127,7 @@ impl Popup {
             .resizable(false)
             .default_size(Vec2::new(320., 0.))
             .show(ctx, |ui| {
+                self.t.init_frame(state, &mut info);
                 self.t.show_title(state, ui, &mut info);
                 self.t.show_content(state, ui, &mut info);
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {

@@ -38,6 +38,17 @@ impl NewPasswordInput {
 }
 
 impl PopupContent for NewPasswordInput {
+    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+    }
+
     fn get_title(&mut self) -> Option<String> {
         Some("New Password".to_owned())
     }
@@ -48,15 +59,6 @@ impl PopupContent for NewPasswordInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
-                    info.close();
-                }
-            }
-        }
-
         let show_pass_input = |ui: &mut egui::Ui,
                                enabled: &mut bool,
                                name: &mut String,

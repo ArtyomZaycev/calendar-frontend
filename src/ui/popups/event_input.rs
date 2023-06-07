@@ -65,6 +65,21 @@ impl EventInput {
 }
 
 impl PopupContent for EventInput {
+    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+        
+        if self.access_level == -1 {
+            self.access_level = state.get_access_level().level;
+        }
+    }
+    
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Event", self.orig_name))
@@ -79,19 +94,6 @@ impl PopupContent for EventInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
-                    info.close();
-                }
-            }
-        }
-        
-        if self.access_level == -1 {
-            self.access_level = state.get_access_level().level;
-        }
-
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));

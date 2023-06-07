@@ -49,24 +49,28 @@ impl ContentInfo {
     }
 }
 
+#[allow(unused_variables)]
 pub trait PopupContent {
+    /// Called first each frame
+    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {}
+
     fn get_title(&mut self) -> Option<String> {
         None
     }
 
-    /// Called first each frame
-    fn show_title(&mut self, _state: &State, ui: &mut egui::Ui, _info: &mut ContentInfo) {
+    fn show_title(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(title) = self.get_title() {
             ui.heading(title);
             ui.separator();
         }
     }
-    /// Called second each frame
+
     fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo);
-    /// RTL. Called second each frame
-    fn show_buttons(&mut self, _state: &State, _ui: &mut egui::Ui, _info: &mut ContentInfo) {}
-    /// Called last
-    fn show_error(&mut self, _state: &State, ui: &mut egui::Ui, error: &str) {
+
+    /// RTL
+    fn show_buttons(&mut self, _state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {}
+
+    fn show_error(&mut self, state: &State, ui: &mut egui::Ui, error: &str) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.add(egui::Label::new(RichText::new(error).color(Color32::RED)).wrap(true));
         });
