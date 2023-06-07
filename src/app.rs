@@ -5,7 +5,7 @@ use crate::{
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
         popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
-        widget_signal::AppSignal,
+        signal::AppSignal,
     },
     utils::*,
 };

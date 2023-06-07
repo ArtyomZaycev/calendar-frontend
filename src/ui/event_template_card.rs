@@ -1,4 +1,4 @@
-use super::widget_signal::{AppSignal, StateSignal};
+use super::signal::{AppSignal, StateSignal};
 use crate::db::aliases::EventTemplate;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 

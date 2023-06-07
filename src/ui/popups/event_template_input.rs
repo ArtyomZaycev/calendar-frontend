@@ -4,7 +4,7 @@ use crate::{
     ui::{
         access_level_picker::AccessLevelPicker,
         time_picker::TimePicker,
-        widget_signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal},
     },
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};

@@ -6,7 +6,7 @@ use crate::{
         date_picker::DatePicker,
         event_visibility_picker::EventVisibilityPicker,
         time_picker::TimePicker,
-        widget_signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal},
     },
 };
 use calendar_lib::api::{events::types::*, utils::*};

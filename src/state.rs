@@ -7,7 +7,7 @@ use crate::{
         request_parser::RequestParser,
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
-    ui::widget_signal::StateSignal,
+    ui::signal::StateSignal,
 };
 use calendar_lib::api::{
     auth::{

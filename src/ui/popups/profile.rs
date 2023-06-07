@@ -3,7 +3,7 @@ use crate::{
     state::State,
     ui::{
         access_level_picker::AccessLevelPicker,
-        widget_signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal},
     },
 };
 use egui::{Align, Layout, Vec2};

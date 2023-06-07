@@ -8,4 +8,4 @@ pub mod popups;
 pub mod schedule_card;
 pub mod time_picker;
 pub mod utils;
-pub mod widget_signal;
+pub mod signal;

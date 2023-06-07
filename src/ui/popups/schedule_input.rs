@@ -5,7 +5,7 @@ use crate::{
         access_level_picker::AccessLevelPicker,
         date_picker::DatePicker,
         time_picker::TimePicker,
-        widget_signal::{AppSignal, StateSignal},
+        signal::{AppSignal, StateSignal},
     },
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
