@@ -152,6 +152,8 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
                 info.signal(RequestSignal::InsertEventTemplate(NewEventTemplate {
                     user_id: -1,
                     name: self.name.clone(),
@@ -164,7 +166,7 @@ impl PopupContent for EventTemplateInput {
                         .to_std()
                         .unwrap(),
                     access_level: self.access_level,
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         }
         if ui.button("Cancel").clicked() {

@@ -158,6 +158,8 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
                 info.signal(RequestSignal::InsertEvent(NewEvent {
                     user_id: -1,
                     name: self.name.clone(),
@@ -167,7 +169,7 @@ impl PopupContent for EventInput {
                     access_level: self.access_level,
                     visibility: self.visibility,
                     plan_id: None,
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         }
         if ui.button("Cancel").clicked() {

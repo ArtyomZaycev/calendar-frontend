@@ -295,6 +295,8 @@ impl PopupContent for ScheduleInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
                 info.signal(RequestSignal::InsertSchedule(NewSchedule {
                     user_id: -1,
                     template_id: self.template_id.unwrap(),
@@ -304,7 +306,7 @@ impl PopupContent for ScheduleInput {
                     last_day: self.last_day_enabled.then_some(self.last_day),
                     access_level: self.access_level,
                     events: self.events.clone().into_iter().flatten().collect(),
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         }
         if ui.button("Cancel").clicked() {
