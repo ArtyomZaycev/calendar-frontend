@@ -1,11 +1,12 @@
 use super::popup_content::PopupContent;
 use crate::{
+    db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
         access_level_picker::AccessLevelPicker, date_picker::DatePicker,
         event_visibility_picker::EventVisibilityPicker, signal::RequestSignal,
         time_picker::TimePicker,
-    }, db::request::{RequestId, RequestDescription},
+    },
 };
 use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
@@ -74,12 +75,12 @@ impl PopupContent for EventInput {
                 }
             }
         }
-        
+
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
     }
-    
+
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Event", self.orig_name))
@@ -142,18 +143,21 @@ impl PopupContent for EventInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                info.signal(RequestSignal::UpdateEvent(UpdateEvent {
-                    id,
-                    name: USome(self.name.clone()),
-                    description: USome(
-                        (!self.description.is_empty()).then_some(self.description.clone()),
-                    ),
-                    start: USome(NaiveDateTime::new(self.date, self.start)),
-                    end: USome(NaiveDateTime::new(self.date, self.end)),
-                    access_level: USome(self.access_level),
-                    visibility: USome(self.visibility),
-                    plan_id: UNone,
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::UpdateEvent(UpdateEvent {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        start: USome(NaiveDateTime::new(self.date, self.start)),
+                        end: USome(NaiveDateTime::new(self.date, self.end)),
+                        access_level: USome(self.access_level),
+                        visibility: USome(self.visibility),
+                        plan_id: UNone,
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         } else {
             if ui
@@ -162,16 +166,20 @@ impl PopupContent for EventInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                info.signal(RequestSignal::InsertEvent(NewEvent {
-                    user_id: -1,
-                    name: self.name.clone(),
-                    description: (!self.description.is_empty()).then_some(self.description.clone()),
-                    start: NaiveDateTime::new(self.date, self.start),
-                    end: NaiveDateTime::new(self.date, self.end),
-                    access_level: self.access_level,
-                    visibility: self.visibility,
-                    plan_id: None,
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::InsertEvent(NewEvent {
+                        user_id: -1,
+                        name: self.name.clone(),
+                        description: (!self.description.is_empty())
+                            .then_some(self.description.clone()),
+                        start: NaiveDateTime::new(self.date, self.start),
+                        end: NaiveDateTime::new(self.date, self.end),
+                        access_level: self.access_level,
+                        visibility: self.visibility,
+                        plan_id: None,
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         }
         if ui.button("Cancel").clicked() {

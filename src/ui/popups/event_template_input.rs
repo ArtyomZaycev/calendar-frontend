@@ -1,7 +1,8 @@
 use super::popup_content::PopupContent;
 use crate::{
+    db::request::{RequestDescription, RequestId},
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker}, db::request::{RequestId, RequestDescription},
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
@@ -69,7 +70,7 @@ impl PopupContent for EventTemplateInput {
             self.access_level = state.get_access_level().level;
         }
     }
-    
+
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
             Some(format!("Change '{}' Event Template", self.orig_name))
@@ -132,22 +133,25 @@ impl PopupContent for EventTemplateInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                info.signal(RequestSignal::UpdateEventTemplate(UpdateEventTemplate {
-                    id,
-                    name: USome(self.name.clone()),
-                    event_name: USome(self.event_name.clone()),
-                    event_description: USome(
-                        (!self.event_description.is_empty())
-                            .then_some(self.event_description.clone()),
-                    ),
-                    duration: USome(
-                        self.duration
-                            .signed_duration_since(NaiveTime::default())
-                            .to_std()
-                            .unwrap(),
-                    ),
-                    access_level: USome(self.access_level),
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::UpdateEventTemplate(UpdateEventTemplate {
+                        id,
+                        name: USome(self.name.clone()),
+                        event_name: USome(self.event_name.clone()),
+                        event_description: USome(
+                            (!self.event_description.is_empty())
+                                .then_some(self.event_description.clone()),
+                        ),
+                        duration: USome(
+                            self.duration
+                                .signed_duration_since(NaiveTime::default())
+                                .to_std()
+                                .unwrap(),
+                        ),
+                        access_level: USome(self.access_level),
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         } else {
             if ui
@@ -156,19 +160,22 @@ impl PopupContent for EventTemplateInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                info.signal(RequestSignal::InsertEventTemplate(NewEventTemplate {
-                    user_id: -1,
-                    name: self.name.clone(),
-                    event_name: self.event_name.clone(),
-                    event_description: (!self.event_description.is_empty())
-                        .then_some(self.event_description.clone()),
-                    duration: self
-                        .duration
-                        .signed_duration_since(NaiveTime::default())
-                        .to_std()
-                        .unwrap(),
-                    access_level: self.access_level,
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::InsertEventTemplate(NewEventTemplate {
+                        user_id: -1,
+                        name: self.name.clone(),
+                        event_name: self.event_name.clone(),
+                        event_description: (!self.event_description.is_empty())
+                            .then_some(self.event_description.clone()),
+                        duration: self
+                            .duration
+                            .signed_duration_since(NaiveTime::default())
+                            .to_std()
+                            .unwrap(),
+                        access_level: self.access_level,
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         }
         if ui.button("Cancel").clicked() {

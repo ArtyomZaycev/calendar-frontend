@@ -2,9 +2,11 @@ use calendar_lib::api::auth::login;
 
 use super::popup_content::PopupContent;
 use crate::{
+    db::request::{RequestDescription, RequestId},
+    requests::AppRequestResponseInfo,
     state::State,
     ui::signal::RequestSignal,
-    utils::{is_password_strong_enough, is_password_valid, is_valid_email}, db::request::{RequestDescription, RequestId}, requests::AppRequestResponseInfo,
+    utils::{is_password_strong_enough, is_password_valid, is_valid_email},
 };
 
 pub struct Login {
@@ -107,10 +109,10 @@ impl PopupContent for Login {
         {
             let request_id = state.connector.reserve_request_id();
             self.request_id = Some(request_id);
-            info.signal(RequestSignal::Login(
-                self.email.clone(),
-                self.password.clone(),
-            ).with_description(RequestDescription::default().with_request_id(request_id)));
+            info.signal(
+                RequestSignal::Login(self.email.clone(), self.password.clone())
+                    .with_description(RequestDescription::default().with_request_id(request_id)),
+            );
         }
         if ui.button("Cancel").clicked() {
             info.close();

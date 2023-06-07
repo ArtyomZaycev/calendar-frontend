@@ -74,7 +74,12 @@ impl CalendarApp {
         match signal {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
             AppSignal::ChangeEvent(event_id) => {
-                if let Some(event) = self.state.get_events().iter().find(|event| event.id == event_id) {
+                if let Some(event) = self
+                    .state
+                    .get_events()
+                    .iter()
+                    .find(|event| event.id == event_id)
+                {
                     self.popup_manager.open_update_event(&event.clone());
                 }
             }

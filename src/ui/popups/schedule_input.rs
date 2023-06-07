@@ -1,10 +1,11 @@
 use super::popup_content::PopupContent;
 use crate::{
+    db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
         access_level_picker::AccessLevelPicker, date_picker::DatePicker, signal::RequestSignal,
         time_picker::TimePicker,
-    }, db::request::{RequestId, RequestDescription},
+    },
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
@@ -140,7 +141,10 @@ impl PopupContent for ScheduleInput {
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
-                            state.get_event_templates().iter().find(|t| t.id == template_id)
+                            state
+                                .get_event_templates()
+                                .iter()
+                                .find(|t| t.id == template_id)
                         }) {
                             Some(template) => &template.name,
                             None => "Template",
@@ -256,7 +260,7 @@ impl PopupContent for ScheduleInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                
+
                 let events = self.events.iter().flatten().collect_vec();
                 let init_events = self.init_events.clone().unwrap_or(vec![]);
                 let delete_events = init_events
@@ -279,18 +283,21 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                info.signal(RequestSignal::UpdateSchedule(UpdateSchedule {
-                    id,
-                    name: USome(self.name.clone()),
-                    description: USome(
-                        (!self.description.is_empty()).then_some(self.description.clone()),
-                    ),
-                    first_day: USome(self.first_day),
-                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                    access_level: USome(self.access_level),
-                    delete_events,
-                    new_events,
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::UpdateSchedule(UpdateSchedule {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        first_day: USome(self.first_day),
+                        last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                        access_level: USome(self.access_level),
+                        delete_events,
+                        new_events,
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         } else {
             if ui
@@ -299,16 +306,20 @@ impl PopupContent for ScheduleInput {
             {
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
-                info.signal(RequestSignal::InsertSchedule(NewSchedule {
-                    user_id: -1,
-                    template_id: self.template_id.unwrap(),
-                    name: self.name.clone(),
-                    description: (!self.description.is_empty()).then_some(self.description.clone()),
-                    first_day: self.first_day,
-                    last_day: self.last_day_enabled.then_some(self.last_day),
-                    access_level: self.access_level,
-                    events: self.events.clone().into_iter().flatten().collect(),
-                }).with_description(RequestDescription::new().with_request_id(request_id)));
+                info.signal(
+                    RequestSignal::InsertSchedule(NewSchedule {
+                        user_id: -1,
+                        template_id: self.template_id.unwrap(),
+                        name: self.name.clone(),
+                        description: (!self.description.is_empty())
+                            .then_some(self.description.clone()),
+                        first_day: self.first_day,
+                        last_day: self.last_day_enabled.then_some(self.last_day),
+                        access_level: self.access_level,
+                        events: self.events.clone().into_iter().flatten().collect(),
+                    })
+                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                );
             }
         }
         if ui.button("Cancel").clicked() {
