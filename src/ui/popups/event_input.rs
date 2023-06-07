@@ -103,7 +103,7 @@ impl PopupContent for EventInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    &state.access_levels,
+                    state.get_access_levels(),
                 ));
             });
             ui.add(

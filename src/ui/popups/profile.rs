@@ -24,7 +24,7 @@ impl PopupContent for Profile {
                 info.close();
             }
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                ui.heading(&state.me.as_ref().unwrap().user.name);
+                ui.heading(&state.get_me().as_ref().unwrap().user.name);
             });
         });
         ui.separator();
@@ -34,11 +34,11 @@ impl PopupContent for Profile {
         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
             ui.horizontal(|ui| {
                 ui.label("Email: ");
-                ui.label(&state.me.as_ref().unwrap().user.email);
+                ui.label(&state.get_me().as_ref().unwrap().user.email);
             });
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 if state
-                    .access_levels
+                    .get_access_levels()
                     .iter()
                     .any(|access_level| access_level.is_full())
                 {
@@ -54,7 +54,7 @@ impl PopupContent for Profile {
                     ui.add(AccessLevelPicker::new(
                         "profile_access_level_picker",
                         &mut level,
-                        &state.access_levels,
+                        state.get_access_levels(),
                     ));
                     if state.get_access_level().level != level {
                         info.signal(StateSignal::ChangeAccessLevel(level));

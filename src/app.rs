@@ -74,14 +74,14 @@ impl CalendarApp {
         match signal {
             AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
             AppSignal::ChangeEvent(event_id) => {
-                if let Some(event) = self.state.events.iter().find(|event| event.id == event_id) {
+                if let Some(event) = self.state.get_events().iter().find(|event| event.id == event_id) {
                     self.popup_manager.open_update_event(&event.clone());
                 }
             }
             AppSignal::ChangeEventTemplate(template_id) => {
                 if let Some(template) = self
                     .state
-                    .event_templates
+                    .get_event_templates()
                     .iter()
                     .find(|template| template.id == template_id)
                 {
@@ -92,7 +92,7 @@ impl CalendarApp {
             AppSignal::ChangeSchedule(schedule_id) => {
                 if let Some(schedule) = self
                     .state
-                    .schedules
+                    .get_schedules()
                     .iter()
                     .find(|schedule| schedule.id == schedule_id)
                 {
@@ -119,7 +119,7 @@ impl CalendarApp {
 
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 // RTL
-                if let Some(me) = &self.state.me {
+                if let Some(me) = &self.state.get_me() {
                     let profile = egui::Label::new(&me.user.name);
                     if self.popup_manager.is_open_profile() {
                         ui.add(profile);
@@ -475,7 +475,7 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .schedules
+                .get_schedules()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -516,7 +516,7 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .event_templates
+                .get_event_templates()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -563,7 +563,7 @@ impl eframe::App for CalendarApp {
             ui.separator();
 
             // CALENDAR
-            if let Some(_me) = &self.state.me {
+            if let Some(_me) = &self.state.get_me() {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     self.view_picker(ui);
                     self.main_view(ui);

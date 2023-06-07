@@ -29,13 +29,12 @@ pub struct State {
     events_per_day: HashMap<NaiveDate, Vec<Event>>,
     current_access_level: i32,
 
-    // Should not be modified manually, use requests
-    pub me: Option<UserInfo>,
-    pub access_levels: Vec<AccessLevel>,
-    pub users: Vec<User>,
-    pub event_templates: Vec<EventTemplate>,
-    pub events: Vec<Event>,
-    pub schedules: Vec<Schedule>,
+    me: Option<UserInfo>,
+    access_levels: Vec<AccessLevel>,
+    users: Vec<User>,
+    event_templates: Vec<EventTemplate>,
+    events: Vec<Event>,
+    schedules: Vec<Schedule>,
 
     pub errors: Vec<()>,
 }
@@ -137,6 +136,42 @@ impl State {
                     .collect()
             });
         }
+    }
+}
+
+impl State {
+    pub fn get_access_level(&self) -> AccessLevel {
+        let levels = self
+            .access_levels
+            .iter()
+            .filter(|l| l.level == self.current_access_level)
+            .collect_vec();
+        if levels.len() == 0 {
+            self.access_levels.last().unwrap().clone()
+        } else if levels.len() == 1 {
+            levels[0].clone()
+        } else {
+            (*levels.iter().find(|v| v.edit_rights).unwrap_or(&levels[0])).clone()
+        }
+    }
+
+    pub fn get_me(&self) -> &Option<UserInfo> {
+        &self.me
+    }
+    pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
+        &self.access_levels
+    }
+    pub fn get_users(&self) -> &Vec<User> {
+        &self.users
+    }
+    pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
+        &self.event_templates
+    }
+    pub fn get_events(&self) -> &Vec<Event> {
+        &self.events
+    }
+    pub fn get_schedules(&self) -> &Vec<Schedule> {
+        &self.schedules
     }
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
@@ -307,20 +342,6 @@ impl State {
 }
 
 impl State {
-    pub fn get_access_level(&self) -> AccessLevel {
-        let levels = self
-            .access_levels
-            .iter()
-            .filter(|l| l.level == self.current_access_level)
-            .collect_vec();
-        if levels.len() == 0 {
-            self.access_levels.last().unwrap().clone()
-        } else if levels.len() == 1 {
-            levels[0].clone()
-        } else {
-            (*levels.iter().find(|v| v.edit_rights).unwrap_or(&levels[0])).clone()
-        }
-    }
     pub fn change_access_level(&mut self, new_access_level: i32) {
         self.current_access_level = new_access_level;
         self.clear_events();

@@ -140,14 +140,14 @@ impl PopupContent for ScheduleInput {
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
-                            state.event_templates.iter().find(|t| t.id == template_id)
+                            state.get_event_templates().iter().find(|t| t.id == template_id)
                         }) {
                             Some(template) => &template.name,
                             None => "Template",
                         },
                     )
                     .show_ui(ui, |ui| {
-                        state.event_templates.iter().for_each(|template| {
+                        state.get_event_templates().iter().for_each(|template| {
                             ui.selectable_value(
                                 &mut self.template_id,
                                 Some(template.id),
@@ -180,7 +180,7 @@ impl PopupContent for ScheduleInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    &state.access_levels,
+                    state.get_access_levels(),
                 ));
             });
 
