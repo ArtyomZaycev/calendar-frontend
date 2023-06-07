@@ -8,6 +8,7 @@ pub struct ContentInfo {
     is_closed: bool,
 }
 
+#[allow(dead_code)]
 impl ContentInfo {
     pub fn new() -> Self {
         Self {

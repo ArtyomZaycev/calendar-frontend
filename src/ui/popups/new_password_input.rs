@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal},
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal}, db::request::{RequestId, RequestDescription},
 };
 use calendar_lib::api::auth::types::NewPassword;
 use egui::TextEdit;
@@ -14,6 +14,8 @@ pub struct NewPasswordInput {
 
     pub editor_password_enabled: bool,
     pub editor_password: NewPassword,
+
+    request_id: Option<RequestId>
 }
 
 impl NewPasswordInput {
@@ -30,6 +32,7 @@ impl NewPasswordInput {
                 name: Default::default(),
                 password: Default::default(),
             },
+            request_id: None,
         }
     }
 }
@@ -45,6 +48,15 @@ impl PopupContent for NewPasswordInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+
         let show_pass_input = |ui: &mut egui::Ui,
                                enabled: &mut bool,
                                name: &mut String,
@@ -95,7 +107,7 @@ impl PopupContent for NewPasswordInput {
 
     fn show_buttons(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -103,13 +115,15 @@ impl PopupContent for NewPasswordInput {
             .add_enabled(!info.is_error(), egui::Button::new("Add"))
             .clicked()
         {
+            let request_id = state.connector.reserve_request_id();
+            self.request_id = Some(request_id);
             info.signal(RequestSignal::InsertPassword(
                 self.next_password_level - 1,
                 self.viewer_password_enabled
                     .then_some(self.viewer_password.clone()),
                 self.editor_password_enabled
                     .then_some(self.editor_password.clone()),
-            ));
+            ).with_description(RequestDescription::new().with_request_id(request_id)));
         }
         if ui.button("Cancel").clicked() {
             info.close();

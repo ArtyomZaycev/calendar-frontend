@@ -24,7 +24,7 @@ use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 pub struct State {
-    connector: Connector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
+    pub connector: Connector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
     /// Has both server and phantom events
     events_per_day: HashMap<NaiveDate, Vec<Event>>,
     current_access_level: i32,

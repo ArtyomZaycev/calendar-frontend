@@ -5,7 +5,7 @@ use crate::{
         access_level_picker::AccessLevelPicker, date_picker::DatePicker,
         event_visibility_picker::EventVisibilityPicker, signal::RequestSignal,
         time_picker::TimePicker,
-    },
+    }, db::request::{RequestId, RequestDescription},
 };
 use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
@@ -25,6 +25,8 @@ pub struct EventInput {
     pub date: NaiveDate,
     pub start: NaiveTime,
     pub end: NaiveTime,
+
+    request_id: Option<RequestId>,
 }
 
 impl EventInput {
@@ -41,6 +43,7 @@ impl EventInput {
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::minutes(30),
+            request_id: None,
         }
     }
 
@@ -56,6 +59,7 @@ impl EventInput {
             date: event.start.date(),
             start: event.start.time(),
             end: event.end.time(),
+            request_id: None,
         }
     }
 }
@@ -75,6 +79,15 @@ impl PopupContent for EventInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+        
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -116,7 +129,7 @@ impl PopupContent for EventInput {
 
     fn show_buttons(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -125,6 +138,8 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
                 info.signal(RequestSignal::UpdateEvent(UpdateEvent {
                     id,
                     name: USome(self.name.clone()),
@@ -136,7 +151,7 @@ impl PopupContent for EventInput {
                     access_level: USome(self.access_level),
                     visibility: USome(self.visibility),
                     plan_id: UNone,
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         } else {
             if ui

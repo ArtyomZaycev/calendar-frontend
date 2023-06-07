@@ -114,6 +114,7 @@ impl Popup {
     }
 }
 
+#[allow(dead_code)]
 impl Popup {
     pub fn new(popup: PopupType) -> Self {
         Self {

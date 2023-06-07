@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker}, db::request::{RequestId, RequestDescription},
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
@@ -18,6 +18,8 @@ pub struct EventTemplateInput {
     pub event_description: String,
     pub duration: NaiveTime,
     pub access_level: i32,
+
+    request_id: Option<RequestId>,
 }
 
 impl EventTemplateInput {
@@ -31,6 +33,7 @@ impl EventTemplateInput {
             event_description: String::default(),
             duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             access_level: -1,
+            request_id: None,
         }
     }
 
@@ -46,6 +49,7 @@ impl EventTemplateInput {
             duration: NaiveTime::from_hms_opt(duration_minutes / 60, duration_minutes % 60, 0)
                 .unwrap(),
             access_level: template.access_level,
+            request_id: None,
         }
     }
 }
@@ -65,6 +69,15 @@ impl PopupContent for EventTemplateInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -106,7 +119,7 @@ impl PopupContent for EventTemplateInput {
 
     fn show_buttons(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -115,6 +128,8 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Update"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
                 info.signal(RequestSignal::UpdateEventTemplate(UpdateEventTemplate {
                     id,
                     name: USome(self.name.clone()),
@@ -130,7 +145,7 @@ impl PopupContent for EventTemplateInput {
                             .unwrap(),
                     ),
                     access_level: USome(self.access_level),
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         } else {
             if ui

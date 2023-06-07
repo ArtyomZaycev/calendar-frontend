@@ -54,6 +54,7 @@ impl PopupManager {
     }
 }
 
+#[allow(dead_code)]
 impl PopupManager {
     fn get_popup<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> Option<&'a mut Popup> {
         self.popups
@@ -93,6 +94,7 @@ impl PopupManager {
     }
 }
 
+#[allow(dead_code)]
 impl PopupManager {
     fn is_open<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> bool {
         self.popups.iter_mut().any(|p| check(p.get_type()))

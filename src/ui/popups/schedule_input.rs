@@ -4,7 +4,7 @@ use crate::{
     ui::{
         access_level_picker::AccessLevelPicker, date_picker::DatePicker, signal::RequestSignal,
         time_picker::TimePicker,
-    },
+    }, db::request::{RequestId, RequestDescription},
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
@@ -29,6 +29,8 @@ pub struct ScheduleInput {
     pub init_events: Option<Vec<EventPlan>>,
     pub new_event_start: NaiveTime,
     pub events: [Vec<NewEventPlan>; 7],
+
+    request_id: Option<RequestId>,
 }
 
 impl ScheduleInput {
@@ -55,6 +57,8 @@ impl ScheduleInput {
             init_events: None,
             new_event_start: now_time,
             events: Default::default(),
+
+            request_id: None,
         }
     }
 
@@ -92,6 +96,8 @@ impl ScheduleInput {
                     acc[weekday_ind].sort_by_key(|e| e.time);
                     acc
                 }),
+
+            request_id: None,
         }
     }
 }
@@ -111,6 +117,15 @@ impl PopupContent for ScheduleInput {
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
         }
@@ -228,7 +243,7 @@ impl PopupContent for ScheduleInput {
 
     fn show_buttons(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -237,6 +252,9 @@ impl PopupContent for ScheduleInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
+                let request_id = state.connector.reserve_request_id();
+                self.request_id = Some(request_id);
+                
                 let events = self.events.iter().flatten().collect_vec();
                 let init_events = self.init_events.clone().unwrap_or(vec![]);
                 let delete_events = init_events
@@ -270,7 +288,7 @@ impl PopupContent for ScheduleInput {
                     access_level: USome(self.access_level),
                     delete_events,
                     new_events,
-                }));
+                }).with_description(RequestDescription::new().with_request_id(request_id)));
             }
         } else {
             if ui

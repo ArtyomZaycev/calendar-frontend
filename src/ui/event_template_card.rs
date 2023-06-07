@@ -23,6 +23,7 @@ impl<'a> EventTemplateCard<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn hide_description(self) -> Self {
         Self {
             show_description: false,

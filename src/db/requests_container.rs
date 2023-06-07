@@ -49,7 +49,7 @@ where
         info: RequestInfo,
         description: RequestDescription,
     ) -> RequestId {
-        let request_id = self.reserve_id();
+        let request_id = description.request_id.unwrap_or_else(|| self.reserve_id());
 
         self.parsers.insert(request_id, parser);
         self.infos.insert(request_id, info);

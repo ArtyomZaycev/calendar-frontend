@@ -1,7 +1,6 @@
 use crate::{
     config::Config,
     db::request::RequestDescription,
-    requests::*,
     state::State,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
@@ -10,11 +9,9 @@ use crate::{
     },
     utils::*,
 };
-
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
-use itertools::Itertools;
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -112,64 +109,6 @@ impl CalendarApp {
         signals
             .into_iter()
             .for_each(|signal| self.parse_signal(signal));
-    }
-
-    fn parse_polled(&mut self, polled: Vec<(AppRequestResponse, AppRequestInfo)>) {
-        let _polled = polled.into_iter().map(|(req, _)| req).collect_vec();
-        /*
-        REQUESTS REWORK
-        if let Some(popup) = self.get_login_popup() {
-            if polled.has_login() {
-                popup.close();
-            } else if let Some(error) = polled.get_login_error() {
-                if let PopupType::Login(login) = popup.get_type_mut() {
-                    match error {
-                        login::BadRequestResponse::UserNotFound => {
-                            login.user_not_found();
-                        }
-                    }
-                }
-            }
-        }
-        if let Some(popup) = self.get_sign_up_popup() {
-            if polled.has_register() {
-                popup.close();
-            } else if let Some(error) = polled.get_register_error() {
-                if let PopupType::SignUp(sign_up) = popup.get_type_mut() {
-                    match error {
-                        register::BadRequestResponse::EmailAlreadyUsed => {
-                            sign_up.email_taken();
-                        }
-                    }
-                }
-            }
-        }
-        if let Some(popup) = self.get_new_event_popup() {
-            if polled.has_insert_event() {
-                popup.close();
-            }
-        }
-        if let Some(popup) = self.get_update_event_popup() {
-            if polled.has_update_event() {
-                popup.close();
-            }
-        }
-        if let Some(popup) = self.get_new_schedule_popup() {
-            if polled.has_insert_schedule() {
-                popup.close();
-            }
-        }
-        if let Some(popup) = self.get_update_schedule_popup() {
-            if polled.has_update_schedule() {
-                popup.close();
-            }
-        }
-        if let Some(popup) = self.get_new_event_template_popup() {
-            if polled.has_insert_event_template() {
-                popup.close();
-            }
-        }
-        */
     }
 }
 
@@ -622,8 +561,6 @@ impl eframe::App for CalendarApp {
 
             self.top_panel(ui);
             ui.separator();
-
-            //self.parse_polled(polled);
 
             // CALENDAR
             if let Some(_me) = &self.state.me {

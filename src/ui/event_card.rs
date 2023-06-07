@@ -31,6 +31,7 @@ impl<'a> EventCard<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn hide_description(self) -> Self {
         Self {
             show_description: false,
@@ -45,6 +46,7 @@ impl<'a> EventCard<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn hide_time(self) -> Self {
         Self {
             show_time: false,

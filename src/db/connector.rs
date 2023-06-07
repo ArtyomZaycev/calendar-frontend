@@ -134,6 +134,9 @@ where
     pub fn get_response(&mut self, request_id: RequestId) -> Option<RequestResponse> {
         self.requests.get_response(request_id)
     }
+    pub fn get_response_info(&self, request_id: RequestId) -> Option<RequestResponseInfo> {
+        self.requests.get_response_info(request_id)
+    }
     pub fn clone_response(&self, request_id: RequestId) -> Option<RequestResponse> {
         self.requests.clone_response(request_id)
     }

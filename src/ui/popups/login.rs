@@ -1,8 +1,10 @@
+use calendar_lib::api::auth::login;
+
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::signal::RequestSignal,
-    utils::{is_password_strong_enough, is_password_valid, is_valid_email},
+    utils::{is_password_strong_enough, is_password_valid, is_valid_email}, db::request::{RequestDescription, RequestId}, requests::AppRequestResponseInfo,
 };
 
 pub struct Login {
@@ -10,6 +12,8 @@ pub struct Login {
     pub password: String,
     email_not_found: Option<String>,
     password_not_found: Option<String>,
+
+    request_id: Option<RequestId>,
 }
 
 impl Login {
@@ -19,6 +23,7 @@ impl Login {
             password: String::default(),
             email_not_found: None,
             password_not_found: None,
+            request_id: None,
         }
     }
 
@@ -35,10 +40,23 @@ impl PopupContent for Login {
 
     fn show_content(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
+        if let Some(request_id) = self.request_id {
+            if let Some(response_info) = state.connector.get_response_info(request_id) {
+                self.request_id = None;
+                if let AppRequestResponseInfo::LoginError(error_info) = response_info {
+                    match error_info {
+                        login::BadRequestResponse::UserNotFound => self.user_not_found(),
+                    }
+                } else if !response_info.is_error() {
+                    info.close();
+                }
+            }
+        }
+
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(
@@ -77,7 +95,7 @@ impl PopupContent for Login {
 
     fn show_buttons(
         &mut self,
-        _state: &State,
+        state: &State,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -85,10 +103,12 @@ impl PopupContent for Login {
             .add_enabled(!info.is_error(), egui::Button::new("Login"))
             .clicked()
         {
+            let request_id = state.connector.reserve_request_id();
+            self.request_id = Some(request_id);
             info.signal(RequestSignal::Login(
                 self.email.clone(),
                 self.password.clone(),
-            ));
+            ).with_description(RequestDescription::default().with_request_id(request_id)));
         }
         if ui.button("Cancel").clicked() {
             info.close();
