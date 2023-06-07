@@ -280,7 +280,7 @@ impl State {
                 Some(std::str::from_utf8(&me.key).expect("parse error")),
             )
         } else {
-            todo!()
+            panic!()
         }
     }
 
@@ -934,10 +934,5 @@ impl State {
             .poll()
             .into_iter()
             .for_each(|(info, response)| self.parse_request(response, info));
-    }
-
-    pub fn get_active_requests_descriptions(&self) -> Vec<AppRequestInfo> {
-        //todo!()//self.connector.get_active_requests_descriptions()
-        vec![]
     }
 }

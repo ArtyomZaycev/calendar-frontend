@@ -86,6 +86,10 @@ where
         self.response_infos.get(&id).cloned()
     }
 
+    pub fn any_request_in_progress(&self) -> bool {
+        !self.parsers.is_empty()
+    }
+
     pub fn parse(&mut self, id: RequestId, status_code: StatusCode, bytes: Bytes) {
         if let Some(parser) = self.parsers.remove(&id) {
             let response = parser.parse(status_code, bytes);

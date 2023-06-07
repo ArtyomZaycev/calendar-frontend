@@ -140,4 +140,8 @@ where
     pub fn clone_response(&self, request_id: RequestId) -> Option<RequestResponse> {
         self.requests.clone_response(request_id)
     }
+
+    pub fn any_request_in_progress(&self) -> bool {
+        self.requests.any_request_in_progress()
+    }
 }

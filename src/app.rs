@@ -152,9 +152,8 @@ impl CalendarApp {
                     }
                 }
 
-                if self.state.get_active_requests_descriptions().len() > 0 {
-                    // TODO: icon
-                    ui.label("xxx");
+                if self.state.connector.any_request_in_progress() {
+                    ui.spinner();
                 }
             });
         });
