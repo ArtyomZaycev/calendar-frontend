@@ -3,11 +3,12 @@ use crate::{
     config::Config,
     db::{
         aliases::*,
-        connector::{Connector},
-        request_parser::RequestParser, request::{RequestId, RequestDescription},
+        connector::Connector,
+        request::{RequestDescription, RequestId},
+        request_parser::RequestParser,
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
-    ui::signal::{StateSignal, RequestSignal},
+    ui::signal::{RequestSignal, StateSignal},
 };
 use calendar_lib::api::{
     auth::{
@@ -154,80 +155,80 @@ impl State {
                 self.change_access_level(new_access_level);
             }
 
-            StateSignal::RequestSignal(description, signal) => {
-                match signal {
-                    RequestSignal::Login(email, password) => {
-                        self.login(&email, &password, description);
-                    },
-                    RequestSignal::Register(name, email, password) => {
-                        self.register(&name, &email, &password, description);
-                    },
-        
-                    RequestSignal::InsertEvent(new_event) => {
-                        self.insert_event(new_event, description);
-                    },
-                    RequestSignal::UpdateEvent(upd_event) => {
-                        self.update_event(upd_event, description);
-                    },
-                    RequestSignal::DeleteEvent(id) => {
-                        self.delete_event(id, description);
-                    },
-        
-                    RequestSignal::InsertEventTemplate(new_event_template) => {
-                        self.insert_event_template(new_event_template, description);
-                    }
-                    RequestSignal::UpdateEventTemplate(upd_event_template) => {
-                        self.update_event_template(upd_event_template, description);
-                    }
-                    RequestSignal::DeleteEventTemplate(id) => {
-                        self.delete_event_template(id, description);
-                    },
-        
-                    RequestSignal::InsertSchedule(new_schedule) => {
-                        self.insert_schedule(new_schedule, description);
-                    },
-                    RequestSignal::UpdateSchedule(upd_schedule) => {
-                        self.update_schedule(upd_schedule, description);
-                    },
-                    RequestSignal::DeleteSchedule(id) => {
-                        self.delete_schedule(id, description);
-                    },
-        
-                    RequestSignal::InsertPassword(access_level, viewer_password, editor_password) => {
-                        self.new_password(access_level, viewer_password, editor_password, description);
-                    }
-                    RequestSignal::AcceptScheduledEvent(date, plan_id) => {
-                        if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
-                            schedule
-                                .event_plans
-                                .iter()
-                                .find(|plan| plan.id == plan_id)
-                                .map(|plan| (schedule, plan))
-                        }) {
-                            if let Some(template) = self
-                                .event_templates
-                                .iter()
-                                .find(|template| schedule.template_id == template.id)
-                            {
-                                let start = NaiveDateTime::new(date, plan.time);
-                                let new_event = NewEvent {
-                                    user_id: -1,
-                                    name: template.event_name.clone(),
-                                    description: template.event_description.clone(),
-                                    start,
-                                    end: start
-                                        .checked_add_signed(Duration::from_std(template.duration).unwrap())
-                                        .unwrap(),
-                                    access_level: template.access_level,
-                                    visibility: EventVisibility::HideAll,
-                                    plan_id: Some(plan_id),
-                                };
-                                self.insert_event(new_event, description);
-                            }
+            StateSignal::RequestSignal(description, signal) => match signal {
+                RequestSignal::Login(email, password) => {
+                    self.login(&email, &password, description);
+                }
+                RequestSignal::Register(name, email, password) => {
+                    self.register(&name, &email, &password, description);
+                }
+
+                RequestSignal::InsertEvent(new_event) => {
+                    self.insert_event(new_event, description);
+                }
+                RequestSignal::UpdateEvent(upd_event) => {
+                    self.update_event(upd_event, description);
+                }
+                RequestSignal::DeleteEvent(id) => {
+                    self.delete_event(id, description);
+                }
+
+                RequestSignal::InsertEventTemplate(new_event_template) => {
+                    self.insert_event_template(new_event_template, description);
+                }
+                RequestSignal::UpdateEventTemplate(upd_event_template) => {
+                    self.update_event_template(upd_event_template, description);
+                }
+                RequestSignal::DeleteEventTemplate(id) => {
+                    self.delete_event_template(id, description);
+                }
+
+                RequestSignal::InsertSchedule(new_schedule) => {
+                    self.insert_schedule(new_schedule, description);
+                }
+                RequestSignal::UpdateSchedule(upd_schedule) => {
+                    self.update_schedule(upd_schedule, description);
+                }
+                RequestSignal::DeleteSchedule(id) => {
+                    self.delete_schedule(id, description);
+                }
+
+                RequestSignal::InsertPassword(access_level, viewer_password, editor_password) => {
+                    self.new_password(access_level, viewer_password, editor_password, description);
+                }
+                RequestSignal::AcceptScheduledEvent(date, plan_id) => {
+                    if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
+                        schedule
+                            .event_plans
+                            .iter()
+                            .find(|plan| plan.id == plan_id)
+                            .map(|plan| (schedule, plan))
+                    }) {
+                        if let Some(template) = self
+                            .event_templates
+                            .iter()
+                            .find(|template| schedule.template_id == template.id)
+                        {
+                            let start = NaiveDateTime::new(date, plan.time);
+                            let new_event = NewEvent {
+                                user_id: -1,
+                                name: template.event_name.clone(),
+                                description: template.event_description.clone(),
+                                start,
+                                end: start
+                                    .checked_add_signed(
+                                        Duration::from_std(template.duration).unwrap(),
+                                    )
+                                    .unwrap(),
+                                access_level: template.access_level,
+                                visibility: EventVisibility::HideAll,
+                                plan_id: Some(plan_id),
+                            };
+                            self.insert_event(new_event, description);
                         }
                     }
                 }
-            }
+            },
         }
     }
 }
@@ -252,7 +253,10 @@ impl State {
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
     fn make_empty_parser() -> RequestParser<AppRequestResponse> {
-        RequestParser::new_split(|_| AppRequestResponse::None, |_, _| AppRequestResponse::None)
+        RequestParser::new_split(
+            |_| AppRequestResponse::None,
+            |_, _| AppRequestResponse::None,
+        )
     }
 
     fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequestResponse>
@@ -377,7 +381,12 @@ impl State {
             .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn login(&mut self, email: &str, password: &str, description: RequestDescription) -> RequestId {
+    pub fn login(
+        &mut self,
+        email: &str,
+        password: &str,
+        description: RequestDescription,
+    ) -> RequestId {
         use auth::login::*;
 
         let request = self
@@ -398,7 +407,13 @@ impl State {
             .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn register(&mut self, name: &str, email: &str, password: &str, description: RequestDescription) -> RequestId {
+    pub fn register(
+        &mut self,
+        name: &str,
+        email: &str,
+        password: &str,
+        description: RequestDescription,
+    ) -> RequestId {
         use auth::register::*;
 
         let request = self
@@ -424,7 +439,8 @@ impl State {
         &mut self,
         access_level: i32,
         viewer: Option<NewPassword>,
-        editor: Option<NewPassword>, description: RequestDescription
+        editor: Option<NewPassword>,
+        description: RequestDescription,
     ) -> RequestId {
         use auth::new_password::*;
 
@@ -458,10 +474,8 @@ impl State {
             |r| AppRequestResponse::LoadEvent(r),
             |r| AppRequestResponse::LoadEventError(r),
         );
-        self.connector.request(
-            request,
-            parser, AppRequestInfo::LoadEvent(id), description
-        )
+        self.connector
+            .request(request, parser, AppRequestInfo::LoadEvent(id), description)
     }
     pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
         use events::load_array::*;
@@ -476,7 +490,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_event(&mut self, mut new_event: NewEvent, description: RequestDescription) -> RequestId {
+    pub fn insert_event(
+        &mut self,
+        mut new_event: NewEvent,
+        description: RequestDescription,
+    ) -> RequestId {
         use events::insert::*;
 
         if new_event.user_id == -1 {
@@ -494,7 +512,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_event(&mut self, upd_event: UpdateEvent, description: RequestDescription) -> RequestId {
+    pub fn update_event(
+        &mut self,
+        upd_event: UpdateEvent,
+        description: RequestDescription,
+    ) -> RequestId {
         use events::update::*;
 
         let id = upd_event.id;
@@ -508,7 +530,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEvent(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateEvent(id), description
+            parser,
+            AppRequestInfo::UpdateEvent(id),
+            description,
         )
     }
     pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
@@ -524,7 +548,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEvent(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteEvent(id), description
+            parser,
+            AppRequestInfo::DeleteEvent(id),
+            description,
         )
     }
 
@@ -543,7 +569,9 @@ impl State {
         );
         self.connector.request(
             request,
-            parser, AppRequestInfo::LoadEventTemplate(id), description
+            parser,
+            AppRequestInfo::LoadEventTemplate(id),
+            description,
         )
     }
     pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
@@ -559,7 +587,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_event_template(&mut self, mut new_event_template: NewEventTemplate, description: RequestDescription) -> RequestId {
+    pub fn insert_event_template(
+        &mut self,
+        mut new_event_template: NewEventTemplate,
+        description: RequestDescription,
+    ) -> RequestId {
         use event_templates::insert::*;
 
         if new_event_template.user_id == -1 {
@@ -577,7 +609,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_event_template(&mut self, upd_event_template: UpdateEventTemplate, description: RequestDescription) -> RequestId {
+    pub fn update_event_template(
+        &mut self,
+        upd_event_template: UpdateEventTemplate,
+        description: RequestDescription,
+    ) -> RequestId {
         use event_templates::update::*;
 
         let id = upd_event_template.id;
@@ -591,7 +627,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateEventTemplate(id), description
+            parser,
+            AppRequestInfo::UpdateEventTemplate(id),
+            description,
         )
     }
     pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
@@ -607,7 +645,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteEventTemplate(id), description
+            parser,
+            AppRequestInfo::DeleteEventTemplate(id),
+            description,
         )
     }
 
@@ -626,7 +666,9 @@ impl State {
         );
         self.connector.request(
             request,
-            parser, AppRequestInfo::LoadSchedule(id), description
+            parser,
+            AppRequestInfo::LoadSchedule(id),
+            description,
         )
     }
     pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
@@ -642,7 +684,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn insert_schedule(&mut self, mut new_schedule: NewSchedule, description: RequestDescription) -> RequestId {
+    pub fn insert_schedule(
+        &mut self,
+        mut new_schedule: NewSchedule,
+        description: RequestDescription,
+    ) -> RequestId {
         use schedules::insert::*;
 
         if new_schedule.user_id == -1 {
@@ -660,7 +706,11 @@ impl State {
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
-    pub fn update_schedule(&mut self, upd_schedule: UpdateSchedule, description: RequestDescription) -> RequestId {
+    pub fn update_schedule(
+        &mut self,
+        upd_schedule: UpdateSchedule,
+        description: RequestDescription,
+    ) -> RequestId {
         use schedules::update::*;
 
         let id = upd_schedule.id;
@@ -674,7 +724,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::UpdateSchedule(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::UpdateSchedule(id), description
+            parser,
+            AppRequestInfo::UpdateSchedule(id),
+            description,
         )
     }
     pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
@@ -690,7 +742,9 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::DeleteSchedule(r));
         self.connector.request(
             request,
-            parser, AppRequestInfo::DeleteSchedule(id), description
+            parser,
+            AppRequestInfo::DeleteSchedule(id),
+            description,
         )
     }
 }
@@ -855,7 +909,8 @@ impl State {
     }
 
     pub fn poll(&mut self) {
-        self.connector.poll()
+        self.connector
+            .poll()
             .into_iter()
             .for_each(|(info, response)| self.parse_request(response, info));
     }

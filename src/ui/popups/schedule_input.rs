@@ -2,10 +2,8 @@ use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{
-        access_level_picker::AccessLevelPicker,
-        date_picker::DatePicker,
+        access_level_picker::AccessLevelPicker, date_picker::DatePicker, signal::RequestSignal,
         time_picker::TimePicker,
-        signal::{AppSignal, StateSignal, RequestSignal},
     },
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
@@ -261,39 +259,34 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                info.signal(RequestSignal::UpdateSchedule(
-                    UpdateSchedule {
-                        id,
-                        name: USome(self.name.clone()),
-                        description: USome(
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        ),
-                        first_day: USome(self.first_day),
-                        last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                        access_level: USome(self.access_level),
-                        delete_events,
-                        new_events,
-                    },
-                ));
+                info.signal(RequestSignal::UpdateSchedule(UpdateSchedule {
+                    id,
+                    name: USome(self.name.clone()),
+                    description: USome(
+                        (!self.description.is_empty()).then_some(self.description.clone()),
+                    ),
+                    first_day: USome(self.first_day),
+                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                    access_level: USome(self.access_level),
+                    delete_events,
+                    new_events,
+                }));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                info.signal(RequestSignal::InsertSchedule(
-                    NewSchedule {
-                        user_id: -1,
-                        template_id: self.template_id.unwrap(),
-                        name: self.name.clone(),
-                        description: (!self.description.is_empty())
-                            .then_some(self.description.clone()),
-                        first_day: self.first_day,
-                        last_day: self.last_day_enabled.then_some(self.last_day),
-                        access_level: self.access_level,
-                        events: self.events.clone().into_iter().flatten().collect(),
-                    },
-                ));
+                info.signal(RequestSignal::InsertSchedule(NewSchedule {
+                    user_id: -1,
+                    template_id: self.template_id.unwrap(),
+                    name: self.name.clone(),
+                    description: (!self.description.is_empty()).then_some(self.description.clone()),
+                    first_day: self.first_day,
+                    last_day: self.last_day_enabled.then_some(self.last_day),
+                    access_level: self.access_level,
+                    events: self.events.clone().into_iter().flatten().collect(),
+                }));
             }
         }
         if ui.button("Cancel").clicked() {

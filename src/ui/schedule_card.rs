@@ -1,4 +1,4 @@
-use super::signal::{AppSignal, StateSignal, RequestSignal};
+use super::signal::{AppSignal, RequestSignal};
 use crate::db::aliases::Schedule;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 

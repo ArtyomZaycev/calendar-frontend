@@ -1,9 +1,17 @@
-use std::{collections::HashMap, cell::Cell};
-use reqwest::StatusCode;
+use super::{
+    request::{RequestDescription, RequestId},
+    request_parser::{FromResponse, RequestParser},
+};
 use bytes::Bytes;
-use super::{request::{RequestId, RequestDescription}, request_parser::{RequestParser, FromResponse}};
+use reqwest::StatusCode;
+use std::{cell::Cell, collections::HashMap};
 
-pub struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+pub struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>
+where
+    RequestResponse: Clone,
+    RequestInfo: Clone,
+    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+{
     next_request_id: Cell<RequestId>,
     descriptions: HashMap<RequestId, RequestDescription>,
     parsers: HashMap<RequestId, RequestParser<RequestResponse>>,
@@ -12,7 +20,13 @@ pub struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> whe
     response_infos: HashMap<RequestId, RequestResponseInfo>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+impl<RequestResponse, RequestInfo, RequestResponseInfo>
+    RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>
+where
+    RequestResponse: Clone,
+    RequestInfo: Clone,
+    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+{
     pub fn new() -> Self {
         Self {
             next_request_id: Cell::new(0),
@@ -29,7 +43,12 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestCounter<RequestRe
         self.next_request_id.set(request_id + 1);
         request_id
     }
-    pub fn push(&mut self, parser: RequestParser<RequestResponse>, info: RequestInfo, description: RequestDescription) -> RequestId {
+    pub fn push(
+        &mut self,
+        parser: RequestParser<RequestResponse>,
+        info: RequestInfo,
+        description: RequestDescription,
+    ) -> RequestId {
         let request_id = self.reserve_id();
 
         self.parsers.insert(request_id, parser);
@@ -38,7 +57,7 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestCounter<RequestRe
 
         request_id
     }
-    
+
     pub fn get_description(&self, id: RequestId) -> Option<RequestDescription> {
         self.descriptions.get(&id).cloned()
     }

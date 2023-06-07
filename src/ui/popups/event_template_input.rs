@@ -1,11 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::{
-        access_level_picker::AccessLevelPicker,
-        time_picker::TimePicker,
-        signal::{AppSignal, StateSignal, RequestSignal},
-    },
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
@@ -119,45 +115,41 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Update"))
                 .clicked()
             {
-                info.signal(RequestSignal::UpdateEventTemplate(
-                    UpdateEventTemplate {
-                        id,
-                        name: USome(self.name.clone()),
-                        event_name: USome(self.event_name.clone()),
-                        event_description: USome(
-                            (!self.event_description.is_empty())
-                                .then_some(self.event_description.clone()),
-                        ),
-                        duration: USome(
-                            self.duration
-                                .signed_duration_since(NaiveTime::default())
-                                .to_std()
-                                .unwrap(),
-                        ),
-                        access_level: USome(self.access_level),
-                    },
-                ));
+                info.signal(RequestSignal::UpdateEventTemplate(UpdateEventTemplate {
+                    id,
+                    name: USome(self.name.clone()),
+                    event_name: USome(self.event_name.clone()),
+                    event_description: USome(
+                        (!self.event_description.is_empty())
+                            .then_some(self.event_description.clone()),
+                    ),
+                    duration: USome(
+                        self.duration
+                            .signed_duration_since(NaiveTime::default())
+                            .to_std()
+                            .unwrap(),
+                    ),
+                    access_level: USome(self.access_level),
+                }));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                info.signal(RequestSignal::InsertEventTemplate(
-                    NewEventTemplate {
-                        user_id: -1,
-                        name: self.name.clone(),
-                        event_name: self.event_name.clone(),
-                        event_description: (!self.event_description.is_empty())
-                            .then_some(self.event_description.clone()),
-                        duration: self
-                            .duration
-                            .signed_duration_since(NaiveTime::default())
-                            .to_std()
-                            .unwrap(),
-                        access_level: self.access_level,
-                    },
-                ));
+                info.signal(RequestSignal::InsertEventTemplate(NewEventTemplate {
+                    user_id: -1,
+                    name: self.name.clone(),
+                    event_name: self.event_name.clone(),
+                    event_description: (!self.event_description.is_empty())
+                        .then_some(self.event_description.clone()),
+                    duration: self
+                        .duration
+                        .signed_duration_since(NaiveTime::default())
+                        .to_std()
+                        .unwrap(),
+                    access_level: self.access_level,
+                }));
             }
         }
         if ui.button("Cancel").clicked() {

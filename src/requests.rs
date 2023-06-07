@@ -1,10 +1,10 @@
+use crate::db::request_parser::FromResponse;
 use calendar_lib::api::{
     auth::{self, login, new_password, register},
     event_templates, events, schedules, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
-use crate::db::request_parser::FromResponse;
 
 #[derive(Clone, Debug, is_enum_variant)]
 pub enum AppRequestResponse {
@@ -90,10 +90,14 @@ impl FromResponse<AppRequestResponse> for AppRequestResponseInfo {
             AppRequestResponse::LoginError(r) => Self::LoginError(r.clone()),
             AppRequestResponse::RegisterError(r) => Self::RegisterError(r.clone()),
             AppRequestResponse::LoadEventError(r) => Self::LoadEventError(r.clone()),
-            AppRequestResponse::LoadEventTemplateError(r) => Self::LoadEventTemplateError(r.clone()),
+            AppRequestResponse::LoadEventTemplateError(r) => {
+                Self::LoadEventTemplateError(r.clone())
+            }
             AppRequestResponse::LoadScheduleError(r) => Self::LoadScheduleError(r.clone()),
-            AppRequestResponse::Error(status_code, error) => Self::Error(*status_code, error.clone()),
-            _ => Self::None
+            AppRequestResponse::Error(status_code, error) => {
+                Self::Error(*status_code, error.clone())
+            }
+            _ => Self::None,
         }
     }
 }

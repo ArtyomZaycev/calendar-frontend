@@ -1,3 +1,4 @@
+use crate::db::request::RequestDescription;
 use calendar_lib::api::{
     auth::types::NewPassword,
     event_templates::types::{NewEventTemplate, UpdateEventTemplate},
@@ -5,7 +6,6 @@ use calendar_lib::api::{
     schedules::types::{NewSchedule, UpdateSchedule},
 };
 use chrono::NaiveDate;
-use crate::db::request::RequestDescription;
 
 #[derive(Debug, Clone)]
 pub enum AppSignal {
@@ -66,7 +66,10 @@ impl Into<StateSignal> for RequestSignal {
 
 impl Into<AppSignal> for RequestSignal {
     fn into(self) -> AppSignal {
-        AppSignal::StateSignal(StateSignal::RequestSignal(RequestDescription::default(), self))
+        AppSignal::StateSignal(StateSignal::RequestSignal(
+            RequestDescription::default(),
+            self,
+        ))
     }
 }
 

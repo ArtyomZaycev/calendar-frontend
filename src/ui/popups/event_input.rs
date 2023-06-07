@@ -2,11 +2,9 @@ use super::popup_content::PopupContent;
 use crate::{
     state::State,
     ui::{
-        access_level_picker::AccessLevelPicker,
-        date_picker::DatePicker,
-        event_visibility_picker::EventVisibilityPicker,
+        access_level_picker::AccessLevelPicker, date_picker::DatePicker,
+        event_visibility_picker::EventVisibilityPicker, signal::RequestSignal,
         time_picker::TimePicker,
-        signal::{AppSignal, StateSignal, RequestSignal},
     },
 };
 use calendar_lib::api::{events::types::*, utils::*};
@@ -127,20 +125,18 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                info.signal(RequestSignal::UpdateEvent(
-                    UpdateEvent {
-                        id,
-                        name: USome(self.name.clone()),
-                        description: USome(
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        ),
-                        start: USome(NaiveDateTime::new(self.date, self.start)),
-                        end: USome(NaiveDateTime::new(self.date, self.end)),
-                        access_level: USome(self.access_level),
-                        visibility: USome(self.visibility),
-                        plan_id: UNone,
-                    },
-                ));
+                info.signal(RequestSignal::UpdateEvent(UpdateEvent {
+                    id,
+                    name: USome(self.name.clone()),
+                    description: USome(
+                        (!self.description.is_empty()).then_some(self.description.clone()),
+                    ),
+                    start: USome(NaiveDateTime::new(self.date, self.start)),
+                    end: USome(NaiveDateTime::new(self.date, self.end)),
+                    access_level: USome(self.access_level),
+                    visibility: USome(self.visibility),
+                    plan_id: UNone,
+                }));
             }
         } else {
             if ui

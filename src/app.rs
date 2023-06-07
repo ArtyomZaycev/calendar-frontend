@@ -1,13 +1,14 @@
 use crate::{
     config::Config,
+    db::request::RequestDescription,
     requests::*,
     state::State,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
-        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
-        signal::AppSignal,
+        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, signal::AppSignal,
+        utils::UiUtils,
     },
-    utils::*, db::request::RequestDescription,
+    utils::*,
 };
 
 use chrono::{Days, Months, NaiveDate};
@@ -611,7 +612,7 @@ impl eframe::App for CalendarApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        let polled = self.state.poll();
+        let _polled = self.state.poll();
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);

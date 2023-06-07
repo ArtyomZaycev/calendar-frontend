@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::signal::{StateSignal, RequestSignal},
+    ui::signal::RequestSignal,
     utils::{is_password_strong_enough, is_password_valid, is_valid_email},
 };
 

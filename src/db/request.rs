@@ -1,4 +1,3 @@
-
 pub type RequestId = u16;
 
 #[derive(Debug, Clone, Default)]

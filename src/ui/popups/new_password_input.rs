@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::{StateSignal, RequestSignal}},
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal},
 };
 use calendar_lib::api::auth::types::NewPassword;
 use egui::TextEdit;

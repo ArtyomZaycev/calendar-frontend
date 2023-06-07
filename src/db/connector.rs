@@ -1,10 +1,10 @@
-use super::request::{RequestId, RequestDescription};
-use super::request_parser::{RequestParser, FromResponse};
+use super::request::{RequestDescription, RequestId};
+use super::request_parser::{FromResponse, RequestParser};
 use super::requests_container::RequestCounter;
 use crate::config::Config;
 use bytes::Bytes;
 use reqwest::StatusCode;
-use std::collections::HashMap;
+
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 #[derive(Debug)]
@@ -18,7 +18,12 @@ impl RequestResult {
     }
 }
 
-pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo>
+where
+    RequestResponse: Clone,
+    RequestInfo: Clone,
+    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+{
     client: reqwest::Client,
     server_url: String,
 
@@ -29,7 +34,13 @@ pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo> where Re
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestResponse, RequestInfo, RequestResponseInfo> where RequestResponse: Clone, RequestInfo: Clone, RequestResponseInfo: Clone+FromResponse<RequestResponse> {
+impl<RequestResponse, RequestInfo, RequestResponseInfo>
+    Connector<RequestResponse, RequestInfo, RequestResponseInfo>
+where
+    RequestResponse: Clone,
+    RequestInfo: Clone,
+    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+{
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
@@ -53,7 +64,13 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
         self.requests.reserve_id()
     }
 
-    pub fn request(&mut self, request: reqwest::Request, parser: RequestParser<RequestResponse>, info: RequestInfo, description: RequestDescription) -> RequestId {
+    pub fn request(
+        &mut self,
+        request: reqwest::Request,
+        parser: RequestParser<RequestResponse>,
+        info: RequestInfo,
+        description: RequestDescription,
+    ) -> RequestId {
         use crate::utils::easy_spawn;
 
         println!("{request:?}");
@@ -87,7 +104,7 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
 
         request_id
     }
-    
+
     pub fn poll(&mut self) -> Vec<(RequestInfo, RequestResponse)> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
@@ -95,15 +112,20 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> Connector<RequestRespons
                 Ok((status_code, bytes)) => {
                     self.requests.parse(res.id, status_code, bytes);
                     polled.push(res.id)
-                },
+                }
                 Err(error) => (self.error_handler)(error),
             }
         }
-        polled.into_iter().filter_map(|id| {
-            self.requests.get_info(id).and_then(|info| {
-                self.requests.get_response(id).map(|response| (info, response))
+        polled
+            .into_iter()
+            .filter_map(|id| {
+                self.requests.get_info(id).and_then(|info| {
+                    self.requests
+                        .get_response(id)
+                        .map(|response| (info, response))
+                })
             })
-        }).collect()
+            .collect()
     }
 
     pub fn get_request_info(&self, request_id: RequestId) -> Option<RequestInfo> {
