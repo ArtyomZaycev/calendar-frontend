@@ -402,6 +402,30 @@ impl State {
             .request(request, parser, AppRequestInfo::None, description)
     }
 
+    pub fn login_by_key(
+        &mut self,
+        key: Vec<u8>,
+        description: RequestDescription,
+    ) -> RequestId {
+        use auth::login_by_key::*;
+
+        let request = self
+            .make_request(METHOD.clone(), PATH)
+            .query(&Args {})
+            .json(&Body {
+                user_id: 1,
+                key,
+            })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(
+            |r| AppRequestResponse::LoginByKey(r),
+        );
+        self.connector
+            .request(request, parser, AppRequestInfo::None, description)
+    }
+
     pub fn login(
         &mut self,
         email: &str,
@@ -409,6 +433,9 @@ impl State {
         description: RequestDescription,
     ) -> RequestId {
         use auth::login::*;
+
+        // Always save login data for persistency
+        let description = description.save_results();
 
         let request = self
             .make_request(METHOD.clone(), PATH)
@@ -792,6 +819,16 @@ impl State {
                 self.load_state();
             }
             AppRequestResponse::LoginError(_) => {}
+            AppRequestResponse::LoginByKey(res) => {
+                self.me = Some(UserInfo {
+                    user: res.user,
+                    key: res.key,
+                    roles: vec![],
+                });
+                self.current_access_level = res.access_level.level;
+                self.access_levels = vec![res.access_level];
+                self.load_state();
+            },
             AppRequestResponse::Register(_) => {}
             AppRequestResponse::RegisterError(_) => {}
             AppRequestResponse::NewPassword(_) => {
@@ -929,10 +966,17 @@ impl State {
         }
     }
 
-    pub fn poll(&mut self) {
-        self.connector
-            .poll()
-            .into_iter()
-            .for_each(|(info, response)| self.parse_request(response, info));
+    pub fn poll(&mut self) -> Vec<RequestId> {
+        let polled = self.connector.poll();
+        polled.iter()
+            .for_each(|&request_id| {
+                let response = self.connector.get_response(request_id);
+                let info: Option<AppRequestInfo> = self.connector.get_request_info(request_id);
+                match (response, info) {
+                    (Some(response), Some(info)) => self.parse_request(response, info),
+                    _ => {}
+                }
+            });
+        polled
     }
 }

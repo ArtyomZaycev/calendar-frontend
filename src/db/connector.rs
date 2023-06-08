@@ -105,7 +105,7 @@ where
         request_id
     }
 
-    pub fn poll(&mut self) -> Vec<(RequestInfo, RequestResponse)> {
+    pub fn poll(&mut self) -> Vec<RequestId> {
         let mut polled = Vec::new();
         while let Ok(res) = self.reciever.try_recv() {
             match res.result {
@@ -117,15 +117,6 @@ where
             }
         }
         polled
-            .into_iter()
-            .filter_map(|id| {
-                self.requests.get_info(id).and_then(|info| {
-                    self.requests
-                        .get_response(id)
-                        .map(|response| (info, response))
-                })
-            })
-            .collect()
     }
 
     pub fn get_request_info(&self, request_id: RequestId) -> Option<RequestInfo> {

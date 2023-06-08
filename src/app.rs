@@ -1,13 +1,13 @@
 use crate::{
     config::Config,
-    db::request::RequestDescription,
+    db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
         popups::popup_manager::PopupManager, schedule_card::ScheduleCard, signal::AppSignal,
         utils::UiUtils,
     },
-    utils::*,
+    utils::*, local_storage::{LocalStorage, LocalStorageTrait}, requests::{AppRequestInfo, AppRequestResponse},
 };
 use chrono::{Days, Months, NaiveDate};
 use derive_is_enum_variant::is_enum_variant;
@@ -34,6 +34,11 @@ enum CalendarView {
 #[serde(default)]
 pub struct CalendarApp {
     #[serde(skip)]
+    local_storage: LocalStorage,
+    #[serde(skip)]
+    login_by_key_request_id: Option<RequestId>,
+
+    #[serde(skip)]
     state: State,
 
     #[serde(skip)]
@@ -46,8 +51,22 @@ pub struct CalendarApp {
 impl Default for CalendarApp {
     fn default() -> Self {
         let config = Config::load();
+        let mut local_storage = LocalStorage::new();
+        let mut state = State::new(&config);
+        let mut login_by_key_request_id = None;
+        if let Some(key) = local_storage.get_key() {
+            println!("Key found!");
+            let request_id = state.connector.reserve_request_id();
+            login_by_key_request_id = Some(request_id);
+            state.login_by_key(key, RequestDescription::new().with_request_id(request_id));
+        } else {
+            println!("Key not found");
+        }
+
         Self {
-            state: State::new(&config),
+            local_storage,
+            login_by_key_request_id,
+            state,
             view: CalendarView::Events(EventsView::Days(chrono::Local::now().naive_local().date())),
             popup_manager: PopupManager::new(),
         }
@@ -555,7 +574,27 @@ impl eframe::App for CalendarApp {
     }
 
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        let _polled = self.state.poll();
+        if let Some(request_id) = self.login_by_key_request_id {
+            if let Some(_) = self.state.connector.get_response_info(request_id) {
+                println!("Response recieved");
+                self.login_by_key_request_id = None;
+                if let Some(me) = self.state.get_me() {
+                    println!("Store");
+                    self.local_storage.store_key(&me.key);
+                }
+            }
+        }
+
+        let polled = self.state.poll();
+        // TODO: separate function
+        polled.iter().for_each(|&request_id| {
+            match self.state.connector.get_response(request_id) {
+                Some(AppRequestResponse::Login(response)) => {
+                    self.local_storage.store_key(&response.key);
+                }
+                _ => {}
+            }
+        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);
