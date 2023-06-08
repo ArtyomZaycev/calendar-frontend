@@ -1,10 +1,16 @@
+use serde::{de::DeserializeOwned, Serialize};
+pub use storage::*;
 
 pub trait LocalStorageTrait {
     fn new() -> Self;
 
-    fn get_key(&mut self) -> Option<Vec<u8>>;
-
-    fn store_key(&mut self, key: &[u8]);
+    fn get<T>(&mut self, key: &str) -> Option<T>
+    where
+        T: DeserializeOwned;
+    fn put<T>(&mut self, key: &str, data: &T)
+    where
+        T: Serialize;
+    fn clear(&mut self, key: &str);
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,65 +20,66 @@ mod storage {
     pub struct LocalStorage {
         store: Option<scdb::Store>,
     }
-    
+
     impl LocalStorageTrait for LocalStorage {
         fn new() -> Self {
-            let store = scdb::Store::new(
-                "calendar",
-                Some(16),
-                Some(1),
-                Some(1),
-                None,
-                false
-            );
+            let store = scdb::Store::new("calendar", Some(16), Some(1), Some(1), None, false);
             match store {
-                Ok(store) => {
-                    Self {
-                        store: Some(store)
-                    }
-                },
+                Ok(store) => Self { store: Some(store) },
                 Err(error) => {
                     println!("Error while creating a local storage: {error:?}");
-                    Self {
-                        store: None
-                    }
-                },
+                    Self { store: None }
+                }
             }
         }
 
-        fn get_key(&mut self) -> Option<Vec<u8>> {
-            self.store.as_mut().and_then(|store| {
-                match store.get(&b"key"[..]) {
-                    Ok(key) => key,
+        fn get<T>(&mut self, key: &str) -> Option<T>
+        where
+            T: serde::de::DeserializeOwned,
+        {
+            self.store
+                .as_mut()
+                .and_then(|store| match store.get(key.as_bytes()) {
+                    Ok(v) => v.and_then(|v| {
+                        std::str::from_utf8(&v)
+                            .ok()
+                            .and_then(|s| serde_json::from_str(s).ok())
+                    }),
                     Err(error) => {
-                        println!("Error while getting a key: {error:?}");
+                        println!(
+                            "Error while retrieving data from native local storage: {error:?}"
+                        );
                         None
-                    },
-                }
-            })
+                    }
+                })
         }
 
-        fn store_key(&mut self, key: &[u8]) {
-            if let Some(store) = self.store.as_mut()     {
-                if let Err(error) = store.set(&b"key"[..], key, None) {
-                    println!("Error while storing a key: {error:?}");
+        fn put<T>(&mut self, key: &str, data: &T)
+        where
+            T: serde::Serialize,
+        {
+            if let Some(store) = self.store.as_mut() {
+                if let Ok(data) = serde_json::to_string(data) {
+                    if let Err(error) = store.set(key.as_bytes(), data.as_bytes(), None) {
+                        println!("Error while storing a key: {error:?}");
+                    }
                 }
+            }
+        }
+
+        fn clear(&mut self, key: &str) {
+            if let Some(store) = self.store.as_mut() {
+                let _ = store.delete(key.as_bytes());
             }
         }
     }
 }
-
 
 #[cfg(target_arch = "wasm32")]
 mod storage {
     use super::LocalStorageTrait;
 
-    pub struct LocalStorage {
-    
-    }
-    
-    impl LocalStorageTrait for LocalStorage {
-    }
-}
+    pub struct LocalStorage {}
 
-pub use storage::*;
+    impl LocalStorageTrait for LocalStorage {}
+}

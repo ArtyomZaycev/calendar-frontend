@@ -47,6 +47,7 @@ impl<T> RequestParser<T> {
     }
 }
 
+// TODO: Remove
 pub trait FromResponse<Response> {
     fn from_response(response: &Response) -> Self;
 }

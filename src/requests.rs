@@ -1,6 +1,6 @@
 use crate::db::request_parser::FromResponse;
 use calendar_lib::api::{
-    auth::{self, login, new_password, register, login_by_key},
+    auth::{self, login, login_by_key, new_password, register},
     event_templates, events, schedules, user_roles,
 };
 use derive_is_enum_variant::is_enum_variant;
@@ -10,7 +10,7 @@ use reqwest::StatusCode;
 pub enum AppRequestResponse {
     Login(login::Response),
     LoginError(login::BadRequestResponse),
-    
+
     LoginByKey(login_by_key::Response),
 
     Register(register::Response),
