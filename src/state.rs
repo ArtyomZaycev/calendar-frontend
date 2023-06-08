@@ -402,13 +402,13 @@ impl State {
             .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn login_by_key(&mut self, key: Vec<u8>, description: RequestDescription) -> RequestId {
+    pub fn login_by_key(&mut self, user_id: i32, key: Vec<u8>, description: RequestDescription) -> RequestId {
         use auth::login_by_key::*;
 
         let request = self
             .make_request(METHOD.clone(), PATH)
             .query(&Args {})
-            .json(&Body { user_id: 1, key })
+            .json(&Body { user_id, key })
             .build()
             .unwrap();
 

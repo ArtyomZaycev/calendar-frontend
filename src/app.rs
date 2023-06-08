@@ -2,7 +2,6 @@ use crate::{
     app_local_storage::AppLocalStorage,
     config::Config,
     db::request::RequestDescription,
-    local_storage::LocalStorageTrait,
     requests::AppRequestResponse,
     state::State,
     ui::{
@@ -54,12 +53,13 @@ impl Default for CalendarApp {
         let config = Config::load();
         let mut local_storage = AppLocalStorage::new();
         let mut state = State::new(&config);
-        if let Some(key) = local_storage.get_key() {
-            println!("Key found!");
-            let request_id = state.connector.reserve_request_id();
-            state.login_by_key(key, RequestDescription::new().with_request_id(request_id));
-        } else {
-            println!("Key not found");
+        match (local_storage.get_user_id(), local_storage.get_key()) {
+            (Some(user_id), Some(key)) => {
+                state.login_by_key(user_id, key, RequestDescription::new());
+            },
+            _ => {
+                println!("Auth info not found");
+            }
         }
 
         Self {
@@ -577,6 +577,7 @@ impl eframe::App for CalendarApp {
         polled.iter().for_each(
             |&request_id| match self.state.connector.get_response(request_id) {
                 Some(AppRequestResponse::Login(response)) => {
+                    self.local_storage.store_user_id(response.user.id);
                     self.local_storage.store_key(&response.key);
                 }
                 _ => {}
