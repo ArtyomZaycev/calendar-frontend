@@ -77,9 +77,30 @@ mod storage {
 
 #[cfg(target_arch = "wasm32")]
 mod storage {
+    use gloo_storage::Storage;
     use super::LocalStorageTrait;
 
     pub struct LocalStorage {}
 
-    impl LocalStorageTrait for LocalStorage {}
+    impl LocalStorageTrait for LocalStorage {
+        fn new() -> Self {
+            Self {}
+        }
+
+        fn get<T>(&mut self, key: &str) -> Option<T>
+        where
+            T: serde::de::DeserializeOwned {
+            gloo_storage::LocalStorage::get(key).ok()
+        }
+
+        fn put<T>(&mut self, key: &str, data: &T)
+        where
+            T: serde::Serialize {
+            let _ = gloo_storage::LocalStorage::set(key, data);
+        }
+
+        fn clear(&mut self, key: &str) {
+            gloo_storage::LocalStorage::delete(key)
+        }
+    }
 }
