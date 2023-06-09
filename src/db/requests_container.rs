@@ -14,8 +14,14 @@ struct RequestData<RequestResponse, RequestInfo, RequestResponseInfo> {
     response_info: Option<RequestResponseInfo>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestData<RequestResponse, RequestInfo, RequestResponseInfo> {
-    fn new(parser: RequestParser<RequestResponse>, info: RequestInfo, description: RequestDescription) -> Self {
+impl<RequestResponse, RequestInfo, RequestResponseInfo>
+    RequestData<RequestResponse, RequestInfo, RequestResponseInfo>
+{
+    fn new(
+        parser: RequestParser<RequestResponse>,
+        info: RequestInfo,
+        description: RequestDescription,
+    ) -> Self {
         Self {
             info,
             description,
@@ -25,7 +31,10 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo> RequestData<RequestRespo
         }
     }
 
-    fn parse(&mut self, status_code: StatusCode, bytes: Bytes) where RequestResponseInfo: FromResponse<RequestResponse> {
+    fn parse(&mut self, status_code: StatusCode, bytes: Bytes)
+    where
+        RequestResponseInfo: FromResponse<RequestResponse>,
+    {
         if let Some(parser) = self.parser.take() {
             let response = parser.parse(status_code, bytes);
             let response_info = RequestResponseInfo::from_response(&response);
@@ -71,7 +80,8 @@ where
         description: RequestDescription,
     ) -> RequestId {
         let request_id = description.request_id.unwrap_or_else(|| self.reserve_id());
-        self.requests.insert(request_id, RequestData::new(parser, info, description));
+        self.requests
+            .insert(request_id, RequestData::new(parser, info, description));
         request_id
     }
 
