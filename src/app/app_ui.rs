@@ -1,138 +1,15 @@
+use super::{CalendarApp, CalendarView, EventsView};
 use crate::{
-    app_local_storage::AppLocalStorage,
-    config::Config,
-    db::request::RequestDescription,
     requests::AppRequestResponse,
-    state::State,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
-        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, signal::AppSignal,
-        utils::UiUtils,
+        schedule_card::ScheduleCard, utils::UiUtils,
     },
     utils::*,
 };
 use chrono::{Days, Months, NaiveDate};
-use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, RichText, Sense};
 use num_traits::FromPrimitive;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
-enum EventsView {
-    Month(NaiveDate),
-    Week(NaiveDate),
-    Day(NaiveDate),
-    Days(NaiveDate),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, is_enum_variant)]
-enum CalendarView {
-    Events(EventsView),
-    Schedules,
-    EventTemplates,
-}
-
-#[derive(Deserialize, Serialize)]
-#[serde(default)]
-pub struct CalendarApp {
-    #[serde(skip)]
-    local_storage: AppLocalStorage,
-
-    #[serde(skip)]
-    state: State,
-
-    #[serde(skip)]
-    view: CalendarView,
-
-    #[serde(skip)]
-    popup_manager: PopupManager,
-}
-
-impl Default for CalendarApp {
-    fn default() -> Self {
-        let config = Config::load();
-        let mut local_storage = AppLocalStorage::new();
-        let mut state = State::new(&config);
-        match (local_storage.get_user_id(), local_storage.get_key()) {
-            (Some(user_id), Some(key)) => {
-                state.login_by_key(user_id, key, RequestDescription::new());
-            },
-            _ => {
-                println!("Auth info not found");
-            }
-        }
-
-        Self {
-            local_storage,
-            state,
-            view: CalendarView::Events(EventsView::Days(chrono::Local::now().naive_local().date())),
-            popup_manager: PopupManager::new(),
-        }
-    }
-}
-
-impl CalendarApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        if let Some(_storage) = cc.storage {
-            //return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
-
-        Default::default()
-    }
-}
-
-impl CalendarApp {
-    fn logout(&mut self) {
-        self.popup_manager.clear();
-        self.state.logout(RequestDescription::default());
-    }
-
-    fn parse_signal(&mut self, signal: AppSignal) {
-        match signal {
-            AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
-            AppSignal::ChangeEvent(event_id) => {
-                if let Some(event) = self
-                    .state
-                    .get_events()
-                    .iter()
-                    .find(|event| event.id == event_id)
-                {
-                    self.popup_manager.open_update_event(&event.clone());
-                }
-            }
-            AppSignal::ChangeEventTemplate(template_id) => {
-                if let Some(template) = self
-                    .state
-                    .get_event_templates()
-                    .iter()
-                    .find(|template| template.id == template_id)
-                {
-                    self.popup_manager
-                        .open_update_event_template(&template.clone());
-                }
-            }
-            AppSignal::ChangeSchedule(schedule_id) => {
-                if let Some(schedule) = self
-                    .state
-                    .get_schedules()
-                    .iter()
-                    .find(|schedule| schedule.id == schedule_id)
-                {
-                    self.popup_manager.open_update_schedule(&schedule.clone());
-                }
-            }
-            AppSignal::AddPassword => {
-                self.popup_manager.open_new_password();
-            }
-        }
-    }
-
-    fn parse_signals(&mut self, signals: Vec<AppSignal>) {
-        signals
-            .into_iter()
-            .for_each(|signal| self.parse_signal(signal));
-    }
-}
 
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
@@ -567,10 +444,6 @@ impl CalendarApp {
 }
 
 impl eframe::App for CalendarApp {
-    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
-        //eframe::set_value(storage, eframe::APP_KEY, self);
-    }
-
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         let polled = self.state.poll();
         // TODO: separate function
