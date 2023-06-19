@@ -450,8 +450,7 @@ impl eframe::App for CalendarApp {
         polled.iter().for_each(
             |&request_id| match self.state.connector.get_response(request_id) {
                 Some(AppRequestResponse::Login(response)) => {
-                    self.local_storage.store_user_id(response.user.id);
-                    self.local_storage.store_key(&response.key);
+                    self.local_storage.store_jwt(response.jwt);
                 }
                 _ => {}
             },

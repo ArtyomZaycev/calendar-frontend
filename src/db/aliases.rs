@@ -15,6 +15,6 @@ pub struct EchoStruct {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: User,
-    pub key: Vec<u8>,
+    pub jwt: String,
     pub roles: Vec<Role>,
 }

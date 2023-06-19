@@ -275,10 +275,7 @@ impl State {
 
     pub fn make_request_authorized(&self, method: Method, op: &str) -> RequestBuilder {
         if let Some(me) = &self.me {
-            self.connector.make_request(method, op).basic_auth(
-                me.user.id,
-                Some(std::str::from_utf8(&me.key).expect("parse error")),
-            )
+            self.connector.make_request(method, op).bearer_auth(&me.jwt)
         } else {
             panic!()
         }
@@ -402,18 +399,14 @@ impl State {
             .request(request, parser, AppRequestInfo::None, description)
     }
 
-    pub fn login_by_key(
-        &mut self,
-        user_id: i32,
-        key: Vec<u8>,
-        description: RequestDescription,
-    ) -> RequestId {
+    pub fn login_by_jwt(&mut self, jwt: &str, description: RequestDescription) -> RequestId {
         use auth::login_by_key::*;
 
         let request = self
             .make_request(METHOD.clone(), PATH)
+            .bearer_auth(jwt)
             .query(&Args {})
-            .json(&Body { user_id, key })
+            .json(&Body {})
             .build()
             .unwrap();
 
@@ -807,7 +800,7 @@ impl State {
             AppRequestResponse::Login(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
-                    key: res.key,
+                    jwt: res.jwt,
                     roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;
@@ -818,7 +811,7 @@ impl State {
             AppRequestResponse::LoginByKey(res) => {
                 self.me = Some(UserInfo {
                     user: res.user,
-                    key: res.key,
+                    jwt: res.jwt,
                     roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;

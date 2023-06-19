@@ -23,9 +23,9 @@ impl CalendarApp {
         let config = Config::load();
         let mut local_storage = AppLocalStorage::new();
         let mut state = State::new(&config);
-        match (local_storage.get_user_id(), local_storage.get_key()) {
-            (Some(user_id), Some(key)) => {
-                state.login_by_key(user_id, key, RequestDescription::new());
+        match local_storage.get_jwt() {
+            Some(jwt) => {
+                state.login_by_jwt(&jwt, RequestDescription::new());
             }
             _ => {
                 println!("Auth info not found");
@@ -43,6 +43,7 @@ impl CalendarApp {
 
 impl CalendarApp {
     pub(super) fn logout(&mut self) {
+        self.local_storage.clear_jwt();
         self.popup_manager.clear();
         self.state.logout(RequestDescription::default());
     }
