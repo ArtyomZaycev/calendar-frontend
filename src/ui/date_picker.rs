@@ -181,10 +181,10 @@ impl<'a> Widget for DatePicker<'a> {
         let formated_date = self.date.format(&self.format_string);
         let button_response = ui.button(formated_date.to_string());
         if button_response.clicked() {
-            ui.memory().toggle_popup(self.id);
+            ui.memory_mut(|mem| mem.toggle_popup(self.id));
         }
 
-        if ui.memory().is_popup_open(self.id) {
+        if ui.memory(|mem| mem.is_popup_open(self.id)) {
             let area = Area::new(self.id)
                 .movable(false)
                 .order(Order::Foreground)
@@ -199,9 +199,9 @@ impl<'a> Widget for DatePicker<'a> {
                 .response;
 
             if !button_response.clicked()
-                && (ui.input().key_pressed(Key::Escape) || area_response.clicked_elsewhere())
+                && (ui.input(|inp| inp.key_pressed(Key::Escape)) || area_response.clicked_elsewhere())
             {
-                ui.memory().toggle_popup(self.id);
+                ui.memory_mut(|mem| mem.toggle_popup(self.id));
             }
         }
         button_response
