@@ -199,7 +199,8 @@ impl<'a> Widget for DatePicker<'a> {
                 .response;
 
             if !button_response.clicked()
-                && (ui.input(|inp| inp.key_pressed(Key::Escape)) || area_response.clicked_elsewhere())
+                && (ui.input(|inp| inp.key_pressed(Key::Escape))
+                    || area_response.clicked_elsewhere())
             {
                 ui.memory_mut(|mem| mem.toggle_popup(self.id));
             }

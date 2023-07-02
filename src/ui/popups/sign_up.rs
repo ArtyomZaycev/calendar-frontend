@@ -1,11 +1,11 @@
 use calendar_lib::api::auth::register;
 
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     db::request::{RequestDescription, RequestId},
     requests::AppRequestResponseInfo,
     state::State,
-    ui::signal::RequestSignal,
+    ui::{signal::RequestSignal, utils::UiUtils},
     utils::{is_password_strong_enough, is_valid_email},
 };
 
@@ -37,7 +37,7 @@ impl SignUp {
 }
 
 impl PopupContent for SignUp {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
         if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
@@ -56,15 +56,10 @@ impl PopupContent for SignUp {
         Some("Sign Up".to_owned())
     }
 
-    fn show_content(
-        &mut self,
-        _state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, _state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
-                ui.add(
+                ui.add_consuming_esc(
                     egui::TextEdit::singleline(value)
                         .desired_width(f32::INFINITY)
                         .hint_text(hint)
@@ -98,12 +93,7 @@ impl PopupContent for SignUp {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
             .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
             .clicked()

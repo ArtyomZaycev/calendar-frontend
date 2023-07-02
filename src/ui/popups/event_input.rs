@@ -1,11 +1,11 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
         access_level_picker::AccessLevelPicker, date_picker::DatePicker,
         event_visibility_picker::EventVisibilityPicker, signal::RequestSignal,
-        time_picker::TimePicker,
+        time_picker::TimePicker, utils::UiUtils,
     },
 };
 use calendar_lib::api::{events::types::*, utils::*};
@@ -66,7 +66,7 @@ impl EventInput {
 }
 
 impl PopupContent for EventInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
         if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
@@ -89,15 +89,12 @@ impl PopupContent for EventInput {
         }
     }
 
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
-            ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
-            ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
+            ui.add_consuming_esc(TextEdit::singleline(&mut self.name).hint_text("Name"));
+            ui.add_consuming_esc(
+                TextEdit::multiline(&mut self.description).hint_text("Description"),
+            );
 
             ui.horizontal(|ui| {
                 ui.label("Access level: ");
@@ -130,12 +127,7 @@ impl PopupContent for EventInput {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))

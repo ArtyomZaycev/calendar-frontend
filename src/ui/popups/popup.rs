@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{state::State, ui::signal::AppSignal};
 use derive_is_enum_variant::is_enum_variant;
-use egui::{Align, Layout, Vec2};
+use egui::{Align, Key, Layout, Modifiers, Vec2};
 
 #[derive(is_enum_variant)]
 pub enum PopupType {
@@ -138,6 +138,12 @@ impl Popup {
                         });
                     }
                 });
+                if ui
+                    .ctx()
+                    .input_mut(|inp| inp.consume_key(Modifiers::NONE, Key::Escape))
+                {
+                    info.close();
+                }
             });
         let (signals, is_closed) = info.take();
         self.is_closed = is_closed;

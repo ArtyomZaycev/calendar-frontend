@@ -1,4 +1,4 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     db::request::{RequestDescription, RequestId},
     state::State,
@@ -39,7 +39,7 @@ impl NewPasswordInput {
 }
 
 impl PopupContent for NewPasswordInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
         if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
@@ -54,12 +54,7 @@ impl PopupContent for NewPasswordInput {
         Some("New Password".to_owned())
     }
 
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let show_pass_input = |ui: &mut egui::Ui,
                                enabled: &mut bool,
                                name: &mut String,
@@ -108,12 +103,7 @@ impl PopupContent for NewPasswordInput {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
             .add_enabled(!info.is_error(), egui::Button::new("Add"))
             .clicked()
