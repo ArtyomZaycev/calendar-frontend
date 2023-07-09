@@ -3,13 +3,14 @@ use crate::{
     db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
-        access_level_picker::AccessLevelPicker, date_picker::DatePicker, signal::RequestSignal,
+        access_level_picker::AccessLevelPicker, signal::RequestSignal,
         time_picker::TimePicker,
     },
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
 use egui::{Button, TextEdit, Vec2};
+use egui_extras::DatePickerButton;
 use itertools::Itertools;
 use num_traits::FromPrimitive;
 use std::hash::Hash;
@@ -163,7 +164,7 @@ impl PopupContent for ScheduleInput {
 
             egui::Grid::new(self.eid.with("time_grid")).show(ui, |ui| {
                 ui.label("First day:");
-                ui.add(DatePicker::new("schedule_first_day", &mut self.first_day));
+                ui.add(DatePickerButton::new(&mut self.first_day).show_icon(false));
                 ui.end_row();
 
                 if self.last_day_enabled && self.first_day > self.last_day {
@@ -173,7 +174,7 @@ impl PopupContent for ScheduleInput {
                 ui.label("Last day:");
                 ui.add_enabled(
                     self.last_day_enabled,
-                    DatePicker::new("schedule_last_day", &mut self.last_day),
+                    DatePickerButton::new(&mut self.last_day).show_icon(false),
                 );
                 ui.checkbox(&mut self.last_day_enabled, "");
                 ui.end_row();

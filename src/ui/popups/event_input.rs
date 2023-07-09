@@ -3,7 +3,7 @@ use crate::{
     db::request::{RequestDescription, RequestId},
     state::State,
     ui::{
-        access_level_picker::AccessLevelPicker, date_picker::DatePicker,
+        access_level_picker::AccessLevelPicker,
         event_visibility_picker::EventVisibilityPicker, signal::RequestSignal,
         time_picker::TimePicker,
     },
@@ -11,6 +11,7 @@ use crate::{
 use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
 use egui::TextEdit;
+use egui_extras::DatePickerButton;
 use std::hash::Hash;
 
 pub struct EventInput {
@@ -112,7 +113,7 @@ impl PopupContent for EventInput {
                     .with_label("Visibility: "),
             );
 
-            ui.add(DatePicker::new(self.eid.with("date"), &mut self.date));
+            ui.add(DatePickerButton::new(&mut self.date).show_icon(false));
 
             ui.horizontal(|ui| {
                 ui.add(TimePicker::new(

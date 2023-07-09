@@ -200,6 +200,7 @@ dependencies = [
  "dotenv",
  "eframe",
  "egui",
+ "egui_extras",
  "email_address",
  "encoding_rs",
  "getrandom",
@@ -602,6 +603,17 @@ dependencies = [
  "smithay-clipboard",
  "webbrowser",
  "winit",
+]
+
+[[package]]
+name = "egui_extras"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9278f4337b526f0d57e5375e5a7340a311fa6ee8f9fcc75721ac50af13face02"
+dependencies = [
+ "chrono",
+ "egui",
+ "serde",
 ]
 
 [[package]]
