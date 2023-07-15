@@ -1,4 +1,4 @@
-use super::{CalendarView, EventsView};
+use super::{AppView, CalendarView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
     config::Config,
@@ -10,7 +10,7 @@ use crate::{
 pub struct CalendarApp {
     pub(super) local_storage: AppLocalStorage,
     pub(super) state: State,
-    pub(super) view: CalendarView,
+    pub(super) view: AppView,
     pub(super) popup_manager: PopupManager,
 }
 
@@ -35,7 +35,7 @@ impl CalendarApp {
         Self {
             local_storage,
             state,
-            view: CalendarView::Events(EventsView::Days(chrono::Local::now().naive_local().date())),
+            view: EventsView::Days(chrono::Local::now().naive_local().date()).into(),
             popup_manager: PopupManager::new(),
         }
     }
