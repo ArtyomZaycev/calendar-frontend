@@ -1,4 +1,4 @@
-use super::{AppView, CalendarView, EventsView};
+use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
     config::Config,

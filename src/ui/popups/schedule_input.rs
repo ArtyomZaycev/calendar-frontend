@@ -2,10 +2,7 @@ use super::popup_content::PopupContent;
 use crate::{
     db::request::{RequestDescription, RequestId},
     state::State,
-    ui::{
-        access_level_picker::AccessLevelPicker, signal::RequestSignal,
-        time_picker::TimePicker,
-    },
+    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};

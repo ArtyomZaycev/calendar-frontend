@@ -1,4 +1,4 @@
-use super::{CalendarApp, CalendarView, EventsView, utils::AppView};
+use super::{utils::AppView, CalendarApp, CalendarView, EventsView};
 use crate::{
     requests::AppRequestResponse,
     ui::{
@@ -67,9 +67,7 @@ impl CalendarApp {
     fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.selectable_header("Events", view.is_events(), || {
-                self.set_view(EventsView::Days(
-                    chrono::Local::now().naive_local().date(),
-                ));
+                self.set_view(EventsView::Days(chrono::Local::now().naive_local().date()));
             });
             ui.selectable_header("Schedules", view.is_schedules(), || {
                 self.set_view(CalendarView::Schedules);
@@ -119,38 +117,58 @@ impl CalendarApp {
     fn events_view_picker(&mut self, ui: &mut egui::Ui, view: EventsView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let today = chrono::Local::now().naive_local().date();
-            ui.selectable_header("Month", view.is_month(), || self.set_view(EventsView::Month(today)));
-            ui.selectable_header("Week", view.is_week(), || self.set_view(EventsView::Week(today)));
-            ui.selectable_header("Day", view.is_day(), || self.set_view(EventsView::Day(today)));
-            ui.selectable_header("Events", view.is_days(), || self.set_view(EventsView::Days(today)));
+            ui.selectable_header("Month", view.is_month(), || {
+                self.set_view(EventsView::Month(today))
+            });
+            ui.selectable_header("Week", view.is_week(), || {
+                self.set_view(EventsView::Week(today))
+            });
+            ui.selectable_header("Day", view.is_day(), || {
+                self.set_view(EventsView::Day(today))
+            });
+            ui.selectable_header("Events", view.is_days(), || {
+                self.set_view(EventsView::Days(today))
+            });
 
             ui.add_space(16.);
             match view {
                 EventsView::Month(date) => {
                     if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Month(date.checked_sub_months(Months::new(1)).unwrap()));
+                        self.set_view(EventsView::Month(
+                            date.checked_sub_months(Months::new(1)).unwrap(),
+                        ));
                     }
                     ui.label(date.format("%B %Y").to_string());
                     if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Month(date.checked_add_months(Months::new(1)).unwrap()));
+                        self.set_view(EventsView::Month(
+                            date.checked_add_months(Months::new(1)).unwrap(),
+                        ));
                     }
                 }
                 EventsView::Week(date) => {
                     if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Week(date.checked_sub_days(Days::new(7)).unwrap()));
+                        self.set_view(EventsView::Week(
+                            date.checked_sub_days(Days::new(7)).unwrap(),
+                        ));
                     }
                     ui.label(date.format("%W week %Y").to_string());
                     if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Week(date.checked_add_days(Days::new(7)).unwrap()));
+                        self.set_view(EventsView::Week(
+                            date.checked_add_days(Days::new(7)).unwrap(),
+                        ));
                     }
                 }
                 EventsView::Day(date) => {
                     if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Day(date.checked_sub_days(Days::new(1)).unwrap()));
+                        self.set_view(EventsView::Day(
+                            date.checked_sub_days(Days::new(1)).unwrap(),
+                        ));
                     }
                     ui.label(date.format("%x").to_string());
                     if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Day(date.checked_add_days(Days::new(1)).unwrap()));
+                        self.set_view(EventsView::Day(
+                            date.checked_add_days(Days::new(1)).unwrap(),
+                        ));
                     }
                 }
                 EventsView::Days(_) => {}
@@ -440,19 +458,19 @@ impl CalendarApp {
                             EventsView::Day(date) => self.calendar_events_day_view(ui, date),
                             EventsView::Days(date) => self.calendar_events_days_view(ui, date),
                         }
-                    },
+                    }
                     CalendarView::Schedules => {
                         self.calendar_schedules_view(ui);
-                    },
+                    }
                     CalendarView::EventTemplates => {
                         self.calendar_event_templates_view(ui);
-                    },
+                    }
                 }
                 self.calendar_view_end(ui, calendar_view);
-            },
+            }
             super::utils::AppView::AdminPanel => {
                 self.admin_panel_view(ui);
-            },
+            }
         }
     }
 
@@ -460,7 +478,7 @@ impl CalendarApp {
         self.calendar_view_picker(ui, view);
     }
 
-    fn calendar_view_end(&mut self, ui: &mut egui::Ui, view: CalendarView) {
+    fn calendar_view_end(&mut self, ui: &mut egui::Ui, _view: CalendarView) {
         ui.add_space(8.);
     }
 
@@ -492,9 +510,7 @@ impl CalendarApp {
         self.event_templates_view(ui);
     }
 
-    fn admin_panel_view(&mut self, ui: &mut egui::Ui) {
-
-    }
+    fn admin_panel_view(&mut self, _ui: &mut egui::Ui) {}
 }
 
 impl eframe::App for CalendarApp {
