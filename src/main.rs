@@ -7,7 +7,7 @@ mod config;
 mod db;
 mod local_storage;
 mod requests;
-mod state;
+mod states;
 mod ui;
 mod utils;
 

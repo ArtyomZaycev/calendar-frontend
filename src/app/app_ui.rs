@@ -7,6 +7,7 @@ use crate::{
     },
     utils::*,
 };
+use calendar_lib::api::roles::types::Role;
 use chrono::{Days, Months, NaiveDate};
 use egui::{Align, Layout, RichText, Sense};
 use num_traits::FromPrimitive;
@@ -21,6 +22,10 @@ impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.heading("Calendar");
+
+            if let Some(me) = self.state.get_me() {
+                if me.has_role(Role::SuperAdmin) {}
+            }
 
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 // RTL

@@ -1,4 +1,5 @@
-use super::requests::AppRequestResponse;
+use super::UserState;
+use crate::requests::AppRequestResponse;
 use crate::{
     config::Config,
     db::{
@@ -8,6 +9,7 @@ use crate::{
         request_parser::RequestParser,
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
+    states::*,
     ui::signal::{RequestSignal, StateSignal},
 };
 use calendar_lib::api::{
@@ -25,16 +27,15 @@ use std::collections::HashMap;
 
 pub struct State {
     pub connector: Connector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
+    // TODO: Move to app?
     /// Has both server and phantom events
     events_per_day: HashMap<NaiveDate, Vec<Event>>,
     current_access_level: i32,
 
     me: Option<UserInfo>,
-    access_levels: Vec<AccessLevel>,
-    users: Vec<User>,
-    event_templates: Vec<EventTemplate>,
-    events: Vec<Event>,
-    schedules: Vec<Schedule>,
+
+    user_state: UserState,
+    admin_state: Option<AdminState>,
 
     pub errors: Vec<()>,
 }
@@ -44,13 +45,10 @@ impl State {
         Self {
             connector: Connector::new(config),
             events_per_day: HashMap::new(),
-            me: None,
             current_access_level: -1,
-            access_levels: Vec::default(),
-            users: Vec::default(),
-            event_templates: Vec::default(),
-            events: Vec::default(),
-            schedules: Vec::default(),
+            me: None,
+            user_state: UserState::new(),
+            admin_state: None,
             errors: Vec::default(),
         }
     }
@@ -64,18 +62,18 @@ impl State {
 
     fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
         let event_exists = |plan_id: i32| {
-            self.events
+            self.get_events()
                 .iter()
                 .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
         let level = self.get_access_level().level;
-        self.schedules
+        self.get_schedules()
             .iter()
             .filter(move |s| s.access_level <= level)
             .flat_map(|schedule| {
                 match self
-                    .event_templates
+                    .get_event_templates()
                     .iter()
                     .find(|template| template.id == schedule.template_id)
                 {
@@ -109,7 +107,7 @@ impl State {
         if !self.events_per_day.contains_key(&date) {
             let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
-                self.events
+                self.get_events()
                     .iter()
                     .filter(|e| e.start.date() == date)
                     .filter_map(move |e| {
@@ -142,12 +140,12 @@ impl State {
 impl State {
     pub fn get_access_level(&self) -> AccessLevel {
         let levels = self
-            .access_levels
+            .get_access_levels()
             .iter()
             .filter(|l| l.level == self.current_access_level)
             .collect_vec();
         if levels.len() == 0 {
-            self.access_levels.last().unwrap().clone()
+            self.get_access_levels().last().unwrap().clone()
         } else if levels.len() == 1 {
             levels[0].clone()
         } else {
@@ -159,19 +157,29 @@ impl State {
         &self.me
     }
     pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
-        &self.access_levels
-    }
-    pub fn get_users(&self) -> &Vec<User> {
-        &self.users
+        self.user_state.get_access_levels()
     }
     pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
-        &self.event_templates
+        self.user_state.get_event_templates()
     }
     pub fn get_events(&self) -> &Vec<Event> {
-        &self.events
+        self.user_state.get_events()
     }
     pub fn get_schedules(&self) -> &Vec<Schedule> {
-        &self.schedules
+        self.user_state.get_schedules()
+    }
+
+    fn get_access_levels_mut(&mut self) -> &mut Vec<AccessLevel> {
+        self.user_state.get_access_levels_mut()
+    }
+    fn get_event_templates_mut(&mut self) -> &mut Vec<EventTemplate> {
+        self.user_state.get_event_templates_mut()
+    }
+    fn get_events_mut(&mut self) -> &mut Vec<Event> {
+        self.user_state.get_events_mut()
+    }
+    fn get_schedules_mut(&mut self) -> &mut Vec<Schedule> {
+        self.user_state.get_schedules_mut()
     }
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
@@ -232,15 +240,17 @@ impl State {
                     self.new_password(access_level, viewer_password, editor_password, description);
                 }
                 RequestSignal::AcceptScheduledEvent(date, plan_id) => {
-                    if let Some((schedule, plan)) = self.schedules.iter().find_map(|schedule| {
-                        schedule
-                            .event_plans
-                            .iter()
-                            .find(|plan| plan.id == plan_id)
-                            .map(|plan| (schedule, plan))
-                    }) {
+                    if let Some((schedule, plan)) =
+                        self.get_schedules().iter().find_map(|schedule| {
+                            schedule
+                                .event_plans
+                                .iter()
+                                .find(|plan| plan.id == plan_id)
+                                .map(|plan| (schedule, plan))
+                        })
+                    {
                         if let Some(template) = self
-                            .event_templates
+                            .get_event_templates()
                             .iter()
                             .find(|template| schedule.template_id == template.id)
                         {
@@ -281,7 +291,7 @@ impl State {
         }
     }
 
-    // Use for testing only
+    /// Use for testing only
     #[cfg(debug_assertions)]
     #[allow(dead_code)]
     fn make_empty_parser() -> RequestParser<AppRequestResponse> {
@@ -382,14 +392,7 @@ impl State {
             .build()
             .unwrap();
 
-        self.me = None;
-        self.events_per_day.clear();
-        self.current_access_level = -1;
-        self.access_levels = vec![];
-        self.users = vec![];
-        self.event_templates = vec![];
-        self.events = vec![];
-        self.schedules = vec![];
+        self.clear_state();
 
         let parser = RequestParser::new_split(
             |_| AppRequestResponse::None,
@@ -795,6 +798,16 @@ impl State {
         self.load_schedules(RequestDescription::default());
     }
 
+    fn clear_state(&mut self) {
+        self.me = None;
+        self.events_per_day.clear();
+        self.current_access_level = -1;
+        self.user_state.clear();
+        self.admin_state = None;
+    }
+
+    fn load_admin_state(&mut self) {}
+
     fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
         match response {
             AppRequestResponse::Login(res) => {
@@ -804,7 +817,7 @@ impl State {
                     roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;
-                self.access_levels = vec![res.access_level];
+                self.user_state.access_levels = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::LoginError(_) => {}
@@ -815,7 +828,7 @@ impl State {
                     roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;
-                self.access_levels = vec![res.access_level];
+                self.user_state.access_levels = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::Register(_) => {}
@@ -825,8 +838,8 @@ impl State {
             }
             AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));
-                self.access_levels = r.array;
-                self.access_levels.sort_by_key(|l| l.level);
+                self.user_state.access_levels = r.array;
+                self.user_state.access_levels.sort_by_key(|l| l.level);
             }
             AppRequestResponse::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
@@ -836,23 +849,23 @@ impl State {
             AppRequestResponse::LoadEvent(res) => {
                 let event = res.value;
                 self.clear_events_for_day(event.start.date());
-                match self.events.iter_mut().find(|e| e.id == event.id) {
+                match self.get_events_mut().iter_mut().find(|e| e.id == event.id) {
                     Some(e) => *e = event,
-                    None => self.events.push(event),
+                    None => self.get_events_mut().push(event),
                 }
             }
             AppRequestResponse::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadEvent(id) = info {
-                        if let Some(ind) = self.events.iter().position(|e| e.id == id) {
-                            self.clear_events_for_day(self.events[ind].start.date());
-                            self.events.remove(ind);
+                        if let Some(ind) = self.get_events().iter().position(|e| e.id == id) {
+                            self.clear_events_for_day(self.get_events()[ind].start.date());
+                            self.get_events_mut().remove(ind);
                         }
                     }
                 }
             },
             AppRequestResponse::LoadEvents(res) => {
-                self.events = res.array;
+                *self.get_events_mut() = res.array;
                 self.clear_events();
             }
             AppRequestResponse::InsertEvent(_) => {
@@ -865,35 +878,37 @@ impl State {
             }
             AppRequestResponse::DeleteEvent(_) => {
                 if let AppRequestInfo::DeleteEvent(id) = info {
-                    if let Some(ind) = self.events.iter().position(|e| e.id == id) {
-                        self.clear_events_for_day(self.events[ind].start.date());
-                        self.events.remove(ind);
+                    if let Some(ind) = self.get_events().iter().position(|e| e.id == id) {
+                        self.clear_events_for_day(self.get_events()[ind].start.date());
+                        self.get_events_mut().remove(ind);
                     }
                 }
             }
             AppRequestResponse::LoadEventTemplate(res) => {
                 let template = res.value;
                 match self
-                    .event_templates
+                    .get_event_templates_mut()
                     .iter_mut()
                     .find(|t| t.id == template.id)
                 {
                     Some(t) => *t = template,
-                    None => self.event_templates.push(template),
+                    None => self.get_event_templates_mut().push(template),
                 }
                 self.clear_events();
             }
             AppRequestResponse::LoadEventTemplateError(res) => match res {
                 event_templates::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadEventTemplate(id) = info {
-                        if let Some(ind) = self.event_templates.iter().position(|t| t.id == id) {
-                            self.event_templates.remove(ind);
+                        if let Some(ind) =
+                            self.get_event_templates().iter().position(|t| t.id == id)
+                        {
+                            self.get_event_templates_mut().remove(ind);
                         }
                     }
                 }
             },
             AppRequestResponse::LoadEventTemplates(res) => {
-                self.event_templates = res.array;
+                *self.get_event_templates_mut() = res.array;
             }
             AppRequestResponse::InsertEventTemplate(_) => {
                 self.load_event_templates(RequestDescription::default());
@@ -905,31 +920,35 @@ impl State {
             }
             AppRequestResponse::DeleteEventTemplate(_) => {
                 if let AppRequestInfo::DeleteEventTemplate(id) = info {
-                    if let Some(ind) = self.event_templates.iter().position(|e| e.id == id) {
-                        self.event_templates.remove(ind);
+                    if let Some(ind) = self.get_event_templates().iter().position(|e| e.id == id) {
+                        self.get_event_templates_mut().remove(ind);
                     }
                 }
             }
             AppRequestResponse::LoadSchedule(res) => {
                 let schedule = res.value;
-                match self.schedules.iter_mut().find(|s| s.id == schedule.id) {
+                match self
+                    .get_schedules_mut()
+                    .iter_mut()
+                    .find(|s| s.id == schedule.id)
+                {
                     Some(s) => *s = schedule,
-                    None => self.schedules.push(schedule),
+                    None => self.get_schedules_mut().push(schedule),
                 }
                 self.clear_events();
             }
             AppRequestResponse::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadSchedule(id) = info {
-                        if let Some(ind) = self.schedules.iter().position(|t| t.id == id) {
-                            self.schedules.remove(ind);
+                        if let Some(ind) = self.get_schedules().iter().position(|t| t.id == id) {
+                            self.get_schedules_mut().remove(ind);
                             self.clear_events();
                         }
                     }
                 }
             },
             AppRequestResponse::LoadSchedules(res) => {
-                self.schedules = res.array;
+                *self.get_schedules_mut() = res.array;
                 self.clear_events();
             }
             AppRequestResponse::InsertSchedule(_) => {
@@ -942,8 +961,8 @@ impl State {
             }
             AppRequestResponse::DeleteSchedule(_) => {
                 if let AppRequestInfo::DeleteSchedule(id) = info {
-                    if let Some(ind) = self.schedules.iter().position(|s| s.id == id) {
-                        self.schedules.remove(ind);
+                    if let Some(ind) = self.get_schedules().iter().position(|s| s.id == id) {
+                        self.get_schedules_mut().remove(ind);
                         self.clear_events();
                     }
                 }

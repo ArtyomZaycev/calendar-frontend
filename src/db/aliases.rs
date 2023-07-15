@@ -2,6 +2,7 @@ use calendar_lib::api::utils;
 pub use calendar_lib::api::*;
 pub use event_templates::types::*;
 pub use events::types::*;
+use itertools::Itertools;
 pub use roles::types::*;
 pub use schedules::types::*;
 use serde::{Deserialize, Serialize};
@@ -17,4 +18,14 @@ pub struct UserInfo {
     pub user: User,
     pub jwt: String,
     pub roles: Vec<Role>,
+}
+
+impl UserInfo {
+    pub fn is_admin(&self) -> bool {
+        self.has_role(Role::Admin) || self.has_role(Role::SuperAdmin)
+    }
+
+    pub fn has_role(&self, role: Role) -> bool {
+        self.roles.iter().contains(&role)
+    }
 }

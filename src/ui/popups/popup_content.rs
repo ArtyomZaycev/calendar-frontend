@@ -1,6 +1,6 @@
 use egui::{Align, Color32, Layout, RichText};
 
-use crate::{state::State, ui::signal::AppSignal};
+use crate::{states::State, ui::signal::AppSignal};
 
 pub struct ContentInfo {
     signals: Vec<AppSignal>,
