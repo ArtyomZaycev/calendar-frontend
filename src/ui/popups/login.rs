@@ -4,7 +4,7 @@ use super::popup_content::PopupContent;
 use crate::{
     db::request::{RequestDescription, RequestId},
     requests::AppRequestResponseInfo,
-    states::State,
+    state::State,
     ui::signal::RequestSignal,
     utils::{is_password_strong_enough, is_password_valid, is_valid_email},
 };

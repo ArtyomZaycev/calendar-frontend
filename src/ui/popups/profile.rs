@@ -1,6 +1,6 @@
 use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    states::State,
+    state::State,
     ui::{
         access_level_picker::AccessLevelPicker,
         signal::{AppSignal, StateSignal},

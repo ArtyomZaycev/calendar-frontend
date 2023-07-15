@@ -3,7 +3,7 @@ use calendar_lib::api::{
 };
 use itertools::Itertools;
 
-use crate::{states::State, ui::signal::AppSignal};
+use crate::{state::State, ui::signal::AppSignal};
 
 use super::{
     event_input::EventInput,

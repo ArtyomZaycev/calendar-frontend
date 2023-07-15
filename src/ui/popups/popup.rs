@@ -8,7 +8,7 @@ use super::{
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
-use crate::{states::State, ui::signal::AppSignal};
+use crate::{state::State, ui::signal::AppSignal};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, Vec2};
 
