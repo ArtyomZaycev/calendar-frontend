@@ -346,7 +346,6 @@ impl State {
     pub(super) fn load_state(&mut self) {
         self.load_access_levels(RequestDescription::default());
         self.load_events(RequestDescription::default());
-        self.load_user_roles(RequestDescription::default());
         self.load_event_templates(RequestDescription::default());
         self.load_schedules(RequestDescription::default());
 
@@ -375,7 +374,6 @@ impl State {
                 self.me = Some(UserInfo {
                     user: res.user,
                     jwt: res.jwt,
-                    roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;
                 self.user_state.access_levels = vec![res.access_level];
@@ -386,7 +384,6 @@ impl State {
                 self.me = Some(UserInfo {
                     user: res.user,
                     jwt: res.jwt,
-                    roles: vec![],
                 });
                 self.current_access_level = res.access_level.level;
                 self.user_state.access_levels = vec![res.access_level];
@@ -404,7 +401,7 @@ impl State {
             }
             AppRequestResponse::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
-                    me.roles = res.array;
+                    me.user.roles = res.array;
                 }
             }
             AppRequestResponse::LoadEvent(res) => {

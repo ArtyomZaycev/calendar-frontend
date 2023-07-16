@@ -16,8 +16,8 @@ pub struct EchoStruct {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: User,
+    // TODO: Move to Connector?
     pub jwt: String,
-    pub roles: Vec<Role>,
 }
 
 impl UserInfo {
@@ -26,6 +26,6 @@ impl UserInfo {
     }
 
     pub fn has_role(&self, role: Role) -> bool {
-        self.roles.iter().contains(&role)
+        self.user.roles.iter().contains(&role)
     }
 }
