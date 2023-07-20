@@ -190,7 +190,10 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(|r| AppRequestResponse::LoadUser(r), |r| AppRequestResponse::LoadUserError(r));
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequestResponse::LoadUser(r),
+            |r| AppRequestResponse::LoadUserError(r),
+        );
         self.connector
             .request(request, parser, AppRequestInfo::LoadUser(id), description)
     }
@@ -214,13 +217,22 @@ impl State {
 
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { user_id: Some(user_id) })
+            .query(&Args {
+                user_id: Some(user_id),
+            })
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(|r| AppRequestResponse::LoadUserState(r), |r| AppRequestResponse::LoadUserStateError(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::LoadUserState { user_id }, description)
+        let parser = Self::make_typed_bad_request_parser(
+            |r| AppRequestResponse::LoadUserState(r),
+            |r| AppRequestResponse::LoadUserStateError(r),
+        );
+        self.connector.request(
+            request,
+            parser,
+            AppRequestInfo::LoadUserState { user_id },
+            description,
+        )
     }
 
     pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {

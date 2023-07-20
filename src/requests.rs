@@ -1,7 +1,5 @@
 use crate::db::request_parser::FromResponse;
-use calendar_lib::api::{
-    *,
-};
+use calendar_lib::api::*;
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 
@@ -59,7 +57,9 @@ pub enum AppRequestResponse {
 #[derive(Clone, Debug, Default, is_enum_variant)]
 pub enum AppRequestInfo {
     LoadUser(i32),
-    LoadUserState { user_id: i32 },
+    LoadUserState {
+        user_id: i32,
+    },
     LoadEvent(i32),
     UpdateEvent(i32),
     //UpdateEvents(Vec<i32>),

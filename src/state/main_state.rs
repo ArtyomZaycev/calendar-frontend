@@ -4,7 +4,7 @@ use crate::{
     config::Config,
     db::{
         aliases::*,
-        connector::Connector,
+        connector::DbConnector,
         request::{RequestDescription, RequestId},
         request_parser::RequestParser,
     },
@@ -20,7 +20,7 @@ use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 pub struct State {
-    pub connector: Connector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
+    pub connector: DbConnector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
     // TODO: Move to app?
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
@@ -37,7 +37,7 @@ pub struct State {
 impl State {
     pub fn new(config: &Config) -> Self {
         Self {
-            connector: Connector::new(config),
+            connector: DbConnector::new(config),
             events_per_day: HashMap::new(),
             current_access_level: -1,
             me: None,
@@ -344,7 +344,13 @@ impl State {
 
 impl State {
     pub(super) fn load_state(&mut self) {
-        self.load_user_state(self.get_me().clone().map(|me| me.user.id).unwrap_or_default(), RequestDescription::default());
+        self.load_user_state(
+            self.get_me()
+                .clone()
+                .map(|me| me.user.id)
+                .unwrap_or_default(),
+            RequestDescription::default(),
+        );
         /*
         self.load_access_levels(RequestDescription::default());
         self.load_events(RequestDescription::default());
@@ -422,7 +428,11 @@ impl State {
             }
             AppRequestResponse::LoadUserState(res) => {
                 if let AppRequestInfo::LoadUserState { user_id } = info {
-                    if self.get_me().clone().map_or(false, |me| me.user.id == user_id) {
+                    if self
+                        .get_me()
+                        .clone()
+                        .map_or(false, |me| me.user.id == user_id)
+                    {
                         *self.get_access_levels_mut() = res.access_levels;
                         *self.get_events_mut() = res.events;
                         *self.get_event_templates_mut() = res.event_templates;

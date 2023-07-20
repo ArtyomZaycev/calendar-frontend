@@ -18,7 +18,7 @@ impl RequestResult {
     }
 }
 
-pub struct Connector<RequestResponse, RequestInfo, RequestResponseInfo>
+pub struct DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
 where
     RequestResponse: Clone,
     RequestInfo: Clone,
@@ -35,7 +35,7 @@ where
 }
 
 impl<RequestResponse, RequestInfo, RequestResponseInfo>
-    Connector<RequestResponse, RequestInfo, RequestResponseInfo>
+    DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
 where
     RequestResponse: Clone,
     RequestInfo: Clone,

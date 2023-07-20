@@ -532,11 +532,11 @@ impl eframe::App for CalendarApp {
                 _ => {}
             },
         );
-/*
-        if self.state.get_me().as_ref().map(|v| v.is_admin()).unwrap_or_default() && self.view.is_calendar() {
-            self.view = AppView::AdminPanel;
-        }
- */
+        /*
+               if self.state.get_me().as_ref().map(|v| v.is_admin()).unwrap_or_default() && self.view.is_calendar() {
+                   self.view = AppView::AdminPanel;
+               }
+        */
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);
             let signals = self.popup_manager.get_signals();
