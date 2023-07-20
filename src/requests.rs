@@ -1,22 +1,29 @@
 use crate::db::request_parser::FromResponse;
 use calendar_lib::api::{
-    auth::{self, login, login_by_key, new_password, register},
-    event_templates, events, schedules, user_roles,
+    *,
 };
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
 
 #[derive(Clone, Debug, is_enum_variant)]
 pub enum AppRequestResponse {
-    Login(login::Response),
-    LoginError(login::BadRequestResponse),
+    Login(auth::login::Response),
+    LoginError(auth::login::BadRequestResponse),
 
-    LoginByKey(login_by_key::Response),
+    LoginByKey(auth::login_by_key::Response),
 
-    Register(register::Response),
-    RegisterError(register::BadRequestResponse),
+    Register(auth::register::Response),
+    RegisterError(auth::register::BadRequestResponse),
 
-    NewPassword(new_password::Response),
+    NewPassword(auth::new_password::Response),
+
+    LoadUserIds(users::load_ids::Response),
+    LoadUser(users::load::Response),
+    LoadUserError(users::load::BadRequestResponse),
+    LoadUsers(users::load_array::Response),
+
+    LoadUserState(user_state::load::Response),
+    LoadUserStateError(user_state::load::BadRequestResponse),
 
     LoadAccessLevels(auth::load_access_levels::Response),
     LoadUserRoles(user_roles::load_array::Response),
@@ -51,6 +58,8 @@ pub enum AppRequestResponse {
 /// Lightweight request info
 #[derive(Clone, Debug, Default, is_enum_variant)]
 pub enum AppRequestInfo {
+    LoadUser(i32),
+    LoadUserState { user_id: i32 },
     LoadEvent(i32),
     UpdateEvent(i32),
     //UpdateEvents(Vec<i32>),
@@ -74,8 +83,9 @@ pub enum AppRequestInfo {
 /// Lightweight request response info
 #[derive(Clone, Debug, Default, is_enum_variant)]
 pub enum AppRequestResponseInfo {
-    LoginError(login::BadRequestResponse),
-    RegisterError(register::BadRequestResponse),
+    LoginError(auth::login::BadRequestResponse),
+    RegisterError(auth::register::BadRequestResponse),
+    LoadUserStateError(user_state::load::BadRequestResponse),
     LoadEventError(events::load::BadRequestResponse),
     LoadEventTemplateError(event_templates::load::BadRequestResponse),
     LoadScheduleError(schedules::load::BadRequestResponse),
@@ -91,6 +101,7 @@ impl FromResponse<AppRequestResponse> for AppRequestResponseInfo {
         match response {
             AppRequestResponse::LoginError(r) => Self::LoginError(r.clone()),
             AppRequestResponse::RegisterError(r) => Self::RegisterError(r.clone()),
+            AppRequestResponse::LoadUserStateError(r) => Self::LoadUserStateError(r.clone()),
             AppRequestResponse::LoadEventError(r) => Self::LoadEventError(r.clone()),
             AppRequestResponse::LoadEventTemplateError(r) => {
                 Self::LoadEventTemplateError(r.clone())

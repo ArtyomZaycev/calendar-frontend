@@ -8,6 +8,7 @@ use crate::{
     requests::AppRequestInfo,
     state::*,
 };
+use calendar_lib::api;
 use calendar_lib::api::{
     auth::{self, types::NewPassword},
     events, schedules, user_roles,
@@ -164,6 +165,62 @@ impl State {
         let parser = Self::make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
+    }
+
+    pub fn load_user_ids(&mut self, description: RequestDescription) -> RequestId {
+        use users::load_ids::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadUserIds(r));
+        self.connector
+            .request(request, parser, AppRequestInfo::None, description)
+    }
+
+    pub fn load_user(&mut self, id: i32, description: RequestDescription) -> RequestId {
+        use users::load::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { user_id: id })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_typed_bad_request_parser(|r| AppRequestResponse::LoadUser(r), |r| AppRequestResponse::LoadUserError(r));
+        self.connector
+            .request(request, parser, AppRequestInfo::LoadUser(id), description)
+    }
+
+    pub fn load_users(&mut self, description: RequestDescription) -> RequestId {
+        use users::load_array::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args {})
+            .build()
+            .unwrap();
+
+        let parser = Self::make_parser(|r| AppRequestResponse::LoadUsers(r));
+        self.connector
+            .request(request, parser, AppRequestInfo::None, description)
+    }
+
+    pub fn load_user_state(&mut self, user_id: i32, description: RequestDescription) -> RequestId {
+        use api::user_state::load::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { user_id: Some(user_id) })
+            .build()
+            .unwrap();
+
+        let parser = Self::make_typed_bad_request_parser(|r| AppRequestResponse::LoadUserState(r), |r| AppRequestResponse::LoadUserStateError(r));
+        self.connector
+            .request(request, parser, AppRequestInfo::LoadUserState { user_id }, description)
     }
 
     pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {

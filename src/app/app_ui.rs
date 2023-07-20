@@ -515,7 +515,9 @@ impl CalendarApp {
         self.event_templates_view(ui);
     }
 
-    fn admin_panel_view(&mut self, _ui: &mut egui::Ui) {}
+    fn admin_panel_view(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Admin Panel");
+    }
 }
 
 impl eframe::App for CalendarApp {
@@ -530,7 +532,11 @@ impl eframe::App for CalendarApp {
                 _ => {}
             },
         );
-
+/*
+        if self.state.get_me().as_ref().map(|v| v.is_admin()).unwrap_or_default() && self.view.is_calendar() {
+            self.view = AppView::AdminPanel;
+        }
+ */
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);
             let signals = self.popup_manager.get_signals();

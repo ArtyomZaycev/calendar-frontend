@@ -344,10 +344,13 @@ impl State {
 
 impl State {
     pub(super) fn load_state(&mut self) {
+        self.load_user_state(self.get_me().clone().map(|me| me.user.id).unwrap_or_default(), RequestDescription::default());
+        /*
         self.load_access_levels(RequestDescription::default());
         self.load_events(RequestDescription::default());
         self.load_event_templates(RequestDescription::default());
         self.load_schedules(RequestDescription::default());
+         */
 
         if let Some(me) = self.get_me() {
             if me.is_admin() {
@@ -366,6 +369,7 @@ impl State {
 
     pub(super) fn load_admin_state(&mut self) {
         self.admin_state = Some(AdminState::new());
+        self.load_user_ids(RequestDescription::default());
     }
 
     pub(super) fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
@@ -393,6 +397,50 @@ impl State {
             AppRequestResponse::RegisterError(_) => {}
             AppRequestResponse::NewPassword(_) => {
                 self.load_access_levels(RequestDescription::default());
+            }
+            AppRequestResponse::LoadUserIds(res) => {
+                if let Some(admin_state) = &mut self.admin_state {
+                    admin_state.parse_load_user_ids(res);
+                }
+            }
+            AppRequestResponse::LoadUser(res) => {
+                if let Some(admin_state) = &mut self.admin_state {
+                    admin_state.parse_load_user(res);
+                }
+            }
+            AppRequestResponse::LoadUserError(res) => {
+                if let AppRequestInfo::LoadUser(id) = info {
+                    if let Some(admin_state) = &mut self.admin_state {
+                        admin_state.parse_load_user_error(id, res);
+                    }
+                }
+            }
+            AppRequestResponse::LoadUsers(res) => {
+                if let Some(admin_state) = &mut self.admin_state {
+                    admin_state.parse_load_users(res);
+                }
+            }
+            AppRequestResponse::LoadUserState(res) => {
+                if let AppRequestInfo::LoadUserState { user_id } = info {
+                    if self.get_me().clone().map_or(false, |me| me.user.id == user_id) {
+                        *self.get_access_levels_mut() = res.access_levels;
+                        *self.get_events_mut() = res.events;
+                        *self.get_event_templates_mut() = res.event_templates;
+                        *self.get_schedules_mut() = res.schedules;
+                        self.clear_events();
+                    } else {
+                        if let Some(admin_state) = &mut self.admin_state {
+                            admin_state.parse_load_state(user_id, res);
+                        }
+                    }
+                }
+            }
+            AppRequestResponse::LoadUserStateError(res) => {
+                if let AppRequestInfo::LoadUserState { user_id } = info {
+                    if let Some(admin_state) = &mut self.admin_state {
+                        admin_state.parse_load_state_error(user_id, res);
+                    }
+                }
             }
             AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));

@@ -1,6 +1,6 @@
 use calendar_lib::api::{
     auth::types::AccessLevel, event_templates::types::EventTemplate, events::types::Event,
-    schedules::types::Schedule,
+    schedules::types::Schedule, user_state,
 };
 
 pub struct UserState {
@@ -8,6 +8,17 @@ pub struct UserState {
     pub(super) event_templates: Vec<EventTemplate>,
     pub(super) events: Vec<Event>,
     pub(super) schedules: Vec<Schedule>,
+}
+
+impl Into<UserState> for user_state::load::Response {
+    fn into(self) -> UserState {
+        UserState {
+            access_levels: self.access_levels,
+            event_templates: self.event_templates,
+            events: self.events,
+            schedules: self.schedules,
+        }
+    }
 }
 
 impl UserState {
