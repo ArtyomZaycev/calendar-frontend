@@ -1,21 +1,20 @@
-use crate::db::request::RequestBuilder;
-use crate::db::table::{DbTableDelete, DbTableInsert, DbTableLoad, DbTableLoadAll, DbTableUpdate};
 use crate::requests::AppRequestResponse;
-use crate::tables::*;
 use crate::tables::utils::*;
 use crate::{
     db::{
         aliases::*,
-        request::{RequestDescription, RequestId},
-        request_parser::RequestParser,
+        request::*,
+        request_parser::*,
+        table::*,
     },
     requests::AppRequestInfo,
     state::*,
 };
-use calendar_lib::api;
+
 use calendar_lib::api::{
+    self,
     auth::{self, types::NewPassword},
-    schedules, user_roles,
+    user_roles,
 };
 use serde::Serialize;
 
@@ -258,10 +257,10 @@ impl State {
     }
 
     pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(Events::load_by_id(id), description)
+        self.request(self.user_state.events.load_by_id(id), description)
     }
     pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
-        self.request(Events::load_all(), description)
+        self.request(self.user_state.events.load_all(), description)
     }
     pub fn insert_event(
         &mut self,
@@ -271,24 +270,24 @@ impl State {
         if new_event.user_id == -1 {
             new_event.user_id = self.me.as_ref().unwrap().user.id;
         }
-        self.request(Events::insert(new_event), description)
+        self.request(self.user_state.events.insert(new_event), description)
     }
     pub fn update_event(
         &mut self,
         upd_event: UpdateEvent,
         description: RequestDescription,
     ) -> RequestId {
-        self.request(Events::update(upd_event), description)
+        self.request(self.user_state.events.update(upd_event), description)
     }
     pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(Events::delete_by_id(id), description)
+        self.request(self.user_state.events.delete_by_id(id), description)
     }
 
     pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(EventTemplates::load_by_id(id), description)
+        self.request(self.user_state.event_templates.load_by_id(id), description)
     }
     pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
-        self.request(EventTemplates::load_all(), description)
+        self.request(self.user_state.event_templates.load_all(), description)
     }
     pub fn insert_event_template(
         &mut self,
@@ -298,24 +297,33 @@ impl State {
         if new_event_template.user_id == -1 {
             new_event_template.user_id = self.me.as_ref().unwrap().user.id;
         }
-        self.request(EventTemplates::insert(new_event_template), description)
+        self.request(
+            self.user_state.event_templates.insert(new_event_template),
+            description,
+        )
     }
     pub fn update_event_template(
         &mut self,
         upd_event_template: UpdateEventTemplate,
         description: RequestDescription,
     ) -> RequestId {
-        self.request(EventTemplates::update(upd_event_template), description)
+        self.request(
+            self.user_state.event_templates.update(upd_event_template),
+            description,
+        )
     }
     pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(EventTemplates::delete_by_id(id), description)
+        self.request(
+            self.user_state.event_templates.delete_by_id(id),
+            description,
+        )
     }
 
     pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(Schedules::load_by_id(id), description)
+        self.request(self.user_state.event_templates.load_by_id(id), description)
     }
     pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
-        self.request(Schedules::load_all(), description)
+        self.request(self.user_state.schedules.load_all(), description)
     }
     pub fn insert_schedule(
         &mut self,
@@ -325,16 +333,16 @@ impl State {
         if new_schedule.user_id == -1 {
             new_schedule.user_id = self.me.as_ref().unwrap().user.id;
         }
-        self.request(Schedules::insert(new_schedule), description)
+        self.request(self.user_state.schedules.insert(new_schedule), description)
     }
     pub fn update_schedule(
         &mut self,
         upd_schedule: UpdateSchedule,
         description: RequestDescription,
     ) -> RequestId {
-        self.request(Schedules::update(upd_schedule), description)
+        self.request(self.user_state.schedules.update(upd_schedule), description)
     }
     pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(Schedules::delete_by_id(id), description)
+        self.request(self.user_state.schedules.delete_by_id(id), description)
     }
 }

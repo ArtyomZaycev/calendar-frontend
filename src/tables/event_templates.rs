@@ -43,7 +43,9 @@ impl EventTemplates {
 
 impl From<Vec<EventTemplate>> for EventTemplates {
     fn from(value: Vec<EventTemplate>) -> Self {
-        Self { event_templates: value }
+        Self {
+            event_templates: value,
+        }
     }
 }
 
@@ -60,7 +62,7 @@ impl DbTable<EventTemplate> for EventTemplates {
 impl DbTableLoadAll<EventTemplate> for EventTemplates {
     type Args = event_templates::load_array::Args;
 
-    fn load_all() -> RequestBuilder<Self::Args, ()> {
+    fn load_all(&self) -> RequestBuilder<Self::Args, ()> {
         use event_templates::load_array::*;
 
         let parser = make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
@@ -77,7 +79,7 @@ impl DbTableLoadAll<EventTemplate> for EventTemplates {
 impl DbTableLoad<EventTemplate> for EventTemplates {
     type Args = event_templates::load::Args;
 
-    fn load_by_id(id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn load_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use event_templates::load::*;
 
         let parser = make_typed_bad_request_parser(
@@ -99,7 +101,10 @@ impl DbTableInsert<NewEventTemplate> for EventTemplates {
     type Args = event_templates::insert::Args;
     type Body = event_templates::insert::Body;
 
-    fn insert(new_event_template: NewEventTemplate) -> RequestBuilder<Self::Args, Self::Body> {
+    fn insert(
+        &self,
+        new_event_template: NewEventTemplate,
+    ) -> RequestBuilder<Self::Args, Self::Body> {
         use event_templates::insert::*;
 
         let parser = make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
@@ -117,7 +122,10 @@ impl DbTableUpdate<UpdateEventTemplate> for EventTemplates {
     type Args = event_templates::update::Args;
     type Body = event_templates::update::Body;
 
-    fn update(upd_event_template: UpdateEventTemplate) -> RequestBuilder<Self::Args, Self::Body> {
+    fn update(
+        &self,
+        upd_event_template: UpdateEventTemplate,
+    ) -> RequestBuilder<Self::Args, Self::Body> {
         use event_templates::update::*;
 
         let id = upd_event_template.id;
@@ -136,7 +144,7 @@ impl DbTableUpdate<UpdateEventTemplate> for EventTemplates {
 impl DbTableDelete<EventTemplate> for EventTemplates {
     type Args = event_templates::delete::Args;
 
-    fn delete_by_id(id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn delete_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use event_templates::delete::*;
 
         let parser = make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));

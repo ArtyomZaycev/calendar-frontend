@@ -1,10 +1,12 @@
 use calendar_lib::api::events::{self, types::*};
 
 use crate::{
-    db::{request::RequestBuilder, table::*},
+    db::{request_parser::RequestParser, table::*},
     requests::*,
     tables::utils::*,
 };
+
+use super::table::*;
 
 impl DbTableItem for Event {
     type Id = i32;
@@ -24,128 +26,137 @@ impl DbTableUpdateItem for UpdateEvent {
     }
 }
 
-#[derive(Default)]
-pub struct Events {
-    events: Vec<Event>,
-}
-
-impl Events {
-    pub fn new() -> Self {
-        Self {
-            events: Vec::default(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.events.clear();
-    }
-}
-
-impl From<Vec<Event>> for Events {
-    fn from(value: Vec<Event>) -> Self {
-        Self { events: value }
-    }
-}
-
-impl DbTable<Event> for Events {
-    fn get(&self) -> &Vec<Event> {
-        &self.events
-    }
-
-    fn get_mut(&mut self) -> &mut Vec<Event> {
-        &mut self.events
-    }
-}
-
-impl DbTableLoadAll<Event> for Events {
-    type Args = events::load_array::Args;
-
-    fn load_all() -> RequestBuilder<Self::Args, ()> {
-        use events::load_array::*;
-
-        let parser = make_parser(|r| AppRequestResponse::LoadEvents(r));
-
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_parser(parser)
-    }
-}
-
-impl DbTableLoad<Event> for Events {
+impl TableLoadById<Event> for Table<Event> {
     type Args = events::load::Args;
 
-    fn load_by_id(id: i32) -> RequestBuilder<Self::Args, ()> {
-        use events::load::*;
+    fn get_method() -> reqwest::Method {
+        events::load::METHOD.clone()
+    }
 
-        let parser = make_typed_bad_request_parser(
+    fn get_path() -> &'static str {
+        events::load::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_typed_bad_request_parser(
             |r| AppRequestResponse::LoadEvent(r),
             |r| AppRequestResponse::LoadEventError(r),
-        );
+        )
+    }
 
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::LoadEvent(id))
-            .with_parser(parser)
+    fn make_args(id: i32) -> Self::Args {
+        events::load::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::LoadEvent(id)
     }
 }
 
-impl DbTableInsert<NewEvent> for Events {
+impl TableLoadAll<Event> for Table<Event> {
+    type Args = events::load_array::Args;
+
+    fn get_method() -> reqwest::Method {
+        events::load_array::METHOD.clone()
+    }
+
+    fn get_path() -> &'static str {
+        events::load_array::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(
+            |r| AppRequestResponse::LoadEvents(r),
+        )
+    }
+
+    fn make_args() -> Self::Args {
+        events::load_array::Args { }
+    }
+
+    fn make_info() -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+}
+
+impl TableInsert<NewEvent> for Table<Event> {
     type Args = events::insert::Args;
     type Body = events::insert::Body;
 
-    fn insert(new_event: NewEvent) -> RequestBuilder<Self::Args, Self::Body> {
-        use events::insert::*;
+    fn get_method() -> reqwest::Method {
+        events::insert::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::InsertEvent(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { new_event })
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        events::insert::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::InsertEvent(r))
+    }
+
+    fn make_args(new_item: &NewEvent) -> Self::Args {
+        events::insert::Args {}
+    }
+
+    fn make_info(new_item: &NewEvent) -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+
+    fn make_body(new_item: NewEvent) -> Self::Body {
+        events::insert::Body { new_event: new_item }
     }
 }
 
-impl DbTableUpdate<UpdateEvent> for Events {
+impl TableUpdate<UpdateEvent> for Table<Event> {
     type Args = events::update::Args;
     type Body = events::update::Body;
 
-    fn update(upd_event: UpdateEvent) -> RequestBuilder<Self::Args, Self::Body> {
-        use events::update::*;
+    fn get_method() -> reqwest::Method {
+        events::update::METHOD.clone()
+    }
 
-        let id = upd_event.id;
-        let parser = make_parser(|r| AppRequestResponse::UpdateEvent(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { upd_event })
-            .with_info(AppRequestInfo::UpdateEvent(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        events::update::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::UpdateEvent(r))
+    }
+
+    fn make_args(upd_item: &UpdateEvent) -> Self::Args {
+        events::update::Args {}
+    }
+
+    fn make_info(upd_item: &UpdateEvent) -> AppRequestInfo {
+        AppRequestInfo::UpdateEvent(upd_item.id)
+    }
+
+    fn make_body(upd_item: UpdateEvent) -> Self::Body {
+        events::update::Body { upd_event: upd_item }
     }
 }
 
-impl DbTableDelete<Event> for Events {
+impl TableDeleteById<Event> for Table<Event> {
     type Args = events::delete::Args;
 
-    fn delete_by_id(id: i32) -> RequestBuilder<Self::Args, ()> {
-        use events::delete::*;
+    fn get_method() -> reqwest::Method {
+        events::delete::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::DeleteEvent(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::DeleteEvent(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        events::delete::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::DeleteEvent(r))
+    }
+
+    fn make_args(id: i32) -> Self::Args {
+        events::delete::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::DeleteEvent(id)
     }
 }

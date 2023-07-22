@@ -7,7 +7,6 @@ use crate::{
         aliases::*,
         connector::DbConnector,
         request::{RequestDescription, RequestId},
-        request_parser::RequestParser,
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
     state::*,
@@ -16,8 +15,8 @@ use crate::{
 use calendar_lib::api::{auth::types::AccessLevel, events, schedules};
 use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
-use reqwest::{Method, RequestBuilder, StatusCode};
-use serde::de::DeserializeOwned;
+use reqwest::{Method, RequestBuilder};
+
 use std::collections::HashMap;
 
 pub struct State {
@@ -155,7 +154,7 @@ impl State {
         self.user_state.get_access_levels()
     }
     pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
-        self.user_state.get_event_templates()
+        self.user_state.event_templates.get()
     }
     pub fn get_events(&self) -> &Vec<Event> {
         self.user_state.events.get()
@@ -168,7 +167,7 @@ impl State {
         self.user_state.get_access_levels_mut()
     }
     pub(super) fn get_event_templates_mut(&mut self) -> &mut Vec<EventTemplate> {
-        self.user_state.get_event_templates_mut()
+        self.user_state.event_templates.get_mut()
     }
     pub(super) fn get_events_mut(&mut self) -> &mut Vec<Event> {
         self.user_state.events.get_mut()

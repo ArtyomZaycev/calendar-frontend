@@ -2,79 +2,66 @@ use serde::Serialize;
 
 use super::item::*;
 use crate::db::request::RequestBuilder;
-use crate::{
-    db::request_parser::FromResponse,
-    requests::{AppRequestInfo, AppRequestResponse, AppRequestResponseInfo},
-};
+use crate::requests::{AppRequestInfo, AppRequestResponse};
 
-pub trait DbTableLoadAll<
+pub trait DbTableLoadAll<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+where
     T: DbTableItem,
-    RequestResponse = AppRequestResponse,
-    RequestInfo = AppRequestInfo,
-    RequestResponseInfo = AppRequestResponseInfo,
-> where
     RequestResponse: Clone,
-    RequestInfo: Clone,
-    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+    RequestInfo: Clone + Default,
 {
     type Args: Serialize;
-    fn load_all() -> RequestBuilder<Self::Args, ()>;
+    fn load_all(&self) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }
 
-pub trait DbTableLoad<
+pub trait DbTableLoad<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+where
     T: DbTableItem,
-    RequestResponse = AppRequestResponse,
-    RequestInfo = AppRequestInfo,
-    RequestResponseInfo = AppRequestResponseInfo,
-> where
     RequestResponse: Clone,
-    RequestInfo: Clone,
-    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+    RequestInfo: Clone + Default,
 {
     type Args: Serialize;
-    fn load_by_id(id: T::Id) -> RequestBuilder<Self::Args, ()>;
+    fn load_by_id(&self, id: T::Id)
+        -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }
 
-pub trait DbTableInsert<
+pub trait DbTableInsert<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+where
     T: DbTableNewItem,
-    RequestResponse = AppRequestResponse,
-    RequestInfo = AppRequestInfo,
-    RequestResponseInfo = AppRequestResponseInfo,
-> where
     RequestResponse: Clone,
-    RequestInfo: Clone,
-    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+    RequestInfo: Clone + Default,
 {
     type Args: Serialize;
     type Body: Serialize;
-    fn insert(new_item: T) -> RequestBuilder<Self::Args, Self::Body>;
+    fn insert(
+        &self,
+        new_item: T,
+    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo>;
 }
 
-pub trait DbTableUpdate<
+pub trait DbTableUpdate<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+where
     T: DbTableUpdateItem,
-    RequestResponse = AppRequestResponse,
-    RequestInfo = AppRequestInfo,
-    RequestResponseInfo = AppRequestResponseInfo,
-> where
     RequestResponse: Clone,
-    RequestInfo: Clone,
-    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+    RequestInfo: Clone + Default,
 {
     type Args: Serialize;
     type Body: Serialize;
-    fn update(update_item: T) -> RequestBuilder<Self::Args, Self::Body>;
+    fn update(
+        &self,
+        update_item: T,
+    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo>;
 }
 
-pub trait DbTableDelete<
+pub trait DbTableDelete<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+where
     T: DbTableItem,
-    RequestResponse = AppRequestResponse,
-    RequestInfo = AppRequestInfo,
-    RequestResponseInfo = AppRequestResponseInfo,
-> where
     RequestResponse: Clone,
-    RequestInfo: Clone,
-    RequestResponseInfo: Clone + FromResponse<RequestResponse>,
+    RequestInfo: Clone + Default,
 {
     type Args: Serialize;
-    fn delete_by_id(id: T::Id) -> RequestBuilder<Self::Args, ()>;
+    fn delete_by_id(
+        &self,
+        id: T::Id,
+    ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }

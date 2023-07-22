@@ -1,14 +1,11 @@
-use calendar_lib::api::{
-    auth::types::AccessLevel, event_templates::types::EventTemplate, schedules::types::Schedule,
-    user_state,
-};
+use calendar_lib::api::{auth::types::AccessLevel, events::types::*, user_state};
 
-use crate::tables::*;
+use crate::tables::{table::Table, *};
 
 pub struct UserState {
     pub(super) access_levels: Vec<AccessLevel>,
-    pub(super) event_templates: Vec<EventTemplate>,
-    pub events: Events,
+    pub event_templates: EventTemplates,
+    pub events: Table<Event>,
     pub schedules: Schedules,
 }
 
@@ -16,8 +13,8 @@ impl Into<UserState> for user_state::load::Response {
     fn into(self) -> UserState {
         UserState {
             access_levels: self.access_levels,
-            event_templates: self.event_templates,
-            events: Events::from(self.events),
+            event_templates: EventTemplates::default(),
+            events: Table::from_vec(self.events),
             schedules: Schedules::from(self.schedules),
         }
     }
@@ -35,7 +32,7 @@ impl UserState {
 
     pub fn clear(&mut self) {
         self.access_levels = vec![];
-        self.event_templates = vec![];
+        self.event_templates.clear();
         self.events.clear();
         self.schedules.clear();
     }
@@ -45,14 +42,8 @@ impl UserState {
     pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
         &self.access_levels
     }
-    pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
-        &self.event_templates
-    }
 
     pub(super) fn get_access_levels_mut(&mut self) -> &mut Vec<AccessLevel> {
         &mut self.access_levels
-    }
-    pub(super) fn get_event_templates_mut(&mut self) -> &mut Vec<EventTemplate> {
-        &mut self.event_templates
     }
 }
