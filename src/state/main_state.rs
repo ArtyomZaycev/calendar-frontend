@@ -1,12 +1,12 @@
 use super::UserState;
+use crate::db::table::DbTable;
 use crate::requests::AppRequestResponse;
 use crate::{
     config::Config,
     db::{
         aliases::*,
-        connector::Connector,
+        connector::DbConnector,
         request::{RequestDescription, RequestId},
-        request_parser::RequestParser,
     },
     requests::{AppRequestInfo, AppRequestResponseInfo},
     state::*,
@@ -15,12 +15,12 @@ use crate::{
 use calendar_lib::api::{auth::types::AccessLevel, events, schedules};
 use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
-use reqwest::{Method, RequestBuilder, StatusCode};
-use serde::de::DeserializeOwned;
+use reqwest::{Method, RequestBuilder};
+
 use std::collections::HashMap;
 
 pub struct State {
-    pub connector: Connector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
+    pub connector: DbConnector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
     // TODO: Move to app?
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
@@ -37,7 +37,7 @@ pub struct State {
 impl State {
     pub fn new(config: &Config) -> Self {
         Self {
-            connector: Connector::new(config),
+            connector: DbConnector::new(config),
             events_per_day: HashMap::new(),
             current_access_level: -1,
             me: None,
@@ -147,33 +147,33 @@ impl State {
         }
     }
 
-    pub fn get_me(&self) -> &Option<UserInfo> {
-        &self.me
+    pub fn get_me(&self) -> Option<&UserInfo> {
+        self.me.as_ref()
     }
     pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
-        self.user_state.get_access_levels()
+        self.user_state.access_levels.get()
     }
     pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
-        self.user_state.get_event_templates()
+        self.user_state.event_templates.get()
     }
     pub fn get_events(&self) -> &Vec<Event> {
-        self.user_state.get_events()
+        self.user_state.events.get()
     }
     pub fn get_schedules(&self) -> &Vec<Schedule> {
-        self.user_state.get_schedules()
+        self.user_state.schedules.get()
     }
 
     pub(super) fn get_access_levels_mut(&mut self) -> &mut Vec<AccessLevel> {
-        self.user_state.get_access_levels_mut()
+        self.user_state.access_levels.get_mut()
     }
     pub(super) fn get_event_templates_mut(&mut self) -> &mut Vec<EventTemplate> {
-        self.user_state.get_event_templates_mut()
+        self.user_state.event_templates.get_mut()
     }
     pub(super) fn get_events_mut(&mut self) -> &mut Vec<Event> {
-        self.user_state.get_events_mut()
+        self.user_state.events.get_mut()
     }
     pub(super) fn get_schedules_mut(&mut self) -> &mut Vec<Schedule> {
-        self.user_state.get_schedules_mut()
+        self.user_state.schedules.get_mut()
     }
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
@@ -284,67 +284,17 @@ impl State {
             panic!()
         }
     }
-
-    /// Use for testing only
-    #[cfg(debug_assertions)]
-    #[allow(dead_code)]
-    pub(super) fn make_empty_parser() -> RequestParser<AppRequestResponse> {
-        RequestParser::new_split(
-            |_| AppRequestResponse::None,
-            |_, _| AppRequestResponse::None,
-        )
-    }
-
-    pub(super) fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequestResponse>
-    where
-        U: DeserializeOwned,
-        F: FnOnce(U) -> AppRequestResponse + 'static,
-    {
-        RequestParser::new_complex(on_success, |code, s| AppRequestResponse::Error(code, s))
-    }
-
-    #[allow(dead_code)]
-    pub(super) fn make_bad_request_parser<T, F1, F2>(
-        on_success: F1,
-        on_bad_request: F2,
-    ) -> RequestParser<AppRequestResponse>
-    where
-        T: DeserializeOwned,
-        F1: FnOnce(T) -> AppRequestResponse + 'static,
-        F2: FnOnce(String) -> AppRequestResponse + 'static,
-    {
-        RequestParser::new_complex(on_success, |code, msg| {
-            if code == StatusCode::BAD_REQUEST {
-                on_bad_request(msg)
-            } else {
-                AppRequestResponse::Error(code, msg)
-            }
-        })
-    }
-
-    pub(super) fn make_typed_bad_request_parser<T, U, F1, F2>(
-        on_success: F1,
-        on_bad_request: F2,
-    ) -> RequestParser<AppRequestResponse>
-    where
-        T: DeserializeOwned,
-        U: DeserializeOwned,
-        F1: FnOnce(T) -> AppRequestResponse + 'static,
-        F2: FnOnce(U) -> AppRequestResponse + 'static,
-    {
-        RequestParser::new_complex(on_success, |code, msg| {
-            if code == StatusCode::BAD_REQUEST {
-                on_bad_request(serde_json::from_str(&msg).unwrap())
-            } else {
-                AppRequestResponse::Error(code, msg)
-            }
-        })
-    }
 }
 
 impl State {
     pub(super) fn load_state(&mut self) {
-        self.load_user_state(self.get_me().clone().map(|me| me.user.id).unwrap_or_default(), RequestDescription::default());
+        self.load_user_state(
+            self.get_me()
+                .clone()
+                .map(|me| me.user.id)
+                .unwrap_or_default(),
+            RequestDescription::default(),
+        );
         /*
         self.load_access_levels(RequestDescription::default());
         self.load_events(RequestDescription::default());
@@ -380,7 +330,7 @@ impl State {
                     jwt: res.jwt,
                 });
                 self.current_access_level = res.access_level.level;
-                self.user_state.access_levels = vec![res.access_level];
+                *self.user_state.access_levels.get_mut() = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::LoginError(_) => {}
@@ -390,7 +340,7 @@ impl State {
                     jwt: res.jwt,
                 });
                 self.current_access_level = res.access_level.level;
-                self.user_state.access_levels = vec![res.access_level];
+                *self.user_state.access_levels.get_mut() = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::Register(_) => {}
@@ -422,7 +372,11 @@ impl State {
             }
             AppRequestResponse::LoadUserState(res) => {
                 if let AppRequestInfo::LoadUserState { user_id } = info {
-                    if self.get_me().clone().map_or(false, |me| me.user.id == user_id) {
+                    if self
+                        .get_me()
+                        .clone()
+                        .map_or(false, |me| me.user.id == user_id)
+                    {
                         *self.get_access_levels_mut() = res.access_levels;
                         *self.get_events_mut() = res.events;
                         *self.get_event_templates_mut() = res.event_templates;
@@ -444,8 +398,11 @@ impl State {
             }
             AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));
-                self.user_state.access_levels = r.array;
-                self.user_state.access_levels.sort_by_key(|l| l.level);
+                *self.user_state.access_levels.get_mut() = r.array;
+                self.user_state
+                    .access_levels
+                    .get_mut()
+                    .sort_by_key(|l| l.level);
             }
             AppRequestResponse::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
@@ -455,17 +412,13 @@ impl State {
             AppRequestResponse::LoadEvent(res) => {
                 let event = res.value;
                 self.clear_events_for_day(event.start.date());
-                match self.get_events_mut().iter_mut().find(|e| e.id == event.id) {
-                    Some(e) => *e = event,
-                    None => self.get_events_mut().push(event),
-                }
+                self.user_state.events.push_one(event);
             }
             AppRequestResponse::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadEvent(id) = info {
-                        if let Some(ind) = self.get_events().iter().position(|e| e.id == id) {
-                            self.clear_events_for_day(self.get_events()[ind].start.date());
-                            self.get_events_mut().remove(ind);
+                        if let Some(event) = self.user_state.events.remove_one(id) {
+                            self.clear_events_for_day(event.start.date());
                         }
                     }
                 }
