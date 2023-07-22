@@ -1,7 +1,8 @@
 use crate::db::request::RequestBuilder;
 use crate::db::table::{DbTableDelete, DbTableInsert, DbTableLoad, DbTableLoadAll, DbTableUpdate};
 use crate::requests::AppRequestResponse;
-use crate::tables::Events;
+use crate::tables::*;
+use crate::tables::utils::*;
 use crate::{
     db::{
         aliases::*,
@@ -50,7 +51,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
+        let parser = make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -64,7 +65,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadUserRoles(r));
+        let parser = make_parser(|r| AppRequestResponse::LoadUserRoles(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -100,7 +101,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::LoginByKey(r));
+        let parser = make_parser(|r| AppRequestResponse::LoginByKey(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -126,7 +127,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(
+        let parser = make_typed_bad_request_parser(
             |r| AppRequestResponse::Login(r),
             |r| AppRequestResponse::LoginError(r),
         );
@@ -154,7 +155,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(
+        let parser = make_typed_bad_request_parser(
             |r| AppRequestResponse::Register(r),
             |r| AppRequestResponse::RegisterError(r),
         );
@@ -183,7 +184,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::NewPassword(r));
+        let parser = make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -197,7 +198,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadUserIds(r));
+        let parser = make_parser(|r| AppRequestResponse::LoadUserIds(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -211,7 +212,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(
+        let parser = make_typed_bad_request_parser(
             |r| AppRequestResponse::LoadUser(r),
             |r| AppRequestResponse::LoadUserError(r),
         );
@@ -228,7 +229,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadUsers(r));
+        let parser = make_parser(|r| AppRequestResponse::LoadUsers(r));
         self.connector
             .request(request, parser, AppRequestInfo::None, description)
     }
@@ -244,7 +245,7 @@ impl State {
             .build()
             .unwrap();
 
-        let parser = Self::make_typed_bad_request_parser(
+        let parser = make_typed_bad_request_parser(
             |r| AppRequestResponse::LoadUserState(r),
             |r| AppRequestResponse::LoadUserStateError(r),
         );
@@ -284,194 +285,56 @@ impl State {
     }
 
     pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use event_templates::load::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequestResponse::LoadEventTemplate(r),
-            |r| AppRequestResponse::LoadEventTemplateError(r),
-        );
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::LoadEventTemplate(id),
-            description,
-        )
+        self.request(EventTemplates::load_by_id(id), description)
     }
     pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
-        use event_templates::load_array::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(EventTemplates::load_all(), description)
     }
     pub fn insert_event_template(
         &mut self,
         mut new_event_template: NewEventTemplate,
         description: RequestDescription,
     ) -> RequestId {
-        use event_templates::insert::*;
-
         if new_event_template.user_id == -1 {
             new_event_template.user_id = self.me.as_ref().unwrap().user.id;
         }
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { new_event_template })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(EventTemplates::insert(new_event_template), description)
     }
     pub fn update_event_template(
         &mut self,
         upd_event_template: UpdateEventTemplate,
         description: RequestDescription,
     ) -> RequestId {
-        use event_templates::update::*;
-
-        let id = upd_event_template.id;
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { upd_event_template })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::UpdateEventTemplate(id),
-            description,
-        )
+        self.request(EventTemplates::update(upd_event_template), description)
     }
     pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use event_templates::delete::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::DeleteEventTemplate(id),
-            description,
-        )
+        self.request(EventTemplates::delete_by_id(id), description)
     }
 
     pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use schedules::load::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequestResponse::LoadSchedule(r),
-            |r| AppRequestResponse::LoadScheduleError(r),
-        );
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::LoadSchedule(id),
-            description,
-        )
+        self.request(Schedules::load_by_id(id), description)
     }
     pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
-        use schedules::load_array::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadSchedules(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(Schedules::load_all(), description)
     }
     pub fn insert_schedule(
         &mut self,
         mut new_schedule: NewSchedule,
         description: RequestDescription,
     ) -> RequestId {
-        use schedules::insert::*;
-
         if new_schedule.user_id == -1 {
             new_schedule.user_id = self.me.as_ref().unwrap().user.id;
         }
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { new_schedule })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::InsertSchedule(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(Schedules::insert(new_schedule), description)
     }
     pub fn update_schedule(
         &mut self,
         upd_schedule: UpdateSchedule,
         description: RequestDescription,
     ) -> RequestId {
-        use schedules::update::*;
-
-        let id = upd_schedule.id;
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { upd_schedule })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::UpdateSchedule(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::UpdateSchedule(id),
-            description,
-        )
+        self.request(Schedules::update(upd_schedule), description)
     }
     pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use schedules::delete::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::DeleteSchedule(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::DeleteSchedule(id),
-            description,
-        )
+        self.request(Schedules::delete_by_id(id), description)
     }
 }

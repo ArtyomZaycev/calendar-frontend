@@ -6,14 +6,14 @@ use crate::{db::request_parser::RequestParser, requests::*};
 /// Use for testing only
 #[cfg(debug_assertions)]
 #[allow(dead_code)]
-pub(super) fn make_empty_parser<RequestResponse: Default>() -> RequestParser<AppRequestResponse> {
+pub fn make_empty_parser<RequestResponse: Default>() -> RequestParser<AppRequestResponse> {
     RequestParser::new_split(
         |_| AppRequestResponse::None,
         |_, _| AppRequestResponse::None,
     )
 }
 
-pub(super) fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequestResponse>
+pub fn make_parser<U, F>(on_success: F) -> RequestParser<AppRequestResponse>
 where
     U: DeserializeOwned,
     F: FnOnce(U) -> AppRequestResponse + 'static,
@@ -22,7 +22,7 @@ where
 }
 
 #[allow(dead_code)]
-pub(super) fn make_bad_request_parser<T, F1, F2>(
+pub fn make_bad_request_parser<T, F1, F2>(
     on_success: F1,
     on_bad_request: F2,
 ) -> RequestParser<AppRequestResponse>
@@ -40,7 +40,7 @@ where
     })
 }
 
-pub(super) fn make_typed_bad_request_parser<T, U, F1, F2>(
+pub fn make_typed_bad_request_parser<T, U, F1, F2>(
     on_success: F1,
     on_bad_request: F2,
 ) -> RequestParser<AppRequestResponse>
