@@ -77,7 +77,7 @@ impl DbTableLoadAll<Schedule> for Schedules {
 impl DbTableLoad<Schedule> for Schedules {
     type Args = schedules::load::Args;
 
-    fn load_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn load_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use schedules::load::*;
 
         let parser = make_typed_bad_request_parser(
@@ -99,7 +99,7 @@ impl DbTableInsert<NewSchedule> for Schedules {
     type Args = schedules::insert::Args;
     type Body = schedules::insert::Body;
 
-    fn insert(&self, new_schedule: NewSchedule) -> RequestBuilder<Self::Args, Self::Body> {
+    fn insert_request(&self, new_schedule: NewSchedule) -> RequestBuilder<Self::Args, Self::Body> {
         use schedules::insert::*;
 
         let parser = make_parser(|r| AppRequestResponse::InsertSchedule(r));
@@ -117,7 +117,10 @@ impl DbTableUpdate<UpdateSchedule> for Schedules {
     type Args = schedules::update::Args;
     type Body = schedules::update::Body;
 
-    fn update(&self, upd_schedule: UpdateSchedule) -> RequestBuilder<Self::Args, Self::Body> {
+    fn update_request(
+        &self,
+        upd_schedule: UpdateSchedule,
+    ) -> RequestBuilder<Self::Args, Self::Body> {
         use schedules::update::*;
 
         let id = upd_schedule.id;
@@ -136,7 +139,7 @@ impl DbTableUpdate<UpdateSchedule> for Schedules {
 impl DbTableDelete<Schedule> for Schedules {
     type Args = schedules::delete::Args;
 
-    fn delete_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn delete_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use schedules::delete::*;
 
         let parser = make_parser(|r| AppRequestResponse::DeleteSchedule(r));

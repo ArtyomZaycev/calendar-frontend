@@ -409,17 +409,13 @@ impl State {
             AppRequestResponse::LoadEvent(res) => {
                 let event = res.value;
                 self.clear_events_for_day(event.start.date());
-                match self.get_events_mut().iter_mut().find(|e| e.id == event.id) {
-                    Some(e) => *e = event,
-                    None => self.get_events_mut().push(event),
-                }
+                self.user_state.events.push_one(event);
             }
             AppRequestResponse::LoadEventError(res) => match res {
                 events::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadEvent(id) = info {
-                        if let Some(ind) = self.get_events().iter().position(|e| e.id == id) {
-                            self.clear_events_for_day(self.get_events()[ind].start.date());
-                            self.get_events_mut().remove(ind);
+                        if let Some(event) = self.user_state.events.remove_one(id) {
+                            self.clear_events_for_day(event.start.date());
                         }
                     }
                 }

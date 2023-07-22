@@ -21,8 +21,10 @@ where
     RequestInfo: Clone + Default,
 {
     type Args: Serialize;
-    fn load_by_id(&self, id: T::Id)
-        -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
+    fn load_by_id_request(
+        &self,
+        id: T::Id,
+    ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }
 
 pub trait DbTableInsert<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
@@ -33,7 +35,7 @@ where
 {
     type Args: Serialize;
     type Body: Serialize;
-    fn insert(
+    fn insert_request(
         &self,
         new_item: T,
     ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo>;
@@ -47,7 +49,7 @@ where
 {
     type Args: Serialize;
     type Body: Serialize;
-    fn update(
+    fn update_request(
         &self,
         update_item: T,
     ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo>;
@@ -60,7 +62,7 @@ where
     RequestInfo: Clone + Default,
 {
     type Args: Serialize;
-    fn delete_by_id(
+    fn delete_by_id_request(
         &self,
         id: T::Id,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;

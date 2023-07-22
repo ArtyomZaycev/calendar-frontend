@@ -65,13 +65,11 @@ impl TableLoadAll<Event> for Table<Event> {
     }
 
     fn make_parser() -> RequestParser<AppRequestResponse> {
-        make_parser(
-            |r| AppRequestResponse::LoadEvents(r),
-        )
+        make_parser(|r| AppRequestResponse::LoadEvents(r))
     }
 
     fn make_args() -> Self::Args {
-        events::load_array::Args { }
+        events::load_array::Args {}
     }
 
     fn make_info() -> AppRequestInfo {
@@ -95,16 +93,18 @@ impl TableInsert<NewEvent> for Table<Event> {
         make_parser(|r| AppRequestResponse::InsertEvent(r))
     }
 
-    fn make_args(new_item: &NewEvent) -> Self::Args {
+    fn make_args(_new_item: &NewEvent) -> Self::Args {
         events::insert::Args {}
     }
 
-    fn make_info(new_item: &NewEvent) -> AppRequestInfo {
+    fn make_info(_new_item: &NewEvent) -> AppRequestInfo {
         AppRequestInfo::None
     }
 
     fn make_body(new_item: NewEvent) -> Self::Body {
-        events::insert::Body { new_event: new_item }
+        events::insert::Body {
+            new_event: new_item,
+        }
     }
 }
 
@@ -124,7 +124,7 @@ impl TableUpdate<UpdateEvent> for Table<Event> {
         make_parser(|r| AppRequestResponse::UpdateEvent(r))
     }
 
-    fn make_args(upd_item: &UpdateEvent) -> Self::Args {
+    fn make_args(_upd_item: &UpdateEvent) -> Self::Args {
         events::update::Args {}
     }
 
@@ -133,7 +133,9 @@ impl TableUpdate<UpdateEvent> for Table<Event> {
     }
 
     fn make_body(upd_item: UpdateEvent) -> Self::Body {
-        events::update::Body { upd_event: upd_item }
+        events::update::Body {
+            upd_event: upd_item,
+        }
     }
 }
 

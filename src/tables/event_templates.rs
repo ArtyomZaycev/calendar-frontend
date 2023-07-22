@@ -79,7 +79,7 @@ impl DbTableLoadAll<EventTemplate> for EventTemplates {
 impl DbTableLoad<EventTemplate> for EventTemplates {
     type Args = event_templates::load::Args;
 
-    fn load_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn load_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use event_templates::load::*;
 
         let parser = make_typed_bad_request_parser(
@@ -101,7 +101,7 @@ impl DbTableInsert<NewEventTemplate> for EventTemplates {
     type Args = event_templates::insert::Args;
     type Body = event_templates::insert::Body;
 
-    fn insert(
+    fn insert_request(
         &self,
         new_event_template: NewEventTemplate,
     ) -> RequestBuilder<Self::Args, Self::Body> {
@@ -122,7 +122,7 @@ impl DbTableUpdate<UpdateEventTemplate> for EventTemplates {
     type Args = event_templates::update::Args;
     type Body = event_templates::update::Body;
 
-    fn update(
+    fn update_request(
         &self,
         upd_event_template: UpdateEventTemplate,
     ) -> RequestBuilder<Self::Args, Self::Body> {
@@ -144,7 +144,7 @@ impl DbTableUpdate<UpdateEventTemplate> for EventTemplates {
 impl DbTableDelete<EventTemplate> for EventTemplates {
     type Args = event_templates::delete::Args;
 
-    fn delete_by_id(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
+    fn delete_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
         use event_templates::delete::*;
 
         let parser = make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));

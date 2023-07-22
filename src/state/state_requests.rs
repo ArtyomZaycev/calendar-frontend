@@ -1,12 +1,7 @@
 use crate::requests::AppRequestResponse;
 use crate::tables::utils::*;
 use crate::{
-    db::{
-        aliases::*,
-        request::*,
-        request_parser::*,
-        table::*,
-    },
+    db::{aliases::*, request::*, request_parser::*, table::*},
     requests::AppRequestInfo,
     state::*,
 };
@@ -257,7 +252,7 @@ impl State {
     }
 
     pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.load_by_id(id), description)
+        self.request(self.user_state.events.load_by_id_request(id), description)
     }
     pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
         self.request(self.user_state.events.load_all(), description)
@@ -270,21 +265,30 @@ impl State {
         if new_event.user_id == -1 {
             new_event.user_id = self.me.as_ref().unwrap().user.id;
         }
-        self.request(self.user_state.events.insert(new_event), description)
+        self.request(
+            self.user_state.events.insert_request(new_event),
+            description,
+        )
     }
     pub fn update_event(
         &mut self,
         upd_event: UpdateEvent,
         description: RequestDescription,
     ) -> RequestId {
-        self.request(self.user_state.events.update(upd_event), description)
+        self.request(
+            self.user_state.events.update_request(upd_event),
+            description,
+        )
     }
     pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.delete_by_id(id), description)
+        self.request(self.user_state.events.delete_by_id_request(id), description)
     }
 
     pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.event_templates.load_by_id(id), description)
+        self.request(
+            self.user_state.event_templates.load_by_id_request(id),
+            description,
+        )
     }
     pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
         self.request(self.user_state.event_templates.load_all(), description)
@@ -298,7 +302,9 @@ impl State {
             new_event_template.user_id = self.me.as_ref().unwrap().user.id;
         }
         self.request(
-            self.user_state.event_templates.insert(new_event_template),
+            self.user_state
+                .event_templates
+                .insert_request(new_event_template),
             description,
         )
     }
@@ -308,19 +314,24 @@ impl State {
         description: RequestDescription,
     ) -> RequestId {
         self.request(
-            self.user_state.event_templates.update(upd_event_template),
+            self.user_state
+                .event_templates
+                .update_request(upd_event_template),
             description,
         )
     }
     pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
         self.request(
-            self.user_state.event_templates.delete_by_id(id),
+            self.user_state.event_templates.delete_by_id_request(id),
             description,
         )
     }
 
     pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.event_templates.load_by_id(id), description)
+        self.request(
+            self.user_state.event_templates.load_by_id_request(id),
+            description,
+        )
     }
     pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
         self.request(self.user_state.schedules.load_all(), description)
@@ -333,16 +344,25 @@ impl State {
         if new_schedule.user_id == -1 {
             new_schedule.user_id = self.me.as_ref().unwrap().user.id;
         }
-        self.request(self.user_state.schedules.insert(new_schedule), description)
+        self.request(
+            self.user_state.schedules.insert_request(new_schedule),
+            description,
+        )
     }
     pub fn update_schedule(
         &mut self,
         upd_schedule: UpdateSchedule,
         description: RequestDescription,
     ) -> RequestId {
-        self.request(self.user_state.schedules.update(upd_schedule), description)
+        self.request(
+            self.user_state.schedules.update_request(upd_schedule),
+            description,
+        )
     }
     pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.schedules.delete_by_id(id), description)
+        self.request(
+            self.user_state.schedules.delete_by_id_request(id),
+            description,
+        )
     }
 }

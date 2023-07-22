@@ -33,6 +33,33 @@ impl<T: DbTableItem> Table<T> {
     }
 }
 
+impl<T: DbTableItem> Table<T> {
+    /// True if this is a new item, false if it was updated
+    pub fn push_one(&mut self, new_item: T) -> bool {
+        match self
+            .items
+            .iter_mut()
+            .find(|i| i.get_id() == new_item.get_id())
+        {
+            Some(i) => {
+                *i = new_item;
+                false
+            }
+            None => {
+                self.items.push(new_item);
+                true
+            }
+        }
+    }
+    /// Returns removed item (if found)
+    pub fn remove_one(&mut self, id: T::Id) -> Option<T> {
+        self.items
+            .iter()
+            .position(|i| i.get_id() == id)
+            .map(|ind| self.items.remove(ind))
+    }
+}
+
 impl<T: DbTableItem> DbTable<T> for Table<T> {
     fn get(&self) -> &Vec<T> {
         &self.items
@@ -71,7 +98,7 @@ where
 {
     type Args = <Self as TableLoadById<T, RequestResponse, RequestInfo>>::Args;
 
-    fn load_by_id(
+    fn load_by_id_request(
         &self,
         id: <T as DbTableItem>::Id,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
@@ -147,19 +174,19 @@ where
 {
     type Args = <Self as TableInsert<N, RequestResponse, RequestInfo>>::Args;
     type Body = <Self as TableInsert<N, RequestResponse, RequestInfo>>::Body;
-    
-    fn insert(
-            &self,
-            new_item: N,
-        ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
-            RequestBuilder::new()
-                .authorized()
-                .with_method(Self::get_method())
-                .with_path(Self::get_path())
-                .with_query(Self::make_args(&new_item))
-                .with_info(Self::make_info(&new_item))
-                .with_body(Self::make_body(new_item))
-                .with_parser(Self::make_parser())
+
+    fn insert_request(
+        &self,
+        new_item: N,
+    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
+        RequestBuilder::new()
+            .authorized()
+            .with_method(Self::get_method())
+            .with_path(Self::get_path())
+            .with_query(Self::make_args(&new_item))
+            .with_info(Self::make_info(&new_item))
+            .with_body(Self::make_body(new_item))
+            .with_parser(Self::make_parser())
     }
 }
 
@@ -190,19 +217,19 @@ where
 {
     type Args = <Self as TableUpdate<U, RequestResponse, RequestInfo>>::Args;
     type Body = <Self as TableUpdate<U, RequestResponse, RequestInfo>>::Body;
-    
-    fn update(
-            &self,
-            upd_item: U,
-        ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
-            RequestBuilder::new()
-                .authorized()
-                .with_method(Self::get_method())
-                .with_path(Self::get_path())
-                .with_query(Self::make_args(&upd_item))
-                .with_info(Self::make_info(&upd_item))
-                .with_body(Self::make_body(upd_item))
-                .with_parser(Self::make_parser())
+
+    fn update_request(
+        &self,
+        upd_item: U,
+    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
+        RequestBuilder::new()
+            .authorized()
+            .with_method(Self::get_method())
+            .with_path(Self::get_path())
+            .with_query(Self::make_args(&upd_item))
+            .with_info(Self::make_info(&upd_item))
+            .with_body(Self::make_body(upd_item))
+            .with_parser(Self::make_parser())
     }
 }
 
@@ -230,16 +257,16 @@ where
 {
     type Args = <Self as TableDeleteById<T, RequestResponse, RequestInfo>>::Args;
 
-    fn delete_by_id(
-            &self,
-            id: <T as DbTableItem>::Id,
-        ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
-            RequestBuilder::new()
-                .authorized()
-                .with_method(Self::get_method())
-                .with_path(Self::get_path())
-                .with_query(Self::make_args(id))
-                .with_info(Self::make_info(id))
-                .with_parser(Self::make_parser())
+    fn delete_by_id_request(
+        &self,
+        id: <T as DbTableItem>::Id,
+    ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
+        RequestBuilder::new()
+            .authorized()
+            .with_method(Self::get_method())
+            .with_path(Self::get_path())
+            .with_query(Self::make_args(id))
+            .with_info(Self::make_info(id))
+            .with_parser(Self::make_parser())
     }
 }
