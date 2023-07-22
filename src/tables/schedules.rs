@@ -1,10 +1,12 @@
 use calendar_lib::api::schedules::{self, types::*};
 
 use crate::{
-    db::{request::RequestBuilder, table::*},
+    db::{table::*, request_parser::RequestParser},
     requests::*,
     tables::utils::*,
 };
+
+use super::table::*;
 
 impl DbTableItem for Schedule {
     type Id = i32;
@@ -24,131 +26,139 @@ impl DbTableUpdateItem for UpdateSchedule {
     }
 }
 
-#[derive(Default)]
-pub struct Schedules {
-    schedules: Vec<Schedule>,
-}
-
-impl Schedules {
-    pub fn new() -> Self {
-        Self {
-            schedules: Vec::default(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.schedules.clear();
-    }
-}
-
-impl From<Vec<Schedule>> for Schedules {
-    fn from(value: Vec<Schedule>) -> Self {
-        Self { schedules: value }
-    }
-}
-
-impl DbTable<Schedule> for Schedules {
-    fn get(&self) -> &Vec<Schedule> {
-        &self.schedules
-    }
-
-    fn get_mut(&mut self) -> &mut Vec<Schedule> {
-        &mut self.schedules
-    }
-}
-
-impl DbTableLoadAll<Schedule> for Schedules {
-    type Args = schedules::load_array::Args;
-
-    fn load_all(&self) -> RequestBuilder<Self::Args, ()> {
-        use schedules::load_array::*;
-
-        let parser = make_parser(|r| AppRequestResponse::LoadSchedules(r));
-
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_parser(parser)
-    }
-}
-
-impl DbTableLoad<Schedule> for Schedules {
+impl TableLoadById<Schedule> for Table<Schedule> {
     type Args = schedules::load::Args;
 
-    fn load_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
-        use schedules::load::*;
+    fn get_method() -> reqwest::Method {
+        schedules::load::METHOD.clone()
+    }
 
-        let parser = make_typed_bad_request_parser(
+    fn get_path() -> &'static str {
+        schedules::load::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_typed_bad_request_parser(
             |r| AppRequestResponse::LoadSchedule(r),
             |r| AppRequestResponse::LoadScheduleError(r),
-        );
+        )
+    }
 
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::LoadSchedule(id))
-            .with_parser(parser)
+    fn make_args(id: i32) -> Self::Args {
+        schedules::load::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::LoadSchedule(id)
     }
 }
 
-impl DbTableInsert<NewSchedule> for Schedules {
+impl TableLoadAll<Schedule> for Table<Schedule> {
+    type Args = schedules::load_array::Args;
+
+    fn get_method() -> reqwest::Method {
+        schedules::load_array::METHOD.clone()
+    }
+
+    fn get_path() -> &'static str {
+        schedules::load_array::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::LoadSchedules(r))
+    }
+
+    fn make_args() -> Self::Args {
+        schedules::load_array::Args {}
+    }
+
+    fn make_info() -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+}
+
+impl TableInsert<NewSchedule> for Table<Schedule> {
     type Args = schedules::insert::Args;
     type Body = schedules::insert::Body;
 
-    fn insert_request(&self, new_schedule: NewSchedule) -> RequestBuilder<Self::Args, Self::Body> {
-        use schedules::insert::*;
+    fn get_method() -> reqwest::Method {
+        schedules::insert::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::InsertSchedule(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { new_schedule })
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        schedules::insert::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::InsertSchedule(r))
+    }
+
+    fn make_args(_new_item: &NewSchedule) -> Self::Args {
+        schedules::insert::Args {}
+    }
+
+    fn make_info(_new_item: &NewSchedule) -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+
+    fn make_body(new_item: NewSchedule) -> Self::Body {
+        schedules::insert::Body {
+            new_schedule: new_item,
+        }
     }
 }
 
-impl DbTableUpdate<UpdateSchedule> for Schedules {
+impl TableUpdate<UpdateSchedule> for Table<Schedule> {
     type Args = schedules::update::Args;
     type Body = schedules::update::Body;
 
-    fn update_request(
-        &self,
-        upd_schedule: UpdateSchedule,
-    ) -> RequestBuilder<Self::Args, Self::Body> {
-        use schedules::update::*;
+    fn get_method() -> reqwest::Method {
+        schedules::update::METHOD.clone()
+    }
 
-        let id = upd_schedule.id;
-        let parser = make_parser(|r| AppRequestResponse::UpdateSchedule(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { upd_schedule })
-            .with_info(AppRequestInfo::UpdateSchedule(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        schedules::update::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::UpdateSchedule(r))
+    }
+
+    fn make_args(_upd_item: &UpdateSchedule) -> Self::Args {
+        schedules::update::Args {}
+    }
+
+    fn make_info(upd_item: &UpdateSchedule) -> AppRequestInfo {
+        AppRequestInfo::UpdateSchedule(upd_item.id)
+    }
+
+    fn make_body(upd_item: UpdateSchedule) -> Self::Body {
+        schedules::update::Body {
+            upd_schedule: upd_item,
+        }
     }
 }
 
-impl DbTableDelete<Schedule> for Schedules {
+impl TableDeleteById<Schedule> for Table<Schedule> {
     type Args = schedules::delete::Args;
 
-    fn delete_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
-        use schedules::delete::*;
+    fn get_method() -> reqwest::Method {
+        schedules::delete::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::DeleteSchedule(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::DeleteSchedule(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        schedules::delete::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::DeleteSchedule(r))
+    }
+
+    fn make_args(id: i32) -> Self::Args {
+        schedules::delete::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::DeleteSchedule(id)
     }
 }

@@ -1,10 +1,12 @@
 use calendar_lib::api::event_templates::{self, types::*};
 
 use crate::{
-    db::{request::RequestBuilder, table::*},
+    db::{table::*, request_parser::RequestParser},
     requests::*,
     tables::utils::*,
 };
+
+use super::table::*;
 
 impl DbTableItem for EventTemplate {
     type Id = i32;
@@ -24,136 +26,139 @@ impl DbTableUpdateItem for UpdateEventTemplate {
     }
 }
 
-#[derive(Default)]
-pub struct EventTemplates {
-    event_templates: Vec<EventTemplate>,
-}
-
-impl EventTemplates {
-    pub fn new() -> Self {
-        Self {
-            event_templates: Vec::default(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.event_templates.clear();
-    }
-}
-
-impl From<Vec<EventTemplate>> for EventTemplates {
-    fn from(value: Vec<EventTemplate>) -> Self {
-        Self {
-            event_templates: value,
-        }
-    }
-}
-
-impl DbTable<EventTemplate> for EventTemplates {
-    fn get(&self) -> &Vec<EventTemplate> {
-        &self.event_templates
-    }
-
-    fn get_mut(&mut self) -> &mut Vec<EventTemplate> {
-        &mut self.event_templates
-    }
-}
-
-impl DbTableLoadAll<EventTemplate> for EventTemplates {
-    type Args = event_templates::load_array::Args;
-
-    fn load_all(&self) -> RequestBuilder<Self::Args, ()> {
-        use event_templates::load_array::*;
-
-        let parser = make_parser(|r| AppRequestResponse::LoadEventTemplates(r));
-
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_parser(parser)
-    }
-}
-
-impl DbTableLoad<EventTemplate> for EventTemplates {
+impl TableLoadById<EventTemplate> for Table<EventTemplate> {
     type Args = event_templates::load::Args;
 
-    fn load_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
-        use event_templates::load::*;
+    fn get_method() -> reqwest::Method {
+        event_templates::load::METHOD.clone()
+    }
 
-        let parser = make_typed_bad_request_parser(
+    fn get_path() -> &'static str {
+        event_templates::load::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_typed_bad_request_parser(
             |r| AppRequestResponse::LoadEventTemplate(r),
             |r| AppRequestResponse::LoadEventTemplateError(r),
-        );
+        )
+    }
 
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::LoadEventTemplate(id))
-            .with_parser(parser)
+    fn make_args(id: i32) -> Self::Args {
+        event_templates::load::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::LoadEventTemplate(id)
     }
 }
 
-impl DbTableInsert<NewEventTemplate> for EventTemplates {
+impl TableLoadAll<EventTemplate> for Table<EventTemplate> {
+    type Args = event_templates::load_array::Args;
+
+    fn get_method() -> reqwest::Method {
+        event_templates::load_array::METHOD.clone()
+    }
+
+    fn get_path() -> &'static str {
+        event_templates::load_array::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::LoadEventTemplates(r))
+    }
+
+    fn make_args() -> Self::Args {
+        event_templates::load_array::Args {}
+    }
+
+    fn make_info() -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+}
+
+impl TableInsert<NewEventTemplate> for Table<EventTemplate> {
     type Args = event_templates::insert::Args;
     type Body = event_templates::insert::Body;
 
-    fn insert_request(
-        &self,
-        new_event_template: NewEventTemplate,
-    ) -> RequestBuilder<Self::Args, Self::Body> {
-        use event_templates::insert::*;
+    fn get_method() -> reqwest::Method {
+        event_templates::insert::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::InsertEventTemplate(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { new_event_template })
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        event_templates::insert::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::InsertEventTemplate(r))
+    }
+
+    fn make_args(_new_item: &NewEventTemplate) -> Self::Args {
+        event_templates::insert::Args {}
+    }
+
+    fn make_info(_new_item: &NewEventTemplate) -> AppRequestInfo {
+        AppRequestInfo::None
+    }
+
+    fn make_body(new_item: NewEventTemplate) -> Self::Body {
+        event_templates::insert::Body {
+            new_event_template: new_item,
+        }
     }
 }
 
-impl DbTableUpdate<UpdateEventTemplate> for EventTemplates {
+impl TableUpdate<UpdateEventTemplate> for Table<EventTemplate> {
     type Args = event_templates::update::Args;
     type Body = event_templates::update::Body;
 
-    fn update_request(
-        &self,
-        upd_event_template: UpdateEventTemplate,
-    ) -> RequestBuilder<Self::Args, Self::Body> {
-        use event_templates::update::*;
+    fn get_method() -> reqwest::Method {
+        event_templates::update::METHOD.clone()
+    }
 
-        let id = upd_event_template.id;
-        let parser = make_parser(|r| AppRequestResponse::UpdateEventTemplate(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args {})
-            .with_body(Body { upd_event_template })
-            .with_info(AppRequestInfo::UpdateEventTemplate(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        event_templates::update::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::UpdateEventTemplate(r))
+    }
+
+    fn make_args(_upd_item: &UpdateEventTemplate) -> Self::Args {
+        event_templates::update::Args {}
+    }
+
+    fn make_info(upd_item: &UpdateEventTemplate) -> AppRequestInfo {
+        AppRequestInfo::UpdateEventTemplate(upd_item.id)
+    }
+
+    fn make_body(upd_item: UpdateEventTemplate) -> Self::Body {
+        event_templates::update::Body {
+            upd_event_template: upd_item,
+        }
     }
 }
 
-impl DbTableDelete<EventTemplate> for EventTemplates {
+impl TableDeleteById<EventTemplate> for Table<EventTemplate> {
     type Args = event_templates::delete::Args;
 
-    fn delete_by_id_request(&self, id: i32) -> RequestBuilder<Self::Args, ()> {
-        use event_templates::delete::*;
+    fn get_method() -> reqwest::Method {
+        event_templates::delete::METHOD.clone()
+    }
 
-        let parser = make_parser(|r| AppRequestResponse::DeleteEventTemplate(r));
-        RequestBuilder::new()
-            .authorized()
-            .with_method(METHOD.clone())
-            .with_path(PATH)
-            .with_query(Args { id })
-            .with_info(AppRequestInfo::DeleteEventTemplate(id))
-            .with_parser(parser)
+    fn get_path() -> &'static str {
+        event_templates::delete::PATH
+    }
+
+    fn make_parser() -> RequestParser<AppRequestResponse> {
+        make_parser(|r| AppRequestResponse::DeleteEventTemplate(r))
+    }
+
+    fn make_args(id: i32) -> Self::Args {
+        event_templates::delete::Args { id }
+    }
+
+    fn make_info(id: i32) -> AppRequestInfo {
+        AppRequestInfo::DeleteEventTemplate(id)
     }
 }

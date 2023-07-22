@@ -1,21 +1,21 @@
-use calendar_lib::api::{auth::types::AccessLevel, events::types::*, user_state};
+use calendar_lib::api::{auth::types::AccessLevel, events::types::*, user_state, event_templates::types::*, schedules::types::*};
 
-use crate::tables::{table::Table, *};
+use crate::db::table::table::Table;
 
 pub struct UserState {
     pub(super) access_levels: Vec<AccessLevel>,
-    pub event_templates: EventTemplates,
+    pub event_templates: Table<EventTemplate>,
     pub events: Table<Event>,
-    pub schedules: Schedules,
+    pub schedules: Table<Schedule>,
 }
 
 impl Into<UserState> for user_state::load::Response {
     fn into(self) -> UserState {
         UserState {
             access_levels: self.access_levels,
-            event_templates: EventTemplates::default(),
+            event_templates: Table::from_vec(self.event_templates),
             events: Table::from_vec(self.events),
-            schedules: Schedules::from(self.schedules),
+            schedules: Table::from_vec(self.schedules),
         }
     }
 }
