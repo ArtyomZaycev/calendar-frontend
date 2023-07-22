@@ -3,7 +3,7 @@ use calendar_lib::api::events::{self, types::*};
 use crate::{
     db::{request::RequestBuilder, table::*},
     requests::*,
-    table::utils::*,
+    tables::utils::*,
 };
 
 impl DbTableItem for Event {

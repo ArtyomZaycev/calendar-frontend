@@ -1,7 +1,7 @@
 use crate::db::request::RequestBuilder;
 use crate::db::table::{DbTableDelete, DbTableInsert, DbTableLoad, DbTableLoadAll, DbTableUpdate};
 use crate::requests::AppRequestResponse;
-use crate::table::events::Events;
+use crate::tables::Events;
 use crate::{
     db::{
         aliases::*,

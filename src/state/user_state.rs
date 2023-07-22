@@ -3,7 +3,7 @@ use calendar_lib::api::{
     user_state,
 };
 
-use crate::table::events::Events;
+use crate::tables::events::Events;
 
 pub struct UserState {
     pub(super) access_levels: Vec<AccessLevel>,
