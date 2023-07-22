@@ -47,8 +47,7 @@ pub trait DbTableInsert<
 {
     type Args: Serialize;
     type Body: Serialize;
-    fn insert(new_item: T,
-    ) -> RequestBuilder<Self::Args, Self::Body>;
+    fn insert(new_item: T) -> RequestBuilder<Self::Args, Self::Body>;
 }
 
 pub trait DbTableUpdate<
@@ -77,5 +76,5 @@ pub trait DbTableDelete<
     RequestResponseInfo: Clone + FromResponse<RequestResponse>,
 {
     type Args: Serialize;
-    fn delete_by_id(id: T::Id,) -> RequestBuilder<Self::Args, ()>;
+    fn delete_by_id(id: T::Id) -> RequestBuilder<Self::Args, ()>;
 }

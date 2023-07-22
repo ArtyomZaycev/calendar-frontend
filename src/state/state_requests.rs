@@ -1,4 +1,7 @@
+use crate::db::request::RequestBuilder;
+use crate::db::table::{DbTableDelete, DbTableInsert, DbTableLoad, DbTableLoadAll, DbTableUpdate};
 use crate::requests::AppRequestResponse;
+use crate::table::events::Events;
 use crate::{
     db::{
         aliases::*,
@@ -11,8 +14,26 @@ use crate::{
 use calendar_lib::api;
 use calendar_lib::api::{
     auth::{self, types::NewPassword},
-    events, schedules, user_roles,
+    schedules, user_roles,
 };
+use serde::Serialize;
+
+impl State {
+    fn request<Q: Serialize, B: Serialize>(
+        &mut self,
+        request: RequestBuilder<Q, B>,
+        description: RequestDescription,
+    ) -> RequestId {
+        let jwt = self.get_me().map(|u| u.jwt.clone()).unwrap_or_default();
+        match self.connector.request2(request, &jwt, description) {
+            Ok(id) => id,
+            Err(err) => {
+                println!("Error sending the request: {err:?}");
+                RequestId::default()
+            }
+        }
+    }
+}
 
 impl State {
     pub fn change_access_level(&mut self, new_access_level: i32) {
@@ -236,96 +257,30 @@ impl State {
     }
 
     pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use events::load::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_typed_bad_request_parser(
-            |r| AppRequestResponse::LoadEvent(r),
-            |r| AppRequestResponse::LoadEventError(r),
-        );
-        self.connector
-            .request(request, parser, AppRequestInfo::LoadEvent(id), description)
+        self.request(Events::load_by_id(id), description)
     }
     pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
-        use events::load_array::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::LoadEvents(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(Events::load_all(), description)
     }
     pub fn insert_event(
         &mut self,
         mut new_event: NewEvent,
         description: RequestDescription,
     ) -> RequestId {
-        use events::insert::*;
-
         if new_event.user_id == -1 {
             new_event.user_id = self.me.as_ref().unwrap().user.id;
         }
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { new_event })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::InsertEvent(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+        self.request(Events::insert(new_event), description)
     }
     pub fn update_event(
         &mut self,
         upd_event: UpdateEvent,
         description: RequestDescription,
     ) -> RequestId {
-        use events::update::*;
-
-        let id = upd_event.id;
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body { upd_event })
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::UpdateEvent(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::UpdateEvent(id),
-            description,
-        )
+        self.request(Events::update(upd_event), description)
     }
     pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use events::delete::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { id })
-            .json(&Body {})
-            .build()
-            .unwrap();
-
-        let parser = Self::make_parser(|r| AppRequestResponse::DeleteEvent(r));
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::DeleteEvent(id),
-            description,
-        )
+        self.request(Events::delete_by_id(id), description)
     }
 
     pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
@@ -412,7 +367,6 @@ impl State {
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
             .query(&Args { id })
-            .json(&Body {})
             .build()
             .unwrap();
 
@@ -509,7 +463,6 @@ impl State {
         let request = self
             .make_request_authorized(METHOD.clone(), PATH)
             .query(&Args { id })
-            .json(&Body {})
             .build()
             .unwrap();
 

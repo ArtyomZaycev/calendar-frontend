@@ -1,4 +1,5 @@
 use super::UserState;
+use crate::db::table::DbTable;
 use crate::requests::AppRequestResponse;
 use crate::{
     config::Config,
@@ -147,8 +148,8 @@ impl State {
         }
     }
 
-    pub fn get_me(&self) -> &Option<UserInfo> {
-        &self.me
+    pub fn get_me(&self) -> Option<&UserInfo> {
+        self.me.as_ref()
     }
     pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
         self.user_state.get_access_levels()
@@ -157,7 +158,7 @@ impl State {
         self.user_state.get_event_templates()
     }
     pub fn get_events(&self) -> &Vec<Event> {
-        self.user_state.get_events()
+        self.user_state.events.get()
     }
     pub fn get_schedules(&self) -> &Vec<Schedule> {
         self.user_state.get_schedules()
@@ -170,7 +171,7 @@ impl State {
         self.user_state.get_event_templates_mut()
     }
     pub(super) fn get_events_mut(&mut self) -> &mut Vec<Event> {
-        self.user_state.get_events_mut()
+        self.user_state.events.get_mut()
     }
     pub(super) fn get_schedules_mut(&mut self) -> &mut Vec<Schedule> {
         self.user_state.get_schedules_mut()

@@ -17,5 +17,4 @@ pub trait DbTableUpdateItem {
     fn get_id(&self) -> Self::Id;
 }
 
-pub trait DbTableNewItem {
-}
+pub trait DbTableNewItem {}

@@ -1,10 +1,7 @@
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 
-use crate::{
-    db::request_parser::RequestParser,
-    requests::*
-};
+use crate::{db::request_parser::RequestParser, requests::*};
 
 /// Use for testing only
 #[cfg(debug_assertions)]

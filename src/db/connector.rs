@@ -1,9 +1,10 @@
-use super::request::{RequestDescription, RequestId};
+use super::request::{RequestBuilder, RequestDescription, RequestId};
 use super::request_parser::{FromResponse, RequestParser};
 use super::requests_container::RequestCounter;
 use crate::config::Config;
 use bytes::Bytes;
 use reqwest::StatusCode;
+use serde::Serialize;
 
 use std::sync::mpsc::{channel, Receiver, Sender};
 
@@ -21,7 +22,7 @@ impl RequestResult {
 pub struct DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
 where
     RequestResponse: Clone,
-    RequestInfo: Clone,
+    RequestInfo: Clone + Default,
     RequestResponseInfo: Clone + FromResponse<RequestResponse>,
 {
     client: reqwest::Client,
@@ -38,7 +39,7 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo>
     DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
 where
     RequestResponse: Clone,
-    RequestInfo: Clone,
+    RequestInfo: Clone + Default,
     RequestResponseInfo: Clone + FromResponse<RequestResponse>,
 {
     pub fn new(config: &Config) -> Self {
@@ -62,6 +63,18 @@ where
 
     pub fn reserve_request_id(&self) -> RequestId {
         self.requests.reserve_id()
+    }
+
+    pub fn request2<Q: Serialize, B: Serialize>(
+        &mut self,
+        request: RequestBuilder<Q, B, RequestResponse, RequestInfo>,
+        jwt: &str,
+        description: RequestDescription,
+    ) -> Result<RequestId, ()> {
+        let (request, parser, info) = request.build(self.client.clone(), &self.server_url, jwt)?;
+        let request = request.build().map_err(|_| ())?;
+
+        Ok(self.request(request, parser, info, description))
     }
 
     pub fn request(

@@ -1,6 +1,10 @@
-use calendar_lib::api::events::{types::*, self};
+use calendar_lib::api::events::{self, types::*};
 
-use crate::{db::{table::*, request::RequestBuilder}, requests::*, table::utils::*};
+use crate::{
+    db::{request::RequestBuilder, table::*},
+    requests::*,
+    table::utils::*,
+};
 
 impl DbTableItem for Event {
     type Id = i32;
@@ -20,8 +24,27 @@ impl DbTableUpdateItem for UpdateEvent {
     }
 }
 
+#[derive(Default)]
 pub struct Events {
-    events: Vec<Event>
+    events: Vec<Event>,
+}
+
+impl Events {
+    pub fn new() -> Self {
+        Self {
+            events: Vec::default(),
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.events.clear();
+    }
+}
+
+impl From<Vec<Event>> for Events {
+    fn from(value: Vec<Event>) -> Self {
+        Self { events: value }
+    }
 }
 
 impl DbTable<Event> for Events {
@@ -45,7 +68,8 @@ impl DbTableLoadAll<Event> for Events {
         RequestBuilder::new()
             .authorized()
             .with_method(METHOD.clone())
-            .with_query(Args { })
+            .with_path(PATH)
+            .with_query(Args {})
             .with_parser(parser)
     }
 }
@@ -64,6 +88,7 @@ impl DbTableLoad<Event> for Events {
         RequestBuilder::new()
             .authorized()
             .with_method(METHOD.clone())
+            .with_path(PATH)
             .with_query(Args { id })
             .with_info(AppRequestInfo::LoadEvent(id))
             .with_parser(parser)
@@ -74,14 +99,15 @@ impl DbTableInsert<NewEvent> for Events {
     type Args = events::insert::Args;
     type Body = events::insert::Body;
 
-    fn insert(new_event: NewEvent,) -> RequestBuilder<Self::Args, Self::Body> {
+    fn insert(new_event: NewEvent) -> RequestBuilder<Self::Args, Self::Body> {
         use events::insert::*;
 
         let parser = make_parser(|r| AppRequestResponse::InsertEvent(r));
         RequestBuilder::new()
             .authorized()
             .with_method(METHOD.clone())
-            .with_query(Args { })
+            .with_path(PATH)
+            .with_query(Args {})
             .with_body(Body { new_event })
             .with_parser(parser)
     }
@@ -99,7 +125,8 @@ impl DbTableUpdate<UpdateEvent> for Events {
         RequestBuilder::new()
             .authorized()
             .with_method(METHOD.clone())
-            .with_query(Args { })
+            .with_path(PATH)
+            .with_query(Args {})
             .with_body(Body { upd_event })
             .with_info(AppRequestInfo::UpdateEvent(id))
             .with_parser(parser)
@@ -111,11 +138,12 @@ impl DbTableDelete<Event> for Events {
 
     fn delete_by_id(id: i32) -> RequestBuilder<Self::Args, ()> {
         use events::delete::*;
-        
+
         let parser = make_parser(|r| AppRequestResponse::DeleteEvent(r));
         RequestBuilder::new()
             .authorized()
             .with_method(METHOD.clone())
+            .with_path(PATH)
             .with_query(Args { id })
             .with_info(AppRequestInfo::DeleteEvent(id))
             .with_parser(parser)

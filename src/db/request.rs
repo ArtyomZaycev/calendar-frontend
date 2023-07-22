@@ -33,8 +33,14 @@ impl RequestDescription {
     }
 }
 
-pub struct RequestBuilder<Query: Serialize, Body: Serialize, RequestResponse = AppRequestResponse, RequestInfo: Default = AppRequestInfo> {
+pub struct RequestBuilder<
+    Query: Serialize,
+    Body: Serialize,
+    RequestResponse = AppRequestResponse,
+    RequestInfo: Default = AppRequestInfo,
+> {
     method: Option<Method>,
+    path: String,
     query: Option<Query>,
     body: Option<Body>,
     authorized: bool,
@@ -42,10 +48,13 @@ pub struct RequestBuilder<Query: Serialize, Body: Serialize, RequestResponse = A
     info: RequestInfo,
 }
 
-impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default> RequestBuilder<Query, Body, RequestResponse, RequestInfo> {
+impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
+    RequestBuilder<Query, Body, RequestResponse, RequestInfo>
+{
     pub fn new() -> Self {
         Self {
             method: None,
+            path: String::default(),
             query: None,
             body: None,
             authorized: false,
@@ -57,6 +66,13 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default> R
     pub fn with_method(self, method: Method) -> Self {
         Self {
             method: Some(method),
+            ..self
+        }
+    }
+
+    pub fn with_path(self, path: &str) -> Self {
+        Self {
+            path: path.to_owned(),
             ..self
         }
     }
@@ -97,17 +113,26 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default> R
     }
 
     pub fn with_info(self, info: RequestInfo) -> Self {
-        Self {
-            info,
-            ..self
-        }
+        Self { info, ..self }
     }
 
-    pub fn build(self, client: reqwest::Client, url: &str, jwt: &str) -> Result<(reqwest::RequestBuilder, RequestParser<RequestResponse>, RequestInfo), ()> {
+    pub fn build(
+        self,
+        client: reqwest::Client,
+        url: &str,
+        jwt: &str,
+    ) -> Result<
+        (
+            reqwest::RequestBuilder,
+            RequestParser<RequestResponse>,
+            RequestInfo,
+        ),
+        (),
+    > {
         let method = self.method.ok_or(())?;
         let parser = self.parser.ok_or(())?;
 
-        let builder = client.request(method, url);
+        let builder = client.request(method, format!("{url}{}", self.path));
         let builder = if self.authorized {
             builder.bearer_auth(jwt)
         } else {
@@ -123,10 +148,6 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default> R
         } else {
             builder
         };
-        Ok((
-            builder,
-            parser,
-            self.info
-        ))
+        Ok((builder, parser, self.info))
     }
 }
