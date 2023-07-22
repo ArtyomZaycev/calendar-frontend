@@ -1,12 +1,11 @@
 use calendar_lib::api::events::{self, types::*};
 
+use super::table::*;
 use crate::{
     db::{request_parser::RequestParser, table::*},
     requests::*,
     tables::utils::*,
 };
-
-use super::table::*;
 
 impl DbTableItem for Event {
     type Id = i32;

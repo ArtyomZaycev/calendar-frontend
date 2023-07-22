@@ -1,7 +1,7 @@
 use calendar_lib::api::event_templates::{self, types::*};
 
 use crate::{
-    db::{table::*, request_parser::RequestParser},
+    db::{request_parser::RequestParser, table::*},
     requests::*,
     tables::utils::*,
 };

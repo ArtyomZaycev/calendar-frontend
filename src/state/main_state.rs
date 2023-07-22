@@ -151,7 +151,7 @@ impl State {
         self.me.as_ref()
     }
     pub fn get_access_levels(&self) -> &Vec<AccessLevel> {
-        self.user_state.get_access_levels()
+        self.user_state.access_levels.get()
     }
     pub fn get_event_templates(&self) -> &Vec<EventTemplate> {
         self.user_state.event_templates.get()
@@ -164,7 +164,7 @@ impl State {
     }
 
     pub(super) fn get_access_levels_mut(&mut self) -> &mut Vec<AccessLevel> {
-        self.user_state.get_access_levels_mut()
+        self.user_state.access_levels.get_mut()
     }
     pub(super) fn get_event_templates_mut(&mut self) -> &mut Vec<EventTemplate> {
         self.user_state.event_templates.get_mut()
@@ -330,7 +330,7 @@ impl State {
                     jwt: res.jwt,
                 });
                 self.current_access_level = res.access_level.level;
-                self.user_state.access_levels = vec![res.access_level];
+                *self.user_state.access_levels.get_mut() = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::LoginError(_) => {}
@@ -340,7 +340,7 @@ impl State {
                     jwt: res.jwt,
                 });
                 self.current_access_level = res.access_level.level;
-                self.user_state.access_levels = vec![res.access_level];
+                *self.user_state.access_levels.get_mut() = vec![res.access_level];
                 self.load_state();
             }
             AppRequestResponse::Register(_) => {}
@@ -398,8 +398,11 @@ impl State {
             }
             AppRequestResponse::LoadAccessLevels(mut r) => {
                 r.array.sort_by(|a, b| a.level.cmp(&b.level));
-                self.user_state.access_levels = r.array;
-                self.user_state.access_levels.sort_by_key(|l| l.level);
+                *self.user_state.access_levels.get_mut() = r.array;
+                self.user_state
+                    .access_levels
+                    .get_mut()
+                    .sort_by_key(|l| l.level);
             }
             AppRequestResponse::LoadUserRoles(res) => {
                 if let Some(me) = &mut self.me {
