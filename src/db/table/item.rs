@@ -11,10 +11,11 @@ pub trait DbTableItem {
     fn get_id(&self) -> Self::Id;
 }
 
-pub trait DbTableUpdateItem {}
-
-pub trait DbTableNewItem {
+pub trait DbTableUpdateItem {
     type Id: TableId = i32;
 
     fn get_id(&self) -> Self::Id;
+}
+
+pub trait DbTableNewItem {
 }
