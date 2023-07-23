@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::hash::Hash;
+
 use crate::{
     db::{request::RequestBuilder, request_parser::RequestParser},
     requests::*,
@@ -5,33 +8,44 @@ use crate::{
 };
 use serde::Serialize;
 
-pub struct Table<T: DbTableItem> {
-    items: Vec<T>,
+/// 
+pub struct LazyTable<T: DbTableItem> where T::Id: Hash {
+    /// All ids
+    ids: Vec<T::Id>,
+    items: HashMap<T::Id, Option<T>>,
 }
 
-impl<T: DbTableItem> Default for Table<T> {
+impl<T: DbTableItem> Default for LazyTable<T> where T::Id: Hash {
     fn default() -> Self {
         Self {
+            ids: Default::default(),
             items: Default::default(),
         }
     }
 }
 
-impl<T: DbTableItem> Table<T> {
+impl<T: DbTableItem> LazyTable<T> where T::Id: Hash {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn from_vec(items: Vec<T>) -> Self {
-        Self { items }
+    pub fn from_items(items: Vec<T>) -> Self {
+        Self { 
+            ids: items.iter().map(|i| i.get_id()).collect(),
+            items: HashMap::from_iter(items.into_iter().map(|i| (i.get_id(), Some(i))))
+        }
     }
 
     pub fn clear(&mut self) {
-        self.items.clear()
+        self.ids.clear();
+        self.items.clear();
+        self.items.shrink_to_fit();
     }
 }
 
-impl<T: DbTableItem> Table<T> {
+impl<T: DbTableItem> LazyTable<T> where T::Id: Hash {
+    pub fn reload_ids(&mut self)
+
     /// True if this is a new item, false if it was updated
     pub fn push_one(&mut self, new_item: T) -> bool {
         match self
@@ -68,6 +82,7 @@ impl<T: DbTableItem> DbTable<T> for Table<T> {
     }
 }
 
+/*
 pub trait TableLoadById<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
 where
     T: DbTableItem,
@@ -268,3 +283,4 @@ where
             .with_parser(Self::make_parser())
     }
 }
+ */

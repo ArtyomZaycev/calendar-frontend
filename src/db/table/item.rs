@@ -1,9 +1,9 @@
 pub trait TableId
 where
-    Self: Clone + Copy + PartialEq,
+    Self: Clone + Copy + PartialEq + Eq,
 {
 }
-impl<T> TableId for T where T: Clone + Copy + PartialEq {}
+impl<T> TableId for T where T: Clone + Copy + PartialEq + Eq {}
 
 pub trait DbTableItem {
     type Id: TableId = i32;
