@@ -329,7 +329,7 @@ impl State {
 
     pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
         self.request(
-            self.user_state.event_templates.load_by_id_request(id),
+            self.user_state.schedules.load_by_id_request(id),
             description,
         )
     }
