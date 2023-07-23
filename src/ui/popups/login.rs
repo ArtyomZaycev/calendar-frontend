@@ -81,10 +81,6 @@ impl PopupContent for Login {
             );
             info.error(!is_password_valid(&self.password), "Password is too long");
             info.error(
-                &self.email != "admin@aspid.xyz" && !is_password_strong_enough(&self.password),
-                "Password is not strong enough",
-            );
-            info.error(
                 self.email_not_found
                     .as_ref()
                     .map_or(false, |e| e == &self.email)
