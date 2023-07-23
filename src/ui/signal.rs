@@ -18,7 +18,6 @@ pub enum AppSignal {
     AddPassword,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum StateSignal {
     ChangeAccessLevel(i32),
@@ -77,6 +76,7 @@ impl RequestSignal {
     pub fn with_description(self, description: RequestDescription) -> StateSignal {
         StateSignal::RequestSignal(description, self)
     }
+    #[allow(dead_code)]
     pub fn app_with_description(self, description: RequestDescription) -> AppSignal {
         StateSignal::RequestSignal(description, self).into()
     }

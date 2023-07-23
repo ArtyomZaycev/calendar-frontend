@@ -21,25 +21,6 @@ where
     RequestParser::new_complex(on_success, |code, s| AppRequestResponse::Error(code, s))
 }
 
-#[allow(dead_code)]
-pub fn make_bad_request_parser<T, F1, F2>(
-    on_success: F1,
-    on_bad_request: F2,
-) -> RequestParser<AppRequestResponse>
-where
-    T: DeserializeOwned,
-    F1: FnOnce(T) -> AppRequestResponse + 'static,
-    F2: FnOnce(String) -> AppRequestResponse + 'static,
-{
-    RequestParser::new_complex(on_success, |code, msg| {
-        if code == StatusCode::BAD_REQUEST {
-            on_bad_request(msg)
-        } else {
-            AppRequestResponse::Error(code, msg)
-        }
-    })
-}
-
 pub fn make_typed_bad_request_parser<T, U, F1, F2>(
     on_success: F1,
     on_bad_request: F2,

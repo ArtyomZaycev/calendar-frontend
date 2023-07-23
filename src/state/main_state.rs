@@ -486,21 +486,13 @@ impl State {
             }
             AppRequestResponse::LoadSchedule(res) => {
                 let schedule = res.value;
-                match self
-                    .get_schedules_mut()
-                    .iter_mut()
-                    .find(|s| s.id == schedule.id)
-                {
-                    Some(s) => *s = schedule,
-                    None => self.get_schedules_mut().push(schedule),
-                }
+                self.user_state.schedules.push_one(schedule);
                 self.clear_events();
             }
             AppRequestResponse::LoadScheduleError(res) => match res {
                 schedules::load::BadRequestResponse::NotFound => {
                     if let AppRequestInfo::LoadSchedule(id) = info {
-                        if let Some(ind) = self.get_schedules().iter().position(|t| t.id == id) {
-                            self.get_schedules_mut().remove(ind);
+                        if let Some(_) = self.user_state.schedules.remove_one(id) {
                             self.clear_events();
                         }
                     }
