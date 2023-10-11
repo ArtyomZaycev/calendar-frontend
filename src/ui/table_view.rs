@@ -1,9 +1,8 @@
-use std::{marker::PhantomData, cell::Cell, hash::Hash};
+use std::{hash::Hash, marker::PhantomData};
 
-use egui::{Response, Layout, Button};
-use egui_extras::{TableBuilder, Column};
+use egui::{Button, Layout, Response};
+use egui_extras::{Column, TableBuilder};
 use serde::{Deserialize, Serialize};
-
 
 pub trait TableViewItem {
     fn get_names() -> Vec<String>;
@@ -31,9 +30,7 @@ pub struct TableView<T: TableViewItem> {
     phantom: PhantomData<T>,
 }
 
-impl<T: TableViewItem + Clone> Copy for TableView<T> {
-    
-}
+impl<T: TableViewItem + Clone> Copy for TableView<T> {}
 
 impl<T: TableViewItem> PartialEq for TableView<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -54,12 +51,17 @@ impl<T: TableViewItem> TableView<T> {
 
     pub fn show(&self, ui: &mut egui::Ui, data: &Vec<T>) -> Response {
         let mut table_data = ui.memory(|memory| {
-            memory.data.get_temp::<TableViewData>(self.id).unwrap_or_default()
+            memory
+                .data
+                .get_temp::<TableViewData>(self.id)
+                .unwrap_or_default()
         });
-        let response = ui.vertical(|ui| {
-            self.show_table(ui, data, &mut table_data);
-            self.show_page_switch(ui, data, &mut table_data);
-        }).response;
+        let response = ui
+            .vertical(|ui| {
+                self.show_table(ui, data, &mut table_data);
+                self.show_page_switch(ui, data, &mut table_data);
+            })
+            .response;
         ui.memory_mut(|memory| {
             memory.data.insert_temp(self.id, table_data);
         });
@@ -91,10 +93,21 @@ impl<T: TableViewItem> TableView<T> {
             });
     }
 
-    fn show_page_switch(&self, ui: &mut egui::Ui, data: &Vec<T>, table_data: &mut TableViewData) -> Response {
+    fn show_page_switch(
+        &self,
+        ui: &mut egui::Ui,
+        data: &Vec<T>,
+        table_data: &mut TableViewData,
+    ) -> Response {
         ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
             // RTL
-            if ui.add_enabled((table_data.page + 1) * table_data.page_size < data.len(), Button::new(">").small()).clicked() {
+            if ui
+                .add_enabled(
+                    (table_data.page + 1) * table_data.page_size < data.len(),
+                    Button::new(">").small(),
+                )
+                .clicked()
+            {
                 table_data.page += 1;
             }
             /*let response = ui.text_edit_singleline(&mut self.page_str);
@@ -104,9 +117,13 @@ impl<T: TableViewItem> TableView<T> {
                     _ => self.page_str = (self.page + 1).to_string(),
                 }
             }*/
-            if ui.add_enabled(table_data.page > 0, Button::new("<").small()).clicked() {
+            if ui
+                .add_enabled(table_data.page > 0, Button::new("<").small())
+                .clicked()
+            {
                 table_data.page -= 1;
             }
-        }).response
+        })
+        .response
     }
 }

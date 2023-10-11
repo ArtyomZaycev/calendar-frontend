@@ -349,12 +349,12 @@ impl State {
             AppRequestResponse::NewPassword(_) => {
                 self.load_access_levels(RequestDescription::default());
             }
-            AppRequestResponse::LoadUserIds(res) => {
+            AppRequestResponse::LoadUserIds(_res) => {
                 /*if let Some(admin_state) = &mut self.admin_state {
                     admin_state.parse_load_user_ids(res);
                 }*/
             }
-            AppRequestResponse::LoadUser(res) => {
+            AppRequestResponse::LoadUser(_res) => {
                 /*if let Some(admin_state) = &mut self.admin_state {
                     admin_state.parse_load_user(res);
                 }*/

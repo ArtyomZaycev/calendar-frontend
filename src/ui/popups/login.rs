@@ -6,7 +6,7 @@ use crate::{
     requests::AppRequestResponseInfo,
     state::State,
     ui::signal::RequestSignal,
-    utils::{is_password_strong_enough, is_password_valid, is_valid_email},
+    utils::{is_password_valid, is_valid_email},
 };
 
 pub struct Login {

@@ -1,16 +1,20 @@
-use super::{utils::{AppView, AdminPanelView}, CalendarApp, CalendarView, EventsView};
+use super::{
+    utils::{AdminPanelView, AppView},
+    CalendarApp, CalendarView, EventsView,
+};
 use crate::{
     requests::AppRequestResponse,
+    tables::DbTable,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
-        schedule_card::ScheduleCard, utils::UiUtils, table_view::TableView,
+        schedule_card::ScheduleCard, table_view::TableView, utils::UiUtils,
     },
-    utils::*, tables::DbTable,
+    utils::*,
 };
 use calendar_lib::api::{roles::types::Role, utils::User};
 use chrono::{Days, Months, NaiveDate};
 use egui::{Align, Layout, RichText, Sense};
-use egui_extras::{TableBuilder, Column};
+
 use num_traits::FromPrimitive;
 
 impl CalendarApp {
@@ -479,7 +483,7 @@ impl CalendarApp {
                 match admin_panel_view {
                     AdminPanelView::Users { table } => {
                         self.admin_panel_users_view(ui, table);
-                    },
+                    }
                 }
             }
         }
@@ -524,13 +528,21 @@ impl CalendarApp {
     fn admin_panel_view(&mut self, ui: &mut egui::Ui, view: AdminPanelView) {
         ui.horizontal(|ui| {
             ui.heading("Admin Panel");
-            egui::ComboBox::from_id_source("admin panel view picker").selected_text(match view {
-                AdminPanelView::Users {table: _} => "Users",
-            }).show_ui(ui, |ui| {
-                let mut view = view;
-                ui.selectable_value(&mut view, AdminPanelView::Users { table: TableView::new("users_table") }, "Users");
-                self.set_view(view);
-            });
+            egui::ComboBox::from_id_source("admin panel view picker")
+                .selected_text(match view {
+                    AdminPanelView::Users { table: _ } => "Users",
+                })
+                .show_ui(ui, |ui| {
+                    let mut view = view;
+                    ui.selectable_value(
+                        &mut view,
+                        AdminPanelView::Users {
+                            table: TableView::new("users_table"),
+                        },
+                        "Users",
+                    );
+                    self.set_view(view);
+                });
         });
     }
 
@@ -555,8 +567,17 @@ impl eframe::App for CalendarApp {
         );
 
         // Admins have different view
-        if self.state.get_me().as_ref().map(|v| v.is_admin()).unwrap_or_default() && self.view.is_calendar() {
-            self.view = AppView::AdminPanel(AdminPanelView::Users { table: TableView::new("users_table") });
+        if self
+            .state
+            .get_me()
+            .as_ref()
+            .map(|v| v.is_admin())
+            .unwrap_or_default()
+            && self.view.is_calendar()
+        {
+            self.view = AppView::AdminPanel(AdminPanelView::Users {
+                table: TableView::new("users_table"),
+            });
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
