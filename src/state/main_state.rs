@@ -28,8 +28,8 @@ pub struct State {
 
     pub(super) me: Option<UserInfo>,
 
-    pub(super) user_state: UserState,
-    pub(super) admin_state: Option<AdminState>,
+    pub user_state: UserState,
+    pub admin_state: Option<AdminState>,
 
     pub errors: Vec<()>,
 }
@@ -176,6 +176,13 @@ impl State {
         self.user_state.schedules.get_mut()
     }
 
+    pub(super) fn get_admin_state(&self) -> &Option<AdminState> {
+        &self.admin_state
+    }
+    pub(super) fn get_admin_state_mut(&mut self) -> &mut Option<AdminState> {
+        &mut self.admin_state
+    }
+
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
     }
@@ -295,12 +302,6 @@ impl State {
                 .unwrap_or_default(),
             RequestDescription::default(),
         );
-        /*
-        self.load_access_levels(RequestDescription::default());
-        self.load_events(RequestDescription::default());
-        self.load_event_templates(RequestDescription::default());
-        self.load_schedules(RequestDescription::default());
-         */
 
         if let Some(me) = self.get_me() {
             if me.is_admin() {
@@ -319,7 +320,7 @@ impl State {
 
     pub(super) fn load_admin_state(&mut self) {
         self.admin_state = Some(AdminState::new());
-        self.load_user_ids(RequestDescription::default());
+        self.load_users(RequestDescription::default());
     }
 
     pub(super) fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
@@ -349,14 +350,14 @@ impl State {
                 self.load_access_levels(RequestDescription::default());
             }
             AppRequestResponse::LoadUserIds(res) => {
-                if let Some(admin_state) = &mut self.admin_state {
+                /*if let Some(admin_state) = &mut self.admin_state {
                     admin_state.parse_load_user_ids(res);
-                }
+                }*/
             }
             AppRequestResponse::LoadUser(res) => {
-                if let Some(admin_state) = &mut self.admin_state {
+                /*if let Some(admin_state) = &mut self.admin_state {
                     admin_state.parse_load_user(res);
-                }
+                }*/
             }
             AppRequestResponse::LoadUserError(res) => {
                 if let AppRequestInfo::LoadUser(id) = info {

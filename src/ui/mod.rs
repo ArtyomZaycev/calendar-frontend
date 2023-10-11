@@ -8,3 +8,5 @@ pub mod schedule_card;
 pub mod signal;
 pub mod time_picker;
 pub mod utils;
+pub mod table_view;
+pub mod tables;

@@ -45,6 +45,7 @@ impl CalendarApp {
     pub(super) fn logout(&mut self) {
         self.local_storage.clear_jwt();
         self.popup_manager.clear();
+        self.view = EventsView::Days(chrono::Local::now().naive_local().date()).into();
         self.state.logout(RequestDescription::default());
     }
 
