@@ -1,6 +1,6 @@
 use std::{hash::Hash, marker::PhantomData};
 
-use egui::{Button, Layout, Response, InnerResponse};
+use egui::{Button, InnerResponse, Layout, Response};
 use egui_extras::{Column, TableBuilder};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,10 @@ impl<T> TableViewActions<T> {
 
     pub fn new_boxed(actions: Vec<(u8, String)>, get_item_id: Box<dyn Fn(&T) -> i32>) -> Self {
         Self {
-            actions: actions.into_iter().map(|(id, name)| TableViewAction {id, name}).collect_vec(),
+            actions: actions
+                .into_iter()
+                .map(|(id, name)| TableViewAction { id, name })
+                .collect_vec(),
             get_item_id,
         }
     }
@@ -78,30 +81,43 @@ impl<T: TableViewItem> TableView<T> {
         }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, data: &Vec<T>, actions: Option<TableViewActions<T>>) -> InnerResponse<TableViewResponse> {
+    pub fn show(
+        &self,
+        ui: &mut egui::Ui,
+        data: &Vec<T>,
+        actions: Option<TableViewActions<T>>,
+    ) -> InnerResponse<TableViewResponse> {
         let mut table_data = ui.memory(|memory| {
             memory
                 .data
                 .get_temp::<TableViewData>(self.id)
                 .unwrap_or_default()
         });
-        let response = ui
-            .vertical(|ui| {
-                let response = self.show_table(ui, data, &mut table_data, actions);
-                self.show_page_switch(ui, data, &mut table_data);
-                response
-            });
+        let response = ui.vertical(|ui| {
+            let response = self.show_table(ui, data, &mut table_data, actions);
+            self.show_page_switch(ui, data, &mut table_data);
+            response
+        });
         ui.memory_mut(|memory| {
             memory.data.insert_temp(self.id, table_data);
         });
         response
     }
 
-    fn show_table(&self, ui: &mut egui::Ui, data: &Vec<T>, table_data: &mut TableViewData, actions: Option<TableViewActions<T>>) -> TableViewResponse {
+    fn show_table(
+        &self,
+        ui: &mut egui::Ui,
+        data: &Vec<T>,
+        table_data: &mut TableViewData,
+        actions: Option<TableViewActions<T>>,
+    ) -> TableViewResponse {
         let columns = T::get_names();
         let mut response = TableViewResponse::default();
         TableBuilder::new(ui)
-            .columns(Column::auto().at_least(100.).resizable(true), columns.len() + if actions.is_some() {1} else {0})
+            .columns(
+                Column::auto().at_least(100.).resizable(true),
+                columns.len() + if actions.is_some() { 1 } else { 0 },
+            )
             .header(20.0, |mut header| {
                 columns.into_iter().for_each(|name| {
                     header.col(|ui| {
@@ -109,7 +125,7 @@ impl<T: TableViewItem> TableView<T> {
                     });
                 });
                 if actions.is_some() {
-                    header.col(|ui| {});
+                    header.col(|_ui| {});
                 }
             })
             .body(|mut body| {
@@ -126,7 +142,9 @@ impl<T: TableViewItem> TableView<T> {
                             row.col(|ui| {
                                 actions.actions.iter().for_each(|action| {
                                     if ui.button(&action.name).clicked() {
-                                        response.actions.push((action.id, (actions.get_item_id)(item)))
+                                        response
+                                            .actions
+                                            .push((action.id, (actions.get_item_id)(item)))
                                     }
                                 });
                             });

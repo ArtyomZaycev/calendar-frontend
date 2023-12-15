@@ -1,7 +1,6 @@
-use calendar_lib::api::{events::types::Event, event_templates::types::EventTemplate};
+use calendar_lib::api::event_templates::types::EventTemplate;
 
 use crate::ui::table_view::TableViewItem;
-
 
 impl TableViewItem for EventTemplate {
     fn get_names() -> Vec<String> {

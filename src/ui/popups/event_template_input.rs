@@ -59,10 +59,7 @@ impl EventTemplateInput {
 
     /// Works only for new event
     pub fn with_user_id(self, user_id: i32) -> Self {
-        Self {
-            user_id,
-            ..self
-        }
+        Self { user_id, ..self }
     }
 }
 

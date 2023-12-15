@@ -1,4 +1,7 @@
-use calendar_lib::api::{utils::User, events::types::Event, event_templates::types::EventTemplate, schedules::types::Schedule};
+use calendar_lib::api::{
+    event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
+    utils::User,
+};
 use chrono::NaiveDate;
 use derive_is_enum_variant::is_enum_variant;
 use serde::{Deserialize, Serialize};
@@ -20,8 +23,13 @@ pub(super) enum CalendarView {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, is_enum_variant)]
 pub(super) enum AdminPanelView {
-    Users { table: TableView<User> },
-    UserData { user_id: i32, view: AdminPanelUserDataView },
+    Users {
+        table: TableView<User>,
+    },
+    UserData {
+        user_id: i32,
+        view: AdminPanelUserDataView,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, is_enum_variant)]

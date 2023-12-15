@@ -1,7 +1,6 @@
-use calendar_lib::api::{events::types::Event, schedules::types::Schedule};
+use calendar_lib::api::schedules::types::Schedule;
 
 use crate::ui::table_view::TableViewItem;
-
 
 impl TableViewItem for Schedule {
     fn get_names() -> Vec<String> {

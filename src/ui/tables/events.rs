@@ -1,4 +1,4 @@
-use calendar_lib::api::{events::types::Event};
+use calendar_lib::api::events::types::Event;
 
 use crate::ui::table_view::TableViewItem;
 
@@ -15,7 +15,7 @@ impl TableViewItem for Event {
             self.name.clone(),
             self.description.clone().unwrap_or_default(),
             self.start.to_string(),
-            self.end.to_string()
+            self.end.to_string(),
         ]
     }
 }
