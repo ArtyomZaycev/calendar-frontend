@@ -1,5 +1,7 @@
+use std::{rc::Rc, borrow::BorrowMut};
+
 use super::{
-    utils::{AdminPanelView, AppView},
+    utils::{AdminPanelView, AppView, AdminPanelUserDataView},
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
@@ -7,11 +9,11 @@ use crate::{
     tables::DbTable,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::GridLayoutInfo,
-        schedule_card::ScheduleCard, table_view::TableView, utils::UiUtils,
+        schedule_card::ScheduleCard, table_view::{TableView, TableViewItem, TableViewAction, TableViewActions}, utils::UiUtils,
     },
-    utils::*,
+    utils::*, db::request::RequestDescription,
 };
-use calendar_lib::api::{roles::types::Role, utils::User};
+use calendar_lib::api::{roles::types::Role, utils::User, event_templates::types::EventTemplate, schedules::types::Schedule, events::types::Event};
 use chrono::{Days, Months, NaiveDate};
 use egui::{Align, Layout, RichText, Sense};
 
@@ -95,7 +97,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event();
+                        self.popup_manager.open_new_event(None);
                     }
                 }
                 CalendarView::Schedules => {
@@ -106,7 +108,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_schedule();
+                        self.popup_manager.open_new_schedule(None);
                     }
                 }
                 CalendarView::EventTemplates => {
@@ -117,7 +119,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event_template();
+                        self.popup_manager.open_new_event_template(None);
                     }
                 }
             });
@@ -484,6 +486,14 @@ impl CalendarApp {
                     AdminPanelView::Users { table } => {
                         self.admin_panel_users_view(ui, table);
                     }
+                    AdminPanelView::UserData {user_id, view: admin_panel_user_data_view} => {
+                        self.admin_panel_user_data_view(ui, user_id, admin_panel_user_data_view);
+                        match admin_panel_user_data_view {
+                            AdminPanelUserDataView::Events { table } => self.admin_panel_events_view(ui, user_id, table),
+                            AdminPanelUserDataView::EventTemplates { table } => self.admin_panel_event_templates_view(ui, user_id, table),
+                            AdminPanelUserDataView::Schedules { table } => self.admin_panel_schedules_view(ui, user_id, table),
+                        }
+                    },
                 }
             }
         }
@@ -528,7 +538,7 @@ impl CalendarApp {
     fn admin_panel_view(&mut self, ui: &mut egui::Ui, view: AdminPanelView) {
         ui.horizontal(|ui| {
             ui.heading("Admin Panel");
-            egui::ComboBox::from_id_source("admin panel view picker")
+            /*egui::ComboBox::from_id_source("admin panel view picker")
                 .selected_text(match view {
                     AdminPanelView::Users { table: _ } => "Users",
                 })
@@ -542,13 +552,173 @@ impl CalendarApp {
                         "Users",
                     );
                     self.set_view(view);
-                });
+                });*/
         });
     }
 
     fn admin_panel_users_view(&mut self, ui: &mut egui::Ui, table: TableView<User>) {
         if let Some(admin_state) = &mut self.state.admin_state {
-            table.show(ui, admin_state.users.get());
+            let actions = table.show(ui, admin_state.users.get(), Some(
+                TableViewActions::new(
+                    vec![(0, "Data".to_owned())],
+                    |user: &User| user.id
+                )
+            )).inner;
+
+            actions.actions.into_iter().for_each(|(act, user_id)| {
+                match act {
+                    0 => {
+                        self.set_view(AdminPanelView::UserData { user_id, view: AdminPanelUserDataView::Events { table: TableView::new("admin_events_table") }});
+                    }
+                    _ => {}
+                }
+            });
+        }
+    }
+
+    fn admin_panel_user_data_view(&mut self, ui: &mut egui::Ui, user_id: i32, view: AdminPanelUserDataView) {
+        ui.horizontal(|ui| {
+            let user = self.state.admin_state.as_ref().unwrap().users.find_item(user_id);
+            let user_name = user.map(|u| u.name.clone()).unwrap_or_default();
+            if ui.button("Back").clicked() {
+                self.set_view(AdminPanelView::Users { table: TableView::new("users_table") });
+            }
+            ui.label(format!("'{user_name}' User Data"));
+
+            egui::ComboBox::from_id_source("admin_panel_user_data_view_combobox")
+                .selected_text(match view {
+                    AdminPanelUserDataView::Events { .. } => "Events",
+                    AdminPanelUserDataView::EventTemplates { .. } => "Event Templates",
+                    AdminPanelUserDataView::Schedules { .. } => "Schedules",
+                })
+                .show_ui(ui, |ui| {
+                    let mut view = view;
+                    ui.selectable_value(
+                        &mut view,
+                        AdminPanelUserDataView::Events {
+                            table: TableView::new("events_table"),
+                        },
+                        "Events",
+                    );
+                    ui.selectable_value(
+                        &mut view,
+                        AdminPanelUserDataView::EventTemplates {
+                            table: TableView::new("event_templates_table"),
+                        },
+                        "Event Templates",
+                    );
+                    ui.selectable_value(
+                        &mut view,
+                        AdminPanelUserDataView::Schedules {
+                            table: TableView::new("schedules_table"),
+                        },
+                        "Schedules",
+                    );
+                    self.set_view(AdminPanelView::UserData { user_id, view });
+                });
+
+            if ui.button("Reload").clicked() {
+                self.state.load_user_state(user_id, RequestDescription::default());
+            }
+        });
+    }
+
+    fn admin_panel_events_view(&mut self, ui: &mut egui::Ui, user_id: i32, table: TableView<Event>) {
+        if let Some(admin_state) = &mut self.state.admin_state {
+            if ui
+                .add_enabled(
+                    !self.popup_manager.is_open_new_event(),
+                    egui::Button::new("Add Event"),
+                )
+                .clicked()
+            {
+                self.popup_manager.open_new_event(Some(user_id));
+            }
+            if let Some(user_state) = admin_state.users_data.get(&user_id) {
+                let actions = table.show(ui, user_state.events.get(), Some(
+                    TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |event: &Event| event.id
+                    )
+                )).inner;
+
+                actions.actions.into_iter().for_each(|(act, id)| {
+                    match act {
+                        0 => {
+                            self.state.delete_event(id, RequestDescription::default());
+                        }
+                        _ => {}
+                    }
+                });
+            } else {
+                self.state.load_user_state(user_id, RequestDescription::default());
+            }
+        }
+    }
+    
+    fn admin_panel_event_templates_view(&mut self, ui: &mut egui::Ui, user_id: i32, table: TableView<EventTemplate>) {
+        if let Some(admin_state) = &mut self.state.admin_state {
+            if ui
+                .add_enabled(
+                    !self.popup_manager.is_open_new_event_template(),
+                    egui::Button::new("Add Template"),
+                )
+                .clicked()
+            {
+                self.popup_manager.open_new_event_template(Some(user_id));
+            }
+            if let Some(user_state) = admin_state.users_data.get(&user_id) {
+                let actions = table.show(ui, user_state.event_templates.get(), Some(
+                    TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |template: &EventTemplate| template.id
+                    )
+                )).inner;
+
+                actions.actions.into_iter().for_each(|(act, id)| {
+                    match act {
+                        0 => {
+                            self.state.delete_event_template(id, RequestDescription::default());
+                        }
+                        _ => {}
+                    }
+                });
+            } else {
+                self.state.load_user_state(user_id, RequestDescription::default());
+            }
+        }
+    }
+    
+    fn admin_panel_schedules_view(&mut self, ui: &mut egui::Ui, user_id: i32, table: TableView<Schedule>) {
+        if let Some(admin_state) = &mut self.state.admin_state {
+            if ui
+                .add_enabled(
+                    !self.popup_manager.is_open_new_schedule(),
+                    egui::Button::new("Add Schedule"),
+                )
+                .clicked()
+            {
+                self.popup_manager.open_new_schedule(Some(user_id));
+            }
+            if let Some(user_state) = admin_state.users_data.get(&user_id) {
+                let actions = table.show(ui, user_state.schedules.get(), Some(
+                    TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |schedule: &Schedule| schedule.id
+                    )
+                )).inner;
+
+                actions.actions.into_iter().for_each(|(act, id)| {
+                    match act {
+                        0 => {
+                            self.state.delete_schedule(id, RequestDescription::default());
+                        }
+                        _ => {}
+                    }
+                });
+            } else {
+                self.state.load_user_state(user_id, RequestDescription::default());
+            }
         }
     }
 }

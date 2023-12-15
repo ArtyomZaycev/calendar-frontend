@@ -9,7 +9,7 @@ use super::UserState;
 pub struct AdminState {
     // TODO: Lazy table
     pub users: Table<User>,
-    users_data: HashMap<i32, UserState>,
+    pub users_data: HashMap<i32, UserState>,
 }
 
 impl AdminState {

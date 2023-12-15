@@ -12,6 +12,7 @@ use std::hash::Hash;
 pub struct EventTemplateInput {
     eid: egui::Id,
     pub orig_name: String,
+    pub user_id: i32,
 
     pub id: Option<i32>,
     pub name: String,
@@ -28,6 +29,7 @@ impl EventTemplateInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
+            user_id: -1,
             id: None,
             name: String::default(),
             event_name: String::default(),
@@ -43,6 +45,7 @@ impl EventTemplateInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: template.name.clone(),
+            user_id: -1,
             id: Some(template.id),
             name: template.name.clone(),
             event_name: template.event_name.clone(),
@@ -51,6 +54,14 @@ impl EventTemplateInput {
                 .unwrap(),
             access_level: template.access_level,
             request_id: None,
+        }
+    }
+
+    /// Works only for new event
+    pub fn with_user_id(self, user_id: i32) -> Self {
+        Self {
+            user_id,
+            ..self
         }
     }
 }
@@ -162,7 +173,7 @@ impl PopupContent for EventTemplateInput {
                 self.request_id = Some(request_id);
                 info.signal(
                     RequestSignal::InsertEventTemplate(NewEventTemplate {
-                        user_id: -1,
+                        user_id: self.user_id,
                         name: self.name.clone(),
                         event_name: self.event_name.clone(),
                         event_description: (!self.event_description.is_empty())

@@ -15,6 +15,7 @@ use std::hash::Hash;
 pub struct ScheduleInput {
     eid: egui::Id,
     pub orig_name: String,
+    pub user_id: i32,
 
     pub id: Option<i32>,
     pub template_id: Option<i32>,
@@ -44,6 +45,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
+            user_id: -1,
             id: None,
             template_id: None,
             name: String::default(),
@@ -72,6 +74,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: schedule.name.clone(),
+            user_id: -1,
             id: Some(schedule.id),
             template_id: Some(schedule.template_id),
             name: schedule.name.clone(),
@@ -97,6 +100,14 @@ impl ScheduleInput {
                 }),
 
             request_id: None,
+        }
+    }
+
+    /// Works only for new event
+    pub fn with_user_id(self, user_id: i32) -> Self {
+        Self {
+            user_id,
+            ..self
         }
     }
 }
@@ -306,7 +317,7 @@ impl PopupContent for ScheduleInput {
                 self.request_id = Some(request_id);
                 info.signal(
                     RequestSignal::InsertSchedule(NewSchedule {
-                        user_id: -1,
+                        user_id: self.user_id,
                         template_id: self.template_id.unwrap(),
                         name: self.name.clone(),
                         description: (!self.description.is_empty())

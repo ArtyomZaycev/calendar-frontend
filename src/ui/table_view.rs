@@ -1,7 +1,8 @@
 use std::{hash::Hash, marker::PhantomData};
 
-use egui::{Button, Layout, Response};
+use egui::{Button, Layout, Response, InnerResponse};
 use egui_extras::{Column, TableBuilder};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 pub trait TableViewItem {
@@ -22,6 +23,34 @@ impl Default for TableViewData {
             page_size: 20,
         }
     }
+}
+
+pub struct TableViewAction {
+    id: u8,
+    name: String,
+}
+
+pub struct TableViewActions<T> {
+    actions: Vec<TableViewAction>,
+    get_item_id: Box<dyn Fn(&T) -> i32>,
+}
+
+impl<T> TableViewActions<T> {
+    pub fn new<F: Fn(&T) -> i32 + 'static>(actions: Vec<(u8, String)>, get_item_id: F) -> Self {
+        Self::new_boxed(actions, Box::new(get_item_id))
+    }
+
+    pub fn new_boxed(actions: Vec<(u8, String)>, get_item_id: Box<dyn Fn(&T) -> i32>) -> Self {
+        Self {
+            actions: actions.into_iter().map(|(id, name)| TableViewAction {id, name}).collect_vec(),
+            get_item_id,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct TableViewResponse {
+    pub actions: Vec<(u8, i32)>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -49,7 +78,7 @@ impl<T: TableViewItem> TableView<T> {
         }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, data: &Vec<T>) -> Response {
+    pub fn show(&self, ui: &mut egui::Ui, data: &Vec<T>, actions: Option<TableViewActions<T>>) -> InnerResponse<TableViewResponse> {
         let mut table_data = ui.memory(|memory| {
             memory
                 .data
@@ -58,39 +87,54 @@ impl<T: TableViewItem> TableView<T> {
         });
         let response = ui
             .vertical(|ui| {
-                self.show_table(ui, data, &mut table_data);
+                let response = self.show_table(ui, data, &mut table_data, actions);
                 self.show_page_switch(ui, data, &mut table_data);
-            })
-            .response;
+                response
+            });
         ui.memory_mut(|memory| {
             memory.data.insert_temp(self.id, table_data);
         });
         response
     }
 
-    fn show_table(&self, ui: &mut egui::Ui, data: &Vec<T>, table_data: &mut TableViewData) {
+    fn show_table(&self, ui: &mut egui::Ui, data: &Vec<T>, table_data: &mut TableViewData, actions: Option<TableViewActions<T>>) -> TableViewResponse {
         let columns = T::get_names();
+        let mut response = TableViewResponse::default();
         TableBuilder::new(ui)
-            .columns(Column::auto().resizable(true), columns.len())
+            .columns(Column::auto().at_least(100.).resizable(true), columns.len() + if actions.is_some() {1} else {0})
             .header(20.0, |mut header| {
                 columns.into_iter().for_each(|name| {
                     header.col(|ui| {
                         ui.heading(name);
                     });
                 });
+                if actions.is_some() {
+                    header.col(|ui| {});
+                }
             })
             .body(|mut body| {
                 let first = table_data.page * table_data.page_size;
                 (first..data.len().min(first + table_data.page_size)).for_each(|i| {
                     body.row(30.0, |mut row| {
-                        data[i].get_fields().into_iter().for_each(|field| {
+                        let item = &data[i];
+                        item.get_fields().into_iter().for_each(|field| {
                             row.col(|ui| {
                                 ui.label(field);
                             });
                         });
+                        if let Some(actions) = &actions {
+                            row.col(|ui| {
+                                actions.actions.iter().for_each(|action| {
+                                    if ui.button(&action.name).clicked() {
+                                        response.actions.push((action.id, (actions.get_item_id)(item)))
+                                    }
+                                });
+                            });
+                        }
                     });
                 });
             });
+        response
     }
 
     fn show_page_switch(

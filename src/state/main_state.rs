@@ -378,15 +378,18 @@ impl State {
                         .clone()
                         .map_or(false, |me| me.user.id == user_id)
                     {
+                        if let Some(admin_state) = &mut self.admin_state {
+                            admin_state.parse_load_state(user_id, res.clone());
+                        }
+
                         *self.get_access_levels_mut() = res.access_levels;
                         *self.get_events_mut() = res.events;
                         *self.get_event_templates_mut() = res.event_templates;
                         *self.get_schedules_mut() = res.schedules;
                         self.clear_events();
-                    } else {
-                        if let Some(admin_state) = &mut self.admin_state {
-                            admin_state.parse_load_state(user_id, res);
-                        }
+                    } else if let Some(admin_state) = &mut self.admin_state {
+                        // To avoid cloning 'res' every time
+                        admin_state.parse_load_state(user_id, res);
                     }
                 }
             }

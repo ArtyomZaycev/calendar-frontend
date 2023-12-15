@@ -16,6 +16,7 @@ use std::hash::Hash;
 pub struct EventInput {
     eid: egui::Id,
     pub orig_name: String,
+    pub user_id: i32,
 
     pub id: Option<i32>,
     pub name: String,
@@ -36,6 +37,7 @@ impl EventInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
+            user_id: -1,
             id: None,
             name: String::default(),
             description: String::default(),
@@ -52,6 +54,7 @@ impl EventInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: event.name.clone(),
+            user_id: -1,
             id: Some(event.id),
             name: event.name.clone(),
             description: event.description.clone().unwrap_or_default(),
@@ -61,6 +64,14 @@ impl EventInput {
             start: event.start.time(),
             end: event.end.time(),
             request_id: None,
+        }
+    }
+
+    /// Works only for new event
+    pub fn with_user_id(self, user_id: i32) -> Self {
+        Self {
+            user_id,
+            ..self
         }
     }
 }
@@ -168,7 +179,7 @@ impl PopupContent for EventInput {
                 self.request_id = Some(request_id);
                 info.signal(
                     RequestSignal::InsertEvent(NewEvent {
-                        user_id: -1,
+                        user_id: self.user_id,
                         name: self.name.clone(),
                         description: (!self.description.is_empty())
                             .then_some(self.description.clone()),
