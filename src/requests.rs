@@ -47,6 +47,8 @@ pub enum AppRequestResponse {
     UpdateSchedule(schedules::update::Response),
     DeleteSchedule(schedules::delete::Response),
 
+    LoadUserMemoryUsage(other::load_user_memory_usage::Response),
+
     /// For debug only
     #[allow(dead_code)]
     None,
@@ -75,6 +77,9 @@ pub enum AppRequestInfo {
     //UpdateSchedules(Vec<i32>),
     DeleteSchedule(i32),
     //DeleteSchedules(Vec<i32>),
+
+    LoadUserMemoryUsage { user_id: i32 },
+    
     #[allow(dead_code)]
     #[default]
     None,

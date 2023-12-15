@@ -1,5 +1,6 @@
 use super::UserState;
 use crate::db::table::DbTable;
+use crate::reports;
 use crate::requests::AppRequestResponse;
 use crate::{
     config::Config,
@@ -519,6 +520,15 @@ impl State {
                     if let Some(ind) = self.get_schedules().iter().position(|s| s.id == id) {
                         self.get_schedules_mut().remove(ind);
                         self.clear_events();
+                    }
+                }
+            }
+            AppRequestResponse::LoadUserMemoryUsage(response) => {
+                if let AppRequestInfo::LoadUserMemoryUsage { user_id } = info {
+                    if let Some(admin_state) = &self.admin_state {
+                        if let Some(user) = admin_state.users.find_item(user_id) {
+                            reports::create_memory_usage_report(user, response.data);
+                        }
                     }
                 }
             }

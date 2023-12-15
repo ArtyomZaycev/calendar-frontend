@@ -365,4 +365,18 @@ impl State {
             description,
         )
     }
+
+    pub fn load_user_memory_usage(&mut self, user_id: i32, description: RequestDescription) -> RequestId {
+        use other::load_user_memory_usage::*;
+
+        let request = self
+            .make_request_authorized(METHOD.clone(), PATH)
+            .query(&Args { user_id })
+            .build()
+            .unwrap();
+
+        let parser = make_parser(|r| AppRequestResponse::LoadUserMemoryUsage(r));
+        self.connector
+            .request(request, parser, AppRequestInfo::LoadUserMemoryUsage { user_id }, description)
+    }
 }

@@ -12,6 +12,7 @@ mod state;
 mod tables;
 mod ui;
 mod utils;
+mod reports;
 
 use app::CalendarApp;
 

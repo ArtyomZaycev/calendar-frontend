@@ -578,7 +578,7 @@ impl CalendarApp {
                     ui,
                     admin_state.users.get(),
                     Some(TableViewActions::new(
-                        vec![(0, "Data".to_owned())],
+                        vec![(0, "Data".to_owned()), (1, "Memory Usage Report".to_owned())],
                         |user: &User| user.id,
                     )),
                 )
@@ -595,6 +595,9 @@ impl CalendarApp {
                                 table: TableView::new("admin_events_table"),
                             },
                         });
+                    }
+                    1 => {
+                        self.state.load_user_memory_usage(user_id, RequestDescription::default());
                     }
                     _ => {}
                 });
