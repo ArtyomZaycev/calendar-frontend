@@ -140,12 +140,14 @@ impl<T: TableViewItem> TableView<T> {
                         });
                         if let Some(actions) = &actions {
                             row.col(|ui| {
-                                actions.actions.iter().for_each(|action| {
-                                    if ui.button(&action.name).clicked() {
-                                        response
-                                            .actions
-                                            .push((action.id, (actions.get_item_id)(item)))
-                                    }
+                                ui.horizontal(|ui| {
+                                    actions.actions.iter().for_each(|action| {
+                                        if ui.button(&action.name).clicked() {
+                                            response
+                                                .actions
+                                                .push((action.id, (actions.get_item_id)(item)))
+                                        }
+                                    });
                                 });
                             });
                         }
