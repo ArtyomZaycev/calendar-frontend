@@ -22,10 +22,10 @@ impl CalendarApp {
 
         let config = Config::load();
         let mut local_storage = AppLocalStorage::new();
-        let mut state = State::new(&config);
+        let state = State::new(&config);
         match local_storage.get_jwt() {
             Some(jwt) => {
-                state.login_by_jwt(&jwt, RequestDescription::new());
+                state.login_by_jwt(&jwt, RequestDescription::new(), None);
             }
             _ => {
                 println!("Auth info not found");
@@ -46,7 +46,7 @@ impl CalendarApp {
         self.local_storage.clear_jwt();
         self.popup_manager.clear();
         self.view = EventsView::Days(chrono::Local::now().naive_local().date()).into();
-        self.state.logout(RequestDescription::default());
+        self.state.logout(RequestDescription::default(), None);
     }
 
     pub(super) fn parse_signal(&mut self, signal: AppSignal) {

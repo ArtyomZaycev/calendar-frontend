@@ -4,28 +4,35 @@ use super::{
 };
 use bytes::Bytes;
 use reqwest::StatusCode;
-use std::{cell::Cell, collections::HashMap};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+};
 
-struct RequestData<RequestResponse, RequestInfo, RequestResponseInfo> {
+struct RequestData<RequestResponse, RequestInfo, RequestResponseInfo, Callback> {
     info: RequestInfo,
     description: RequestDescription,
     parser: Option<RequestParser<RequestResponse>>,
+    callback: Option<Callback>,
+
     response: Option<RequestResponse>,
     response_info: Option<RequestResponseInfo>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo>
-    RequestData<RequestResponse, RequestInfo, RequestResponseInfo>
+impl<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
+    RequestData<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
 {
     fn new(
         parser: RequestParser<RequestResponse>,
         info: RequestInfo,
         description: RequestDescription,
+        callback: Option<Callback>,
     ) -> Self {
         Self {
             info,
             description,
             parser: Some(parser),
+            callback,
             response: None,
             response_info: None,
         }
@@ -38,24 +45,26 @@ impl<RequestResponse, RequestInfo, RequestResponseInfo>
         if let Some(parser) = self.parser.take() {
             let response = parser.parse(status_code, bytes);
             let response_info = RequestResponseInfo::from_response(&response);
+
             self.response = Some(response);
             self.response_info = Some(response_info);
         }
     }
 }
 
-pub struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>
+pub struct RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
 where
     RequestResponse: Clone,
     RequestInfo: Clone,
     RequestResponseInfo: Clone + FromResponse<RequestResponse>,
 {
     next_request_id: Cell<RequestId>,
-    requests: HashMap<RequestId, RequestData<RequestResponse, RequestInfo, RequestResponseInfo>>,
+    requests:
+        RefCell<HashMap<RequestId, RequestData<RequestResponse, RequestInfo, RequestResponseInfo, Callback>>>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo>
-    RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>
+impl<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
+    RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
 where
     RequestResponse: Clone,
     RequestInfo: Clone,
@@ -64,7 +73,7 @@ where
     pub fn new() -> Self {
         Self {
             next_request_id: Cell::new(0),
-            requests: HashMap::new(),
+            requests: RefCell::new(HashMap::new()),
         }
     }
 
@@ -74,26 +83,38 @@ where
         request_id
     }
     pub fn push(
-        &mut self,
+        &self,
         parser: RequestParser<RequestResponse>,
         info: RequestInfo,
         description: RequestDescription,
+        callback: Option<Callback>,
     ) -> RequestId {
         let request_id = description.request_id.unwrap_or_else(|| self.reserve_id());
-        self.requests
-            .insert(request_id, RequestData::new(parser, info, description));
+        self.requests.borrow_mut().insert(
+            request_id,
+            RequestData::new(parser, info, description, callback),
+        );
         request_id
     }
 
     pub fn get_description(&self, id: RequestId) -> Option<RequestDescription> {
-        self.requests.get(&id).map(|d| d.description.clone())
+        self.requests
+            .borrow()
+            .get(&id)
+            .map(|d| d.description.clone())
     }
 
     pub fn clone_response(&self, id: RequestId) -> Option<RequestResponse> {
-        self.requests.get(&id).and_then(|d| d.response.clone())
+        self.requests
+            .borrow()
+            .get(&id)
+            .and_then(|d| d.response.clone())
     }
     fn take_response(&mut self, id: RequestId) -> Option<RequestResponse> {
-        self.requests.get_mut(&id).and_then(|d| d.response.take())
+        self.requests
+            .borrow_mut()
+            .get_mut(&id)
+            .and_then(|d| d.response.take())
     }
     /// Either take or clone, depending on RequestDescription
     pub fn get_response(&mut self, id: RequestId) -> Option<RequestResponse> {
@@ -106,19 +127,32 @@ where
     }
 
     pub fn get_info(&self, id: RequestId) -> Option<RequestInfo> {
-        self.requests.get(&id).map(|d| d.info.clone())
+        self.requests.borrow().get(&id).map(|d| d.info.clone())
     }
 
     pub fn get_response_info(&self, id: RequestId) -> Option<RequestResponseInfo> {
-        self.requests.get(&id).and_then(|d| d.response_info.clone())
+        self.requests
+            .borrow()
+            .get(&id)
+            .and_then(|d| d.response_info.clone())
+    }
+
+    pub fn take_callback(&mut self, id: RequestId) -> Option<Callback> {
+        self.requests
+            .borrow_mut()
+            .get_mut(&id)
+            .and_then(|d| d.callback.take())
     }
 
     pub fn any_request_in_progress(&self) -> bool {
-        self.requests.iter().any(|(_, data)| data.parser.is_some())
+        self.requests
+            .borrow()
+            .iter()
+            .any(|(_, data)| data.response.is_none())
     }
 
     pub fn parse(&mut self, id: RequestId, status_code: StatusCode, bytes: Bytes) {
-        if let Some(data) = self.requests.get_mut(&id) {
+        if let Some(data) = self.requests.borrow_mut().get_mut(&id) {
             data.parse(status_code, bytes);
         }
     }

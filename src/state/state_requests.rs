@@ -15,8 +15,8 @@ use serde::Serialize;
 
 impl State {
     fn request<Q: Serialize, B: Serialize>(
-        &mut self,
-        request: RequestBuilder<Q, B>,
+        &self,
+        request: RequestBuilder<Q, B, StateCallback>,
         description: RequestDescription,
     ) -> RequestId {
         let jwt = self.get_me().map(|u| u.jwt.clone()).unwrap_or_default();
@@ -30,13 +30,19 @@ impl State {
     }
 }
 
+pub type StateCallback = Box<dyn FnOnce(&mut State, AppRequestResponse)>;
+
 impl State {
     pub fn change_access_level(&mut self, new_access_level: i32) {
         self.current_access_level = new_access_level;
         self.clear_events();
     }
 
-    pub fn load_access_levels(&mut self, description: RequestDescription) -> RequestId {
+    pub fn load_access_levels(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use auth::load_access_levels::*;
 
         let request = self
@@ -47,10 +53,14 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn load_user_roles(&mut self, description: RequestDescription) -> RequestId {
+    pub fn load_user_roles(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use user_roles::load_array::*;
 
         let request = self
@@ -61,10 +71,14 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::LoadUserRoles(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn logout(&mut self, description: RequestDescription) -> RequestId {
+    pub fn logout(
+        &mut self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use auth::logout::*;
 
         let request = self
@@ -81,10 +95,15 @@ impl State {
             |code, _| AppRequestResponse::Error(code, "Logout error".to_owned()),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn login_by_jwt(&mut self, jwt: &str, description: RequestDescription) -> RequestId {
+    pub fn login_by_jwt(
+        &self,
+        jwt: &str,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use auth::login_by_key::*;
 
         let request = self
@@ -97,14 +116,15 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::LoginByKey(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
     pub fn login(
-        &mut self,
+        &self,
         email: &str,
         password: &str,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         use auth::login::*;
 
@@ -126,15 +146,16 @@ impl State {
             |r| AppRequestResponse::LoginError(r),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
     pub fn register(
-        &mut self,
+        &self,
         name: &str,
         email: &str,
         password: &str,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         use auth::register::*;
 
@@ -154,15 +175,16 @@ impl State {
             |r| AppRequestResponse::RegisterError(r),
         );
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
     pub fn new_password(
-        &mut self,
+        &self,
         access_level: i32,
         viewer: Option<NewPassword>,
         editor: Option<NewPassword>,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         use auth::new_password::*;
 
@@ -180,10 +202,14 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::NewPassword(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn load_user_ids(&mut self, description: RequestDescription) -> RequestId {
+    pub fn load_user_ids(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use users::load_ids::*;
 
         let request = self
@@ -194,10 +220,15 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::LoadUserIds(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn load_user(&mut self, id: i32, description: RequestDescription) -> RequestId {
+    pub fn load_user(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use users::load::*;
 
         let request = self
@@ -210,11 +241,20 @@ impl State {
             |r| AppRequestResponse::LoadUser(r),
             |r| AppRequestResponse::LoadUserError(r),
         );
-        self.connector
-            .request(request, parser, AppRequestInfo::LoadUser(id), description)
+        self.connector.request(
+            request,
+            parser,
+            AppRequestInfo::LoadUser(id),
+            description,
+            callback,
+        )
     }
 
-    pub fn load_users(&mut self, description: RequestDescription) -> RequestId {
+    pub fn load_users(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use users::load_array::*;
 
         let request = self
@@ -225,10 +265,15 @@ impl State {
 
         let parser = make_parser(|r| AppRequestResponse::LoadUsers(r));
         self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+            .request(request, parser, AppRequestInfo::None, description, callback)
     }
 
-    pub fn load_user_state(&mut self, user_id: i32, description: RequestDescription) -> RequestId {
+    pub fn load_user_state(
+        &self,
+        user_id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         use api::user_state::load::*;
 
         let request = self
@@ -248,55 +293,96 @@ impl State {
             parser,
             AppRequestInfo::LoadUserState { user_id },
             description,
+            callback,
         )
     }
 
-    pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.load_by_id_request(id), description)
+    pub fn load_event(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
+        self.request(
+            self.user_state.events.load_by_id_request(id).with_callback(callback),
+            description,
+        )
     }
-    pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.load_all(), description)
+    pub fn load_events(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
+        self.request(self.user_state.events.load_all().with_callback(callback), description,)
     }
     pub fn insert_event(
-        &mut self,
+        &self,
         mut new_event: NewEvent,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         if new_event.user_id == -1 {
             new_event.user_id = self.me.as_ref().unwrap().user.id;
         }
         self.request(
-            self.user_state.events.insert_request(new_event),
+            self.user_state.events.insert_request(new_event).with_callback(callback),
             description,
+            
         )
     }
     pub fn update_event(
-        &mut self,
+        &self,
         upd_event: UpdateEvent,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         self.request(
-            self.user_state.events.update_request(upd_event),
+            self.user_state.events.update_request(upd_event).with_callback(callback),
             description,
+            
         )
     }
-    pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.delete_by_id_request(id), description)
+    pub fn delete_event(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
+        self.request(
+            self.user_state.events.delete_by_id_request(id).with_callback(callback),
+            description,
+            
+        )
     }
 
-    pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
+    pub fn load_event_template(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         self.request(
-            self.user_state.event_templates.load_by_id_request(id),
+            self.user_state.event_templates.load_by_id_request(id).with_callback(callback),
             description,
+            
         )
     }
-    pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.event_templates.load_all(), description)
+    pub fn load_event_templates(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
+        self.request(
+            self.user_state.event_templates.load_all().with_callback(callback),
+            description,
+            
+        )
     }
     pub fn insert_event_template(
-        &mut self,
+        &self,
         mut new_event_template: NewEventTemplate,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         if new_event_template.user_id == -1 {
             new_event_template.user_id = self.me.as_ref().unwrap().user.id;
@@ -304,65 +390,94 @@ impl State {
         self.request(
             self.user_state
                 .event_templates
-                .insert_request(new_event_template),
+                .insert_request(new_event_template).with_callback(callback),
             description,
+            
         )
     }
     pub fn update_event_template(
-        &mut self,
+        &self,
         upd_event_template: UpdateEventTemplate,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         self.request(
             self.user_state
                 .event_templates
-                .update_request(upd_event_template),
+                .update_request(upd_event_template).with_callback(callback),
             description,
+            
         )
     }
-    pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
+    pub fn delete_event_template(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         self.request(
-            self.user_state.event_templates.delete_by_id_request(id),
+            self.user_state.event_templates.delete_by_id_request(id).with_callback(callback),
             description,
+            
         )
     }
 
-    pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
+    pub fn load_schedule(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         self.request(
-            self.user_state.schedules.load_by_id_request(id),
+            self.user_state.schedules.load_by_id_request(id).with_callback(callback),
             description,
+            
         )
     }
-    pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.schedules.load_all(), description)
+    pub fn load_schedules(
+        &self,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
+        self.request(self.user_state.schedules.load_all().with_callback(callback), description,)
     }
     pub fn insert_schedule(
-        &mut self,
+        &self,
         mut new_schedule: NewSchedule,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         if new_schedule.user_id == -1 {
             new_schedule.user_id = self.me.as_ref().unwrap().user.id;
         }
         self.request(
-            self.user_state.schedules.insert_request(new_schedule),
+            self.user_state.schedules.insert_request(new_schedule).with_callback(callback),
             description,
+            
         )
     }
     pub fn update_schedule(
-        &mut self,
+        &self,
         upd_schedule: UpdateSchedule,
         description: RequestDescription,
+        callback: Option<StateCallback>,
     ) -> RequestId {
         self.request(
-            self.user_state.schedules.update_request(upd_schedule),
+            self.user_state.schedules.update_request(upd_schedule).with_callback(callback),
             description,
+            
         )
     }
-    pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
+    pub fn delete_schedule(
+        &self,
+        id: i32,
+        description: RequestDescription,
+        callback: Option<StateCallback>,
+    ) -> RequestId {
         self.request(
-            self.user_state.schedules.delete_by_id_request(id),
+            self.user_state.schedules.delete_by_id_request(id).with_callback(callback),
             description,
+            
         )
     }
 }

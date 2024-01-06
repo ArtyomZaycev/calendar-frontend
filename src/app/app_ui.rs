@@ -657,7 +657,7 @@ impl CalendarApp {
 
             if ui.button("Reload").clicked() {
                 self.state
-                    .load_user_state(user_id, RequestDescription::default());
+                    .load_user_state(user_id, RequestDescription::default(), None);
             }
         });
     }
@@ -692,13 +692,14 @@ impl CalendarApp {
 
                 actions.actions.into_iter().for_each(|(act, id)| match act {
                     0 => {
-                        self.state.delete_event(id, RequestDescription::default());
+                        self.state
+                            .delete_event(id, RequestDescription::default(), None);
                     }
                     _ => {}
                 });
             } else {
                 self.state
-                    .load_user_state(user_id, RequestDescription::default());
+                    .load_user_state(user_id, RequestDescription::default(), None);
             }
         }
     }
@@ -734,13 +735,13 @@ impl CalendarApp {
                 actions.actions.into_iter().for_each(|(act, id)| match act {
                     0 => {
                         self.state
-                            .delete_event_template(id, RequestDescription::default());
+                            .delete_event_template(id, RequestDescription::default(), None);
                     }
                     _ => {}
                 });
             } else {
                 self.state
-                    .load_user_state(user_id, RequestDescription::default());
+                    .load_user_state(user_id, RequestDescription::default(), None);
             }
         }
     }
@@ -776,13 +777,13 @@ impl CalendarApp {
                 actions.actions.into_iter().for_each(|(act, id)| match act {
                     0 => {
                         self.state
-                            .delete_schedule(id, RequestDescription::default());
+                            .delete_schedule(id, RequestDescription::default(), None);
                     }
                     _ => {}
                 });
             } else {
                 self.state
-                    .load_user_state(user_id, RequestDescription::default());
+                    .load_user_state(user_id, RequestDescription::default(), None);
             }
         }
     }

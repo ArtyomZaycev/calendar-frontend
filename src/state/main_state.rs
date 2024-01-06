@@ -1,4 +1,5 @@
 use super::UserState;
+use super::state_requests::StateCallback;
 use crate::db::table::DbTable;
 use crate::requests::AppRequestResponse;
 use crate::{
@@ -20,7 +21,7 @@ use reqwest::{Method, RequestBuilder};
 use std::collections::HashMap;
 
 pub struct State {
-    pub connector: DbConnector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo>,
+    pub connector: DbConnector<AppRequestResponse, AppRequestInfo, AppRequestResponseInfo, StateCallback>,
     // TODO: Move to app?
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
@@ -201,44 +202,50 @@ impl State {
 
             StateSignal::RequestSignal(description, signal) => match signal {
                 RequestSignal::Login(email, password) => {
-                    self.login(&email, &password, description);
+                    self.login(&email, &password, description, None);
                 }
                 RequestSignal::Register(name, email, password) => {
-                    self.register(&name, &email, &password, description);
+                    self.register(&name, &email, &password, description, None);
                 }
 
                 RequestSignal::InsertEvent(new_event) => {
-                    self.insert_event(new_event, description);
+                    self.insert_event(new_event, description, None);
                 }
                 RequestSignal::UpdateEvent(upd_event) => {
-                    self.update_event(upd_event, description);
+                    self.update_event(upd_event, description, None);
                 }
                 RequestSignal::DeleteEvent(id) => {
-                    self.delete_event(id, description);
+                    self.delete_event(id, description, None);
                 }
 
                 RequestSignal::InsertEventTemplate(new_event_template) => {
-                    self.insert_event_template(new_event_template, description);
+                    self.insert_event_template(new_event_template, description, None);
                 }
                 RequestSignal::UpdateEventTemplate(upd_event_template) => {
-                    self.update_event_template(upd_event_template, description);
+                    self.update_event_template(upd_event_template, description, None);
                 }
                 RequestSignal::DeleteEventTemplate(id) => {
-                    self.delete_event_template(id, description);
+                    self.delete_event_template(id, description, None);
                 }
 
                 RequestSignal::InsertSchedule(new_schedule) => {
-                    self.insert_schedule(new_schedule, description);
+                    self.insert_schedule(new_schedule, description, None);
                 }
                 RequestSignal::UpdateSchedule(upd_schedule) => {
-                    self.update_schedule(upd_schedule, description);
+                    self.update_schedule(upd_schedule, description, None);
                 }
                 RequestSignal::DeleteSchedule(id) => {
-                    self.delete_schedule(id, description);
+                    self.delete_schedule(id, description, None);
                 }
 
                 RequestSignal::InsertPassword(access_level, viewer_password, editor_password) => {
-                    self.new_password(access_level, viewer_password, editor_password, description);
+                    self.new_password(
+                        access_level,
+                        viewer_password,
+                        editor_password,
+                        description,
+                        None,
+                    );
                 }
                 RequestSignal::AcceptScheduledEvent(date, plan_id) => {
                     if let Some((schedule, plan)) =
@@ -270,7 +277,7 @@ impl State {
                                 visibility: EventVisibility::HideAll,
                                 plan_id: Some(plan_id),
                             };
-                            self.insert_event(new_event, description);
+                            self.insert_event(new_event, description, None);
                         }
                     }
                 }
@@ -301,6 +308,7 @@ impl State {
                 .map(|me| me.user.id)
                 .unwrap_or_default(),
             RequestDescription::default(),
+            None,
         );
 
         if let Some(me) = self.get_me() {
@@ -320,7 +328,7 @@ impl State {
 
     pub(super) fn load_admin_state(&mut self) {
         self.admin_state = Some(AdminState::new());
-        self.load_users(RequestDescription::default());
+        self.load_users(RequestDescription::default(), None);
     }
 
     pub(super) fn parse_request(&mut self, response: AppRequestResponse, info: AppRequestInfo) {
@@ -347,7 +355,7 @@ impl State {
             AppRequestResponse::Register(_) => {}
             AppRequestResponse::RegisterError(_) => {}
             AppRequestResponse::NewPassword(_) => {
-                self.load_access_levels(RequestDescription::default());
+                self.load_access_levels(RequestDescription::default(), None);
             }
             AppRequestResponse::LoadUserIds(_res) => {
                 /*if let Some(admin_state) = &mut self.admin_state {
@@ -432,11 +440,11 @@ impl State {
                 self.clear_events();
             }
             AppRequestResponse::InsertEvent(_) => {
-                self.load_events(RequestDescription::default());
+                self.load_events(RequestDescription::default(), None);
             }
             AppRequestResponse::UpdateEvent(_) => {
                 if let AppRequestInfo::UpdateEvent(id) = info {
-                    self.load_event(id, RequestDescription::default());
+                    self.load_event(id, RequestDescription::default(), None);
                 }
             }
             AppRequestResponse::DeleteEvent(_) => {
@@ -474,11 +482,11 @@ impl State {
                 *self.get_event_templates_mut() = res.array;
             }
             AppRequestResponse::InsertEventTemplate(_) => {
-                self.load_event_templates(RequestDescription::default());
+                self.load_event_templates(RequestDescription::default(), None);
             }
             AppRequestResponse::UpdateEventTemplate(_) => {
                 if let AppRequestInfo::UpdateEventTemplate(id) = info {
-                    self.load_event_template(id, RequestDescription::default());
+                    self.load_event_template(id, RequestDescription::default(), None);
                 }
             }
             AppRequestResponse::DeleteEventTemplate(_) => {
@@ -507,11 +515,11 @@ impl State {
                 self.clear_events();
             }
             AppRequestResponse::InsertSchedule(_) => {
-                self.load_schedules(RequestDescription::default());
+                self.load_schedules(RequestDescription::default(), None);
             }
             AppRequestResponse::UpdateSchedule(_) => {
                 if let AppRequestInfo::UpdateSchedule(id) = info {
-                    self.load_schedule(id, RequestDescription::default());
+                    self.load_schedule(id, RequestDescription::default(), None);
                 }
             }
             AppRequestResponse::DeleteSchedule(_) => {
@@ -534,8 +542,16 @@ impl State {
         polled.iter().for_each(|&request_id| {
             let response = self.connector.get_response(request_id);
             let info: Option<AppRequestInfo> = self.connector.get_request_info(request_id);
+            let callback: Option<StateCallback> = self.connector.take_callback(request_id);
+            println!("POLL callback = {}", callback.is_some());
             match (response, info) {
-                (Some(response), Some(info)) => self.parse_request(response, info),
+                (Some(response), Some(info)) => {
+                    if let Some(callback) = callback {
+                        callback(self, response);
+                    } else {
+                        self.parse_request(response, info);
+                    }
+                },
                 _ => {}
             }
         });

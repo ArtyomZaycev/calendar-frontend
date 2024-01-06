@@ -11,7 +11,7 @@ use calendar_lib::api::{events::types::*, utils::*};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime, NaiveTime};
 use egui::TextEdit;
 use egui_extras::DatePickerButton;
-use std::hash::Hash;
+use std::{hash::Hash, sync::atomic::{AtomicBool, Ordering}};
 
 pub struct EventInput {
     eid: egui::Id,
@@ -28,7 +28,7 @@ pub struct EventInput {
     pub start: NaiveTime,
     pub end: NaiveTime,
 
-    request_id: Option<RequestId>,
+    close: AtomicBool,
 }
 
 impl EventInput {
@@ -46,7 +46,7 @@ impl EventInput {
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::minutes(30),
-            request_id: None,
+            close: AtomicBool::new(false),
         }
     }
 
@@ -63,7 +63,7 @@ impl EventInput {
             date: event.start.date(),
             start: event.start.time(),
             end: event.end.time(),
-            request_id: None,
+            close: AtomicBool::new(false),
         }
     }
 
@@ -75,13 +75,8 @@ impl EventInput {
 
 impl PopupContent for EventInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
-                    info.close();
-                }
-            }
+        if self.close.load(Ordering::Relaxed) {
+            info.close();
         }
 
         if self.access_level == -1 {
@@ -149,23 +144,28 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
+                let upd_event = UpdateEvent {
+                    id,
+                    name: USome(self.name.clone()),
+                    description: USome(
+                        (!self.description.is_empty()).then_some(self.description.clone()),
+                    ),
+                    start: USome(NaiveDateTime::new(self.date, self.start)),
+                    end: USome(NaiveDateTime::new(self.date, self.end)),
+                    access_level: USome(self.access_level),
+                    visibility: USome(self.visibility),
+                    plan_id: UNone,
+                };
+                state.update_event(upd_event, RequestDescription::new(), Some(Box::new(|a, b| {
+                    *self.close.get_mut() = true;
+                })));
+                /*
                 let request_id = state.connector.reserve_request_id();
                 self.request_id = Some(request_id);
                 info.signal(
-                    RequestSignal::UpdateEvent(UpdateEvent {
-                        id,
-                        name: USome(self.name.clone()),
-                        description: USome(
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        ),
-                        start: USome(NaiveDateTime::new(self.date, self.start)),
-                        end: USome(NaiveDateTime::new(self.date, self.end)),
-                        access_level: USome(self.access_level),
-                        visibility: USome(self.visibility),
-                        plan_id: UNone,
-                    })
-                    .with_description(RequestDescription::new().with_request_id(request_id)),
-                );
+                    RequestSignal::UpdateEvent(upd_event)
+                    .with_description(.with_request_id(request_id)),
+                ); */
             }
         } else {
             if ui
@@ -173,7 +173,7 @@ impl PopupContent for EventInput {
                 .clicked()
             {
                 let request_id = state.connector.reserve_request_id();
-                self.request_id = Some(request_id);
+                //self.request_id = Some(request_id);
                 info.signal(
                     RequestSignal::InsertEvent(NewEvent {
                         user_id: self.user_id,

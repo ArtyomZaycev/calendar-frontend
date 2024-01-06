@@ -7,11 +7,19 @@ use super::request_parser::RequestParser;
 
 pub type RequestId = u16;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct RequestDescription {
     pub request_id: Option<RequestId>,
     /// Do not delete request response from the connector when polling or getting the result
     pub save_results: bool,
+    /// Clone Response for callback
+    pub clone_for_callback: bool
+}
+
+impl Default for RequestDescription {
+    fn default() -> Self {
+        Self { request_id: None, save_results: false, clone_for_callback: true }
+    }
 }
 
 impl RequestDescription {
@@ -36,6 +44,7 @@ impl RequestDescription {
 pub struct RequestBuilder<
     Query: Serialize,
     Body: Serialize,
+    Callback,
     RequestResponse = AppRequestResponse,
     RequestInfo: Default = AppRequestInfo,
 > {
@@ -46,10 +55,11 @@ pub struct RequestBuilder<
     authorized: bool,
     parser: Option<RequestParser<RequestResponse>>,
     info: RequestInfo,
+    callback: Option<Callback>,
 }
 
-impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
-    RequestBuilder<Query, Body, RequestResponse, RequestInfo>
+impl<Query: Serialize, Body: Serialize, Callback, RequestResponse, RequestInfo: Default>
+    RequestBuilder<Query, Body, Callback, RequestResponse, RequestInfo>
 {
     pub fn new() -> Self {
         Self {
@@ -60,6 +70,7 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
             authorized: false,
             parser: None,
             info: RequestInfo::default(),
+            callback: None,
         }
     }
 
@@ -116,6 +127,13 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
         Self { info, ..self }
     }
 
+    pub fn with_callback(self, callback: Option<Callback>) -> Self {
+        Self {
+            callback,
+            ..self
+        }
+    }
+
     pub fn build(
         self,
         client: reqwest::Client,
@@ -126,6 +144,7 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
             reqwest::RequestBuilder,
             RequestParser<RequestResponse>,
             RequestInfo,
+            Option<Callback>,
         ),
         (),
     > {
@@ -148,6 +167,6 @@ impl<Query: Serialize, Body: Serialize, RequestResponse, RequestInfo: Default>
         } else {
             builder
         };
-        Ok((builder, parser, self.info))
+        Ok((builder, parser, self.info, self.callback))
     }
 }

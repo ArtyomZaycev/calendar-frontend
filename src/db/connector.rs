@@ -19,7 +19,8 @@ impl RequestResult {
     }
 }
 
-pub struct DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
+pub struct DbConnector<RequestResponse, RequestInfo, RequestResponseInfo, 
+Callback>
 where
     RequestResponse: Clone,
     RequestInfo: Clone + Default,
@@ -28,15 +29,15 @@ where
     client: reqwest::Client,
     server_url: String,
 
-    requests: RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo>,
+    requests: RequestCounter<RequestResponse, RequestInfo, RequestResponseInfo, Callback>,
     sender: Sender<RequestResult>,
     reciever: Receiver<RequestResult>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
 }
 
-impl<RequestResponse, RequestInfo, RequestResponseInfo>
-    DbConnector<RequestResponse, RequestInfo, RequestResponseInfo>
+impl<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
+    DbConnector<RequestResponse, RequestInfo, RequestResponseInfo, Callback>
 where
     RequestResponse: Clone,
     RequestInfo: Clone + Default,
@@ -66,23 +67,25 @@ where
     }
 
     pub fn request2<Q: Serialize, B: Serialize>(
-        &mut self,
-        request: RequestBuilder<Q, B, RequestResponse, RequestInfo>,
+        &self,
+        request: RequestBuilder<Q, B, Callback, RequestResponse, RequestInfo>,
         jwt: &str,
         description: RequestDescription,
     ) -> Result<RequestId, ()> {
-        let (request, parser, info) = request.build(self.client.clone(), &self.server_url, jwt)?;
+        let (request, parser, info, callback) =
+            request.build(self.client.clone(), &self.server_url, jwt)?;
         let request = request.build().map_err(|_| ())?;
 
-        Ok(self.request(request, parser, info, description))
+        Ok(self.request(request, parser, info, description, callback))
     }
 
     pub fn request(
-        &mut self,
+        &self,
         request: reqwest::Request,
         parser: RequestParser<RequestResponse>,
         info: RequestInfo,
         description: RequestDescription,
+        callback: Option<Callback>,
     ) -> RequestId {
         use crate::utils::easy_spawn;
 
@@ -91,7 +94,7 @@ where
         let client = self.client.clone();
         let sender = self.sender.clone();
 
-        let request_id = self.requests.push(parser, info, description);
+        let request_id = self.requests.push(parser, info, description, callback);
 
         easy_spawn(async move {
             let res = client.execute(request).await;
@@ -140,6 +143,9 @@ where
     }
     pub fn get_response_info(&self, request_id: RequestId) -> Option<RequestResponseInfo> {
         self.requests.get_response_info(request_id)
+    }
+    pub fn take_callback(&mut self, request_id: RequestId) -> Option<Callback> {
+        self.requests.take_callback(request_id)
     }
 
     pub fn any_request_in_progress(&self) -> bool {

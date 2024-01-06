@@ -1,7 +1,7 @@
 use crate::{
     db::{request::RequestBuilder, request_parser::RequestParser},
     requests::*,
-    tables::*,
+    tables::*, state::state_requests::StateCallback,
 };
 use serde::Serialize;
 
@@ -97,7 +97,7 @@ where
     fn make_info(id: T::Id) -> RequestInfo;
 }
 
-impl<T, RequestResponse, RequestInfo> DbTableLoad<T, RequestResponse, RequestInfo> for Table<T>
+impl<T, RequestResponse, RequestInfo, Callback> DbTableLoad<T, RequestResponse, RequestInfo, Callback> for Table<T>
 where
     T: DbTableItem,
     Table<T>: TableLoadById<T, RequestResponse, RequestInfo>,
@@ -109,7 +109,7 @@ where
     fn load_by_id_request(
         &self,
         id: <T as DbTableItem>::Id,
-    ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
+    ) -> RequestBuilder<Self::Args, (), Callback, RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
             .with_method(Self::get_method())
@@ -120,7 +120,7 @@ where
     }
 }
 
-pub trait TableLoadAll<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+pub trait TableLoadAll<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo, Callback = StateCallback>
 where
     T: DbTableItem,
     RequestResponse: Clone,
@@ -135,7 +135,7 @@ where
     fn make_info() -> RequestInfo;
 }
 
-impl<T, RequestResponse, RequestInfo> DbTableLoadAll<T, RequestResponse, RequestInfo> for Table<T>
+impl<T, RequestResponse, RequestInfo, Callback> DbTableLoadAll<T, RequestResponse, RequestInfo, Callback> for Table<T>
 where
     T: DbTableItem,
     Table<T>: TableLoadAll<T, RequestResponse, RequestInfo>,
@@ -144,7 +144,7 @@ where
 {
     type Args = <Self as TableLoadAll<T, RequestResponse, RequestInfo>>::Args;
 
-    fn load_all(&self) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
+    fn load_all(&self) -> RequestBuilder<Self::Args, (), Callback, RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
             .with_method(Self::get_method())
@@ -155,7 +155,7 @@ where
     }
 }
 
-pub trait TableInsert<N, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+pub trait TableInsert<N, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo, Callback = StateCallback>
 where
     N: DbTableNewItem,
     RequestResponse: Clone,
@@ -172,7 +172,7 @@ where
     fn make_body(new_item: N) -> Self::Body;
 }
 
-impl<T, N, RequestResponse, RequestInfo> DbTableInsert<N, RequestResponse, RequestInfo> for Table<T>
+impl<T, N, RequestResponse, RequestInfo, Callback> DbTableInsert<N, RequestResponse, RequestInfo, Callback> for Table<T>
 where
     T: DbTableItem,
     N: DbTableNewItem,
@@ -186,7 +186,7 @@ where
     fn insert_request(
         &self,
         new_item: N,
-    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
+    ) -> RequestBuilder<Self::Args, Self::Body, Callback, RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
             .with_method(Self::get_method())
@@ -198,7 +198,7 @@ where
     }
 }
 
-pub trait TableUpdate<U, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+pub trait TableUpdate<U, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo, Callback = StateCallback>
 where
     U: DbTableUpdateItem,
     RequestResponse: Clone,
@@ -215,7 +215,7 @@ where
     fn make_body(upd_item: U) -> Self::Body;
 }
 
-impl<T, U, RequestResponse, RequestInfo> DbTableUpdate<U, RequestResponse, RequestInfo> for Table<T>
+impl<T, U, RequestResponse, RequestInfo, Callback> DbTableUpdate<U, RequestResponse, RequestInfo, Callback> for Table<T>
 where
     T: DbTableItem,
     U: DbTableUpdateItem,
@@ -229,7 +229,7 @@ where
     fn update_request(
         &self,
         upd_item: U,
-    ) -> RequestBuilder<Self::Args, Self::Body, RequestResponse, RequestInfo> {
+    ) -> RequestBuilder<Self::Args, Self::Body, Callback, RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
             .with_method(Self::get_method())
@@ -241,7 +241,7 @@ where
     }
 }
 
-pub trait TableDeleteById<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo>
+pub trait TableDeleteById<T, RequestResponse = AppRequestResponse, RequestInfo = AppRequestInfo, Callback = StateCallback>
 where
     T: DbTableItem,
     RequestResponse: Clone,
@@ -256,7 +256,7 @@ where
     fn make_info(id: T::Id) -> RequestInfo;
 }
 
-impl<T, RequestResponse, RequestInfo> DbTableDelete<T, RequestResponse, RequestInfo> for Table<T>
+impl<T, RequestResponse, RequestInfo, Callback> DbTableDelete<T, RequestResponse, RequestInfo, Callback> for Table<T>
 where
     T: DbTableItem,
     Table<T>: TableDeleteById<T, RequestResponse, RequestInfo>,
@@ -268,7 +268,7 @@ where
     fn delete_by_id_request(
         &self,
         id: <T as DbTableItem>::Id,
-    ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
+    ) -> RequestBuilder<Self::Args, (), Callback, RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
             .with_method(Self::get_method())
