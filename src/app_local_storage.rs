@@ -11,7 +11,7 @@ impl AppLocalStorage {
         }
     }
 
-    const JWT: &str = "jwt";
+    const JWT: &'static str = "jwt";
     pub fn get_jwt(&mut self) -> Option<String> {
         self.local_storage.get(Self::JWT)
     }
