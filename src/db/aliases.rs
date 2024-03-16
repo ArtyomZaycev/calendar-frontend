@@ -1,4 +1,3 @@
-use calendar_lib::api::utils;
 pub use calendar_lib::api::*;
 pub use event_templates::types::*;
 pub use events::types::*;

@@ -332,7 +332,7 @@ impl CalendarApp {
 
             (-1i64..4).for_each(|day| {
                 let date = date
-                    .checked_add_signed(chrono::Duration::days(day))
+                    .checked_add_signed(chrono::Duration::try_days(day).unwrap())
                     .unwrap();
 
                 let header_text = match day {
