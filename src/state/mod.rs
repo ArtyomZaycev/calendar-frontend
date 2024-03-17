@@ -3,6 +3,8 @@ pub mod main_state;
 pub mod state_requests;
 pub mod user_state;
 
+mod state_v2;
+
 pub use admin_state::AdminState;
 pub use main_state::State;
 pub use user_state::UserState;
