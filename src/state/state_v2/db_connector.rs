@@ -22,6 +22,7 @@ impl<T> RequestResult<T> {
 }
 
 impl RequestResult<Bytes> {
+    // TODO: Account for errors
     fn map_to_any<T: DeserializeOwned + 'static>(self) -> RequestResult<Box<dyn Any>> {
         RequestResult::new(
             self.id,

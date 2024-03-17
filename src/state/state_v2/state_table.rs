@@ -1,14 +1,16 @@
+use crate::tables::{table::Table, DbTableItem};
+
 use super::requests_holder::RequestsHolder;
 
-pub struct StateTable<T> {
-    data: Vec<T>,
+pub struct StateTable<T: DbTableItem> {
+    data: Table<T>,
     requests: RequestsHolder,
 }
 
-impl<T> StateTable<T> {
+impl<T: DbTableItem> StateTable<T> {
     pub(super) fn new() -> Self {
         Self {
-            data: Vec::new(),
+            data: Table::new(),
             requests: RequestsHolder::new(),
         }
     }

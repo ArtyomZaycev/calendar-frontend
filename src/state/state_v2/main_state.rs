@@ -1,6 +1,7 @@
 use std::cell::Ref;
 use std::marker::PhantomData;
 
+use calendar_lib::api::auth::types::AccessLevel;
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
 };
@@ -39,6 +40,7 @@ pub struct RequestIdentifier<T: RequestType> {
 
 pub struct State {
     db_connector: DbConnector,
+    pub access_levels: StateTable<AccessLevel>,
     pub events: StateTable<Event>,
     pub schedules: StateTable<Schedule>,
     pub event_templates: StateTable<EventTemplate>,
@@ -49,6 +51,7 @@ impl State {
     pub fn new(config: &Config) -> Self {
         State {
             db_connector: DbConnector::new(config),
+            access_levels: StateTable::new(),
             events: StateTable::new(),
             schedules: StateTable::new(),
             event_templates: StateTable::new(),
