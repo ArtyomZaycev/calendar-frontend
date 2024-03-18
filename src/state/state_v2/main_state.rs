@@ -22,14 +22,15 @@ pub trait RequestType {
     type Query;
     type Body = ();
     type Response: DeserializeOwned;
-
-    // TODO
-    //type BadResponse: DeserializeOwned = ();
+    type BadResponse: DeserializeOwned = ();
 
     /// e.g. update request item.id
     type Info: Clone = ();
 
+    // TODO: Separate into different trait, move struct to request.rs
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
+    #[allow(unused_variables)]
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 pub struct RequestIdentifier<T: RequestType> {
@@ -63,19 +64,22 @@ impl State {
     pub fn get_response<'a, T: RequestType + 'static>(
         &'a self,
         identifier: RequestIdentifier<T>,
-    ) -> Option<Ref<'a, T::Response>> {
+    ) -> Option<Result<Ref<'a, T::Response>, Ref<'a, T::BadResponse>>> {
         self.db_connector
-            .convert_response::<T::Response>(identifier.id);
-        self.db_connector.get_response::<T::Response>(identifier.id)
+            .convert_response::<T::Response, T::BadResponse>(identifier.id);
+        self.db_connector
+            .get_response::<T::Response, T::BadResponse>(identifier.id)
+            .and_then(|r| r.ok())
     }
 
     pub fn take_response<T: RequestType + 'static>(
         &mut self,
         identifier: RequestIdentifier<T>,
-    ) -> Option<Box<T::Response>> {
+    ) -> Option<Result<Box<T::Response>, Box<T::BadResponse>>> {
         self.db_connector
-            .convert_response::<T::Response>(identifier.id);
+            .convert_response::<T::Response, T::BadResponse>(identifier.id);
         self.db_connector
-            .take_response::<T::Response>(identifier.id)
+            .take_response::<T::Response, T::BadResponse>(identifier.id)
+            .and_then(|r| r.ok())
     }
 }
