@@ -58,19 +58,17 @@ where
     }
 }
 
-/*
-impl<T: DbTableNewItem + TableItemInsert + DeserializeOwned> StateTable<T::MainType> where State: GetStateTable<T::MainType> {
-    fn insert(&self, item: T) -> RequestIdentifier<TableInsertRequest<T::MainType>> {
+impl<T: DbTableItem + TableItemInsert> StateTable<T> where State: GetStateTable<T>, T::NewItem: DeserializeOwned {
+    fn insert(&self, item: T::NewItem) -> RequestIdentifier<TableInsertRequest<T>> {
         todo!()
     }
 }
- */
-/*
-impl<T: DbTableUpdateItem + TableItemUpdate + DeserializeOwned> StateTable<T::MainType> where State: GetStateTable<T::MainType> {
-    fn update(&self, item: T) -> RequestIdentifier<TableUpdateRequest<T::MainType>> {
+
+impl<T: DbTableItem + TableItemUpdate> StateTable<T> where State: GetStateTable<T>, T::UpdItem: DeserializeOwned {
+    fn update(&self, item: T) -> RequestIdentifier<TableUpdateRequest<T>> {
         todo!()
     }
-} */
+}
 
 impl<T: DbTableItem + TableItemDelete + DeserializeOwned> StateTable<T>
 where

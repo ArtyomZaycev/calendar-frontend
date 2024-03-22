@@ -18,9 +18,11 @@ pub trait TableItemLoadAll {
     const LOAD_ALL_PATH: &'static str;
 }
 pub trait TableItemInsert {
+    type NewItem: DbTableNewItem;
     const INSERT_PATH: &'static str;
 }
 pub trait TableItemUpdate {
+    type UpdItem: DbTableUpdateItem;
     const UPDATE_PATH: &'static str;
 }
 pub trait TableItemDelete {
@@ -33,11 +35,11 @@ pub struct TableLoadByIdRequest<T: DbTableItem + TableItemLoadById> {
 pub struct TableLoadAllRequest<T: DbTableItem + TableItemLoadAll> {
     _data: PhantomData<T>,
 }
-pub struct TableInsertRequest<N: DbTableNewItem + TableItemInsert> {
-    _data2: PhantomData<N>,
+pub struct TableInsertRequest<T: DbTableItem + TableItemInsert> {
+    _data: PhantomData<T>,
 }
-pub struct TableUpdateRequest<N: DbTableUpdateItem + TableItemUpdate> {
-    _data2: PhantomData<N>,
+pub struct TableUpdateRequest<T: DbTableItem + TableItemUpdate> {
+    _data: PhantomData<T>,
 }
 pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
@@ -86,17 +88,18 @@ where
         table.get_table_mut().replace_all(response);
     }
 }
-/*
-impl<N> RequestType for TableInsertRequest<T, N>
+
+impl<T> RequestType for TableInsertRequest<T>
 where
-    N: DbTableNewItem + TableItemInsert + DeserializeOwned,
+    T: DbTableItem + TableItemInsert,
+    T::NewItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
-    const URL: &'static str = N::INSERT_PATH;
+    const URL: &'static str = T::INSERT_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::POST;
     type Query = ();
-    type Body = N;
+    type Body = T::NewItem;
     type Response = ();
     type Info = ();
 
@@ -110,16 +113,17 @@ where
     }
 }
 
-impl<N> RequestType for TableUpdateRequest<T, N>
+impl<T> RequestType for TableUpdateRequest<T>
 where
-    N: DbTableUpdateItem + TableItemUpdate + DeserializeOwned,
+    T: DbTableItem + TableItemUpdate,
+    T::UpdItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
-    const URL: &'static str = N::UPDATE_PATH;
+    const URL: &'static str = T::UPDATE_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::PATCH;
     type Query = ();
-    type Body = N;
+    type Body = T::UpdItem;
     type Response = ();
     type Info = ();
 
@@ -132,7 +136,7 @@ where
         todo!("Load updated (or just replace the loaded one)");
     }
 }
- */
+
 impl<Item: DbTableItem + TableItemDelete + DeserializeOwned> RequestType
     for TableDeleteRequest<Item>
 where
