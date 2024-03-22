@@ -157,30 +157,32 @@ impl DbConnector {
             typed_results.iter().find(|r| r.id == id)
         })
         .ok()?;
-        Some(match Ref::filter_map(request_result, |result| result.result.as_ref().err()) {
-            Ok(error) => Err(error.to_string()),
-            Err(request_result) => {
-                let (status, response) = Ref::map_split(
-                    Ref::map(request_result, |result| result.result.as_ref().unwrap()),
-                    |(status, response)| (status, response),
-                );
-                let status = *status;
-                if status == StatusCode::OK {
-                    Ok(Ok(Ref::map(response, |response| {
-                        response.downcast_ref::<T>().unwrap()
-                    })))
-                } else if status == StatusCode::BAD_REQUEST {
-                    Ok(Err(Ref::map(response, |response| {
-                        response.downcast_ref::<E>().unwrap()
-                    })))
-                } else {
-                    Err(Ref::map(response, |response| {
-                        response.downcast_ref::<String>().unwrap()
-                    })
-                    .clone())
+        Some(
+            match Ref::filter_map(request_result, |result| result.result.as_ref().err()) {
+                Ok(error) => Err(error.to_string()),
+                Err(request_result) => {
+                    let (status, response) = Ref::map_split(
+                        Ref::map(request_result, |result| result.result.as_ref().unwrap()),
+                        |(status, response)| (status, response),
+                    );
+                    let status = *status;
+                    if status == StatusCode::OK {
+                        Ok(Ok(Ref::map(response, |response| {
+                            response.downcast_ref::<T>().unwrap()
+                        })))
+                    } else if status == StatusCode::BAD_REQUEST {
+                        Ok(Err(Ref::map(response, |response| {
+                            response.downcast_ref::<E>().unwrap()
+                        })))
+                    } else {
+                        Err(Ref::map(response, |response| {
+                            response.downcast_ref::<String>().unwrap()
+                        })
+                        .clone())
+                    }
                 }
-            }
-        })
+            },
+        )
     }
 
     /// Doesn't have to be mutable

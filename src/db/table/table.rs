@@ -66,6 +66,9 @@ impl<T: DbTableItem> Table<T> {
             .position(|i| i.get_id() == id)
             .map(|ind| self.items.remove(ind))
     }
+    pub fn replace_all(&mut self, new_data: Vec<T>) {
+        self.items = new_data;
+    }
 }
 
 impl<T: DbTableItem> DbTable<T> for Table<T> {

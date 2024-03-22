@@ -8,6 +8,7 @@ use calendar_lib::api::{
 use serde::de::DeserializeOwned;
 
 use crate::config::Config;
+use crate::tables::DbTableItem;
 
 use super::db_connector::DbConnector;
 use super::request::RequestId;
@@ -15,7 +16,7 @@ use super::requests_holder::RequestsHolder;
 use super::state_table::StateTable;
 
 pub trait RequestType {
-    const URL: String;
+    const URL: &'static str;
     const IS_AUTHORIZED: bool;
     const METHOD: reqwest::Method;
 
@@ -43,8 +44,8 @@ pub struct State {
     db_connector: DbConnector,
     pub access_levels: StateTable<AccessLevel>,
     pub events: StateTable<Event>,
-    pub schedules: StateTable<Schedule>,
     pub event_templates: StateTable<EventTemplate>,
+    pub schedules: StateTable<Schedule>,
     requests: RequestsHolder,
 }
 
@@ -81,5 +82,50 @@ impl State {
         self.db_connector
             .take_response::<T::Response, T::BadResponse>(identifier.id)
             .and_then(|r| r.ok())
+    }
+}
+
+pub trait GetStateTable<T: DbTableItem> {
+    fn get_table(&self) -> &StateTable<T>;
+    fn get_table_mut(&mut self) -> &mut StateTable<T>;
+}
+
+impl GetStateTable<AccessLevel> for State {
+    fn get_table(&self) -> &StateTable<AccessLevel> {
+        &self.access_levels
+    }
+
+    fn get_table_mut(&mut self) -> &mut StateTable<AccessLevel> {
+        &mut self.access_levels
+    }
+}
+
+impl GetStateTable<Event> for State {
+    fn get_table(&self) -> &StateTable<Event> {
+        &self.events
+    }
+
+    fn get_table_mut(&mut self) -> &mut StateTable<Event> {
+        &mut self.events
+    }
+}
+
+impl GetStateTable<Schedule> for State {
+    fn get_table(&self) -> &StateTable<Schedule> {
+        &self.schedules
+    }
+
+    fn get_table_mut(&mut self) -> &mut StateTable<Schedule> {
+        &mut self.schedules
+    }
+}
+
+impl GetStateTable<EventTemplate> for State {
+    fn get_table(&self) -> &StateTable<EventTemplate> {
+        &self.event_templates
+    }
+
+    fn get_table_mut(&mut self) -> &mut StateTable<EventTemplate> {
+        &mut self.event_templates
     }
 }
