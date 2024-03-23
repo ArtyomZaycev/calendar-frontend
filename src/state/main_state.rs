@@ -35,7 +35,7 @@ pub trait RequestType {
     type BadResponse: DeserializeOwned = ();
 
     /// e.g. update request item.id
-    type Info: 'static + Clone = ();
+    type Info: 'static + Clone + Send = ();
 
     // TODO: Separate into different trait, move struct to request.rs
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
@@ -68,7 +68,6 @@ pub struct UserState {
     pub events: StateTable<Event>,
     pub event_templates: StateTable<EventTemplate>,
     pub schedules: StateTable<Schedule>,
-    pub(super) requests: RequestsHolder,
 }
 
 impl UserState {
@@ -78,7 +77,6 @@ impl UserState {
             events: StateTable::new(),
             schedules: StateTable::new(),
             event_templates: StateTable::new(),
-            requests: RequestsHolder::new(),
         }
     }
 }
@@ -90,7 +88,6 @@ impl From<user_state::load::Response> for UserState {
             events: StateTable::from_vec(value.events),
             schedules: StateTable::from_vec(value.schedules),
             event_templates: StateTable::from_vec(value.event_templates),
-            requests: RequestsHolder::new(),
         }
     }
 }
@@ -98,7 +95,6 @@ impl From<user_state::load::Response> for UserState {
 pub struct AdminState {
     pub users: StateTable<User>,
     pub users_data: HashMap<i32, UserState>,
-    pub(super) requests: RequestsHolder,
 }
 
 impl AdminState {
@@ -106,7 +102,6 @@ impl AdminState {
         Self {
             users: StateTable::new(),
             users_data: HashMap::default(),
-            requests: RequestsHolder::new(),
         }
     }
 }
@@ -114,8 +109,7 @@ impl AdminState {
 pub type RequestParser = Box<dyn Fn(&DbConnector) -> Option<Box<dyn FnOnce(&mut State)>>>;
 
 pub struct State {
-    db_connector: DbConnector,
-    pub(super) requests: RequestsHolder,
+    pub(super) db_connector: DbConnector,
 
     pub(super) me: User,
     pub(super) current_access_level: i32,
@@ -135,7 +129,6 @@ impl State {
     pub fn new(config: &Config) -> Self {
         State {
             db_connector: DbConnector::new(config),
-            requests: RequestsHolder::new(),
             me: User::default(),
             current_access_level: -1,
             user_state: UserState::new(),
@@ -207,11 +200,7 @@ impl State {
     }
 
     fn send_requests(&mut self) {
-        let mut requests = self.requests.take();
-        requests.extend(self.user_state.access_levels.requests.take());
-        requests.extend(self.user_state.events.requests.take());
-        requests.extend(self.user_state.event_templates.requests.take());
-        requests.extend(self.user_state.schedules.requests.take());
+        let mut requests = RequestsHolder::get().write().unwrap().take();
 
         requests.into_iter().for_each(|request| {
             self.db_connector.request(request);
@@ -219,7 +208,7 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        //self.requests.update(self);
+        RequestsHolder::get().read().unwrap().update(self);
         self.db_connector.pull();
         self.send_requests();
     }
