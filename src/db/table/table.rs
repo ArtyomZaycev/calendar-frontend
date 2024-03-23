@@ -34,11 +34,11 @@ impl<T: DbTableItem> Table<T> {
 }
 
 impl<T: DbTableItem> Table<T> {
-    pub fn find_item(&self, id: T::Id) -> Option<&T> {
+    pub fn find_item(&self, id: TableId) -> Option<&T> {
         self.items.iter().find(|i| i.get_id() == id)
     }
 
-    pub fn find_item_mut(&mut self, id: T::Id) -> Option<&mut T> {
+    pub fn find_item_mut(&mut self, id: TableId) -> Option<&mut T> {
         self.items.iter_mut().find(|i| i.get_id() == id)
     }
 
@@ -60,7 +60,7 @@ impl<T: DbTableItem> Table<T> {
         }
     }
     /// Returns removed item (if found)
-    pub fn remove_one(&mut self, id: T::Id) -> Option<T> {
+    pub fn remove_one(&mut self, id: TableId) -> Option<T> {
         self.items
             .iter()
             .position(|i| i.get_id() == id)
@@ -96,8 +96,8 @@ where
     fn get_method() -> reqwest::Method;
     fn get_path() -> &'static str;
     fn make_parser() -> RequestParser<RequestResponse>;
-    fn make_args(id: T::Id) -> Self::Args;
-    fn make_info(id: T::Id) -> RequestInfo;
+    fn make_args(id: TableId) -> Self::Args;
+    fn make_info(id: TableId) -> RequestInfo;
 }
 
 impl<T, RequestResponse, RequestInfo> DbTableLoad<T, RequestResponse, RequestInfo> for Table<T>
@@ -111,7 +111,7 @@ where
 
     fn load_by_id_request(
         &self,
-        id: <T as DbTableItem>::Id,
+        id: TableId,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()
@@ -255,8 +255,8 @@ where
     fn get_method() -> reqwest::Method;
     fn get_path() -> &'static str;
     fn make_parser() -> RequestParser<RequestResponse>;
-    fn make_args(id: T::Id) -> Self::Args;
-    fn make_info(id: T::Id) -> RequestInfo;
+    fn make_args(id: TableId) -> Self::Args;
+    fn make_info(id: TableId) -> RequestInfo;
 }
 
 impl<T, RequestResponse, RequestInfo> DbTableDelete<T, RequestResponse, RequestInfo> for Table<T>
@@ -270,7 +270,7 @@ where
 
     fn delete_by_id_request(
         &self,
-        id: <T as DbTableItem>::Id,
+        id: TableId,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo> {
         RequestBuilder::new()
             .authorized()

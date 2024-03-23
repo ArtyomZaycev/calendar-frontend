@@ -23,7 +23,7 @@ where
     type Args: Serialize;
     fn load_by_id_request(
         &self,
-        id: T::Id,
+        id: TableId,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }
 
@@ -64,6 +64,6 @@ where
     type Args: Serialize;
     fn delete_by_id_request(
         &self,
-        id: T::Id,
+        id: TableId,
     ) -> RequestBuilder<Self::Args, (), RequestResponse, RequestInfo>;
 }

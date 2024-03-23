@@ -8,9 +8,7 @@ use crate::{
 };
 
 impl DbTableItem for AccessLevel {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         // To preserve uniqueness
         self.level * 2 + self.edit_rights as i32
     }

@@ -9,9 +9,7 @@ use crate::{
 use super::table::*;
 
 impl DbTableItem for EventTemplate {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         self.id
     }
 }
@@ -19,9 +17,7 @@ impl DbTableItem for EventTemplate {
 impl DbTableNewItem for NewEventTemplate {}
 
 impl DbTableUpdateItem for UpdateEventTemplate {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         self.id
     }
 }

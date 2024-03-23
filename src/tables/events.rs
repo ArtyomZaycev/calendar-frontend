@@ -8,9 +8,7 @@ use crate::{
 };
 
 impl DbTableItem for Event {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         self.id
     }
 }
@@ -18,9 +16,7 @@ impl DbTableItem for Event {
 impl DbTableNewItem for NewEvent {}
 
 impl DbTableUpdateItem for UpdateEvent {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         self.id
     }
 }

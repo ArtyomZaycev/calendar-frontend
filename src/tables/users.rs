@@ -8,9 +8,7 @@ use crate::{
 };
 
 impl DbTableItem for User {
-    type Id = i32;
-
-    fn get_id(&self) -> Self::Id {
+    fn get_id(&self) -> TableId {
         self.id
     }
 }

@@ -4,7 +4,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::tables::{
     table::{Table, TableDeleteById},
-    DbTableItem, DbTableNewItem, DbTableUpdateItem,
+    DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId,
 };
 
 use super::{
@@ -45,7 +45,7 @@ impl<T: DbTableItem + TableItemLoadById + DeserializeOwned> StateTable<T>
 where
     State: GetStateTable<T>,
 {
-    fn load_by_id(&self, id: T::Id) -> RequestIdentifier<TableLoadByIdRequest<T>> {
+    pub fn load_by_id(&self, id: TableId) -> RequestIdentifier<TableLoadByIdRequest<T>> {
         let connector = DbConnectorData::get();
         let request_id = connector.next_request_id();
         let request = connector
@@ -65,7 +65,7 @@ impl<T: DbTableItem + TableItemLoadAll + DeserializeOwned> StateTable<T>
 where
     State: GetStateTable<T>,
 {
-    fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
+    pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
         let connector = DbConnectorData::get();
         let request_id = connector.next_request_id();
         let request = connector.make_request(
@@ -79,12 +79,13 @@ where
     }
 }
 
-impl<T: DbTableItem + TableItemInsert> StateTable<T>
+impl<T> StateTable<T>
 where
+    T: DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
     State: GetStateTable<T>,
     reqwest::Body: From<<TableInsertRequest<T> as RequestType>::Body>,
 {
-    fn insert(
+    pub fn insert(
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableInsertRequest<T>> {
@@ -103,12 +104,13 @@ where
     }
 }
 
-impl<T: DbTableItem + TableItemUpdate> StateTable<T>
+impl<T> StateTable<T>
 where
+    T: DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
     State: GetStateTable<T>,
     reqwest::Body: From<<TableUpdateRequest<T> as RequestType>::Body>,
 {
-    fn update(
+    pub fn update(
         &self,
         item: <TableUpdateRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
@@ -128,11 +130,12 @@ where
     }
 }
 
-impl<T: DbTableItem + TableItemDelete + DeserializeOwned> StateTable<T>
+impl<T> StateTable<T>
 where
+    T: DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
     State: GetStateTable<T>,
 {
-    fn delete(&self, id: T::Id) -> RequestIdentifier<TableDeleteRequest<T>> {
+    fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
         let connector = DbConnectorData::get();
         let request_id = connector.next_request_id();
         let request = connector

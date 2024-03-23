@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use serde::{de::DeserializeOwned, Deserialize};
 
-use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem};
+use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
 use super::{
     main_state::{GetStateTable, RequestType, State},
@@ -45,24 +45,19 @@ pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
 }
 
-impl<Item: DbTableItem + TableItemLoadById + DeserializeOwned> RequestType
-    for TableLoadByIdRequest<Item>
+impl<T: DbTableItem + TableItemLoadById + DeserializeOwned> RequestType for TableLoadByIdRequest<T>
 where
-    State: GetStateTable<Item>,
+    State: GetStateTable<T>,
 {
-    const URL: &'static str = Item::LOAD_BY_ID_PATH;
+    const URL: &'static str = T::LOAD_BY_ID_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::GET;
-    type Query = Item::Id;
-    type Response = Item;
-    type Info = Item::Id;
+    type Query = TableId;
+    type Response = T;
+    type Info = TableId;
 
-    fn push_to_state(
-        response: Self::Response,
-        info: Self::Info,
-        state: &mut super::main_state::State,
-    ) {
-        let table: &mut StateTable<Item> = state.get_table_mut();
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        let table: &mut StateTable<T> = state.get_table_mut();
         table.get_table_mut().push_one(response);
     }
 }
@@ -87,7 +82,7 @@ where
 
 impl<T> RequestType for TableInsertRequest<T>
 where
-    T: DbTableItem + TableItemInsert,
+    T: DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
     T::NewItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
@@ -101,13 +96,13 @@ where
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
-        todo!("Load inserted");
+        table.load_all();
     }
 }
 
 impl<T> RequestType for TableUpdateRequest<T>
 where
-    T: DbTableItem + TableItemUpdate,
+    T: DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
     T::UpdItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
@@ -117,27 +112,28 @@ where
     type Query = ();
     type Body = T::UpdItem;
     type Response = ();
-    type Info = <<T as TableItemUpdate>::UpdItem as DbTableUpdateItem>::Id;
+    type Info = TableId;
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
-        todo!("Load updated (or just replace the loaded one)");
+        table.load_by_id(info);
     }
 }
 
-impl<T: DbTableItem + TableItemDelete + DeserializeOwned> RequestType for TableDeleteRequest<T>
+impl<T> RequestType for TableDeleteRequest<T>
 where
+    T: DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
     State: GetStateTable<T>,
 {
     const URL: &'static str = T::DELETE_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::DELETE;
-    type Query = T::Id;
+    type Query = TableId;
     type Response = ();
-    type Info = T::Id;
+    type Info = TableId;
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
-        todo!("Reload table (or just remove deleted)");
+        table.load_all();
     }
 }
