@@ -1,10 +1,6 @@
 use super::{AppView, EventsView};
 use crate::{
-    app_local_storage::AppLocalStorage,
-    config::Config,
-    db::request::RequestDescription,
-    state::State,
-    ui::{popups::popup_manager::PopupManager, signal::AppSignal},
+    app_local_storage::AppLocalStorage, config::Config, db::request::RequestDescription, state::State, tables::DbTable, ui::{popups::popup_manager::PopupManager, signal::AppSignal}
 };
 
 pub struct CalendarApp {
@@ -25,7 +21,7 @@ impl CalendarApp {
         let mut state = State::new(&config);
         match local_storage.get_jwt() {
             Some(jwt) => {
-                state.login_by_jwt(&jwt, RequestDescription::new());
+                state.login_by_jwt(jwt);
             }
             _ => {
                 println!("Auth info not found");
@@ -46,16 +42,19 @@ impl CalendarApp {
         self.local_storage.clear_jwt();
         self.popup_manager.clear();
         self.view = EventsView::Days(chrono::Local::now().naive_local().date()).into();
-        self.state.logout(RequestDescription::default());
+        self.state.logout();
     }
 
     pub(super) fn parse_signal(&mut self, signal: AppSignal) {
         match signal {
-            AppSignal::StateSignal(signal) => self.state.parse_signal(signal),
+            AppSignal::StateSignal(signal) => {
+                todo!()
+                //self.state.parse_signal(signal)
+            },
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self
                     .state
-                    .get_events()
+                    .user_state.events.get_table().get()
                     .iter()
                     .find(|event| event.id == event_id)
                 {
@@ -65,7 +64,7 @@ impl CalendarApp {
             AppSignal::ChangeEventTemplate(template_id) => {
                 if let Some(template) = self
                     .state
-                    .get_event_templates()
+                    .user_state.event_templates.get_table().get()
                     .iter()
                     .find(|template| template.id == template_id)
                 {
@@ -76,7 +75,7 @@ impl CalendarApp {
             AppSignal::ChangeSchedule(schedule_id) => {
                 if let Some(schedule) = self
                     .state
-                    .get_schedules()
+                    .user_state.schedules.get_table().get()
                     .iter()
                     .find(|schedule| schedule.id == schedule_id)
                 {

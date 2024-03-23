@@ -3,7 +3,7 @@ use super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::request::RequestDescription,
+    db::{aliases::UserUtils, request::RequestDescription},
     requests::AppRequestResponse,
     tables::DbTable,
     ui::{
@@ -42,8 +42,8 @@ impl CalendarApp {
 
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 // RTL
-                if let Some(me) = &self.state.get_me() {
-                    let profile = egui::Label::new(&me.user.name);
+                if let Some(me) = self.state.get_me() {
+                    let profile = egui::Label::new(&me.name);
                     if self.popup_manager.is_open_profile() {
                         ui.add(profile);
                     } else {
@@ -75,9 +75,10 @@ impl CalendarApp {
                     }
                 }
 
-                if self.state.connector.any_request_in_progress() {
+                // TODO
+                /*if self.state.connector.any_request_in_progress() {
                     ui.spinner();
-                }
+                }*/
             });
         });
     }
@@ -392,7 +393,7 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .get_schedules()
+                .user_state.schedules.get_table().get()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -433,7 +434,7 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .get_event_templates()
+            .user_state.event_templates.get_table().get()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -572,6 +573,7 @@ impl CalendarApp {
     }
 
     fn admin_panel_users_view(&mut self, ui: &mut egui::Ui, table: TableView<User>) {
+        /* TODO
         if let Some(admin_state) = &mut self.state.admin_state {
             let actions = table
                 .show(
@@ -598,7 +600,7 @@ impl CalendarApp {
                     }
                     _ => {}
                 });
-        }
+        } */
     }
 
     fn admin_panel_user_data_view(
@@ -607,6 +609,7 @@ impl CalendarApp {
         user_id: i32,
         view: AdminPanelUserDataView,
     ) {
+        /* TODO
         ui.horizontal(|ui| {
             let user = self
                 .state
@@ -659,7 +662,7 @@ impl CalendarApp {
                 self.state
                     .load_user_state(user_id, RequestDescription::default());
             }
-        });
+        }); */
     }
 
     fn admin_panel_events_view(
@@ -668,6 +671,7 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<Event>,
     ) {
+        /* TODO
         if let Some(admin_state) = &mut self.state.admin_state {
             if ui
                 .add_enabled(
@@ -700,7 +704,7 @@ impl CalendarApp {
                 self.state
                     .load_user_state(user_id, RequestDescription::default());
             }
-        }
+        } */
     }
 
     fn admin_panel_event_templates_view(
@@ -709,6 +713,7 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<EventTemplate>,
     ) {
+        /* TODO
         if let Some(admin_state) = &mut self.state.admin_state {
             if ui
                 .add_enabled(
@@ -742,7 +747,7 @@ impl CalendarApp {
                 self.state
                     .load_user_state(user_id, RequestDescription::default());
             }
-        }
+        } */
     }
 
     fn admin_panel_schedules_view(
@@ -751,6 +756,7 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<Schedule>,
     ) {
+        /* TODO
         if let Some(admin_state) = &mut self.state.admin_state {
             if ui
                 .add_enabled(
@@ -784,24 +790,15 @@ impl CalendarApp {
                 self.state
                     .load_user_state(user_id, RequestDescription::default());
             }
-        }
+        } */
     }
 }
 
 impl eframe::App for CalendarApp {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
-        let polled = self.state.poll();
-        // TODO: separate function
-        polled.iter().for_each(
-            |&request_id| match self.state.connector.get_response(request_id) {
-                Some(AppRequestResponse::Login(response)) => {
-                    self.local_storage.store_jwt(response.jwt);
-                }
-                _ => {}
-            },
-        );
-
         // Admins have different view
+        /* TODO
+        
         if self
             .state
             .get_me()
@@ -813,7 +810,7 @@ impl eframe::App for CalendarApp {
             self.view = AppView::AdminPanel(AdminPanelView::Users {
                 table: TableView::new("users_table"),
             });
-        }
+        }*/
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);
@@ -831,5 +828,17 @@ impl eframe::App for CalendarApp {
                 });
             }
         });
+
+        let polled = self.state.update();
+        // TODO: separate function
+        /* TODO
+        polled.iter().for_each(
+            |&request_id| match self.state.connector.get_response(request_id) {
+                Some(AppRequestResponse::Login(response)) => {
+                    self.local_storage.store_jwt(response.jwt);
+                }
+                _ => {}
+            },
+        );*/
     }
 }

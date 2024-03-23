@@ -12,6 +12,21 @@ pub struct EchoStruct {
     pub echo: String,
 }
 
+pub trait UserUtils {
+    fn is_admin(&self) -> bool;
+    fn has_role(&self, role: Role) -> bool;
+}
+
+impl UserUtils for User {
+    fn is_admin(&self) -> bool {
+        self.has_role(Role::Admin) || self.has_role(Role::SuperAdmin)
+    }
+
+    fn has_role(&self, role: Role) -> bool {
+        self.roles.iter().contains(&role)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
     pub user: User,

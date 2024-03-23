@@ -27,7 +27,7 @@ impl State {
         })
     }
 
-    pub fn login_by_key(&self, key: String) -> RequestIdentifier<LoginByKeyRequest> {
+    pub fn login_by_jwt(&self, key: String) -> RequestIdentifier<LoginByKeyRequest> {
         self.requests.make_typical_request((), |connector| {
             connector
                 .make_request::<LoginByKeyRequest>()
