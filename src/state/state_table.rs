@@ -51,7 +51,7 @@ where
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request(id, |connector| {
+            .make_request(id, |connector| {
                 connector.make_request::<TableLoadByIdRequest<T>>()
             })
     }
@@ -65,7 +65,7 @@ where
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector.make_request::<TableLoadAllRequest<T>>()
             })
     }
@@ -84,7 +84,7 @@ where
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector
                     .make_request::<TableInsertRequest<T>>()
                     .json(&item)
@@ -106,7 +106,7 @@ where
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request(item_id, |connector| {
+            .make_request(item_id, |connector| {
                 connector
                     .make_request::<TableUpdateRequest<T>>()
                     .json(&item)
@@ -123,7 +123,7 @@ where
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request(id, |connector| {
+            .make_request(id, |connector| {
                 connector.make_request::<TableDeleteRequest<T>>().query(&id)
             })
     }

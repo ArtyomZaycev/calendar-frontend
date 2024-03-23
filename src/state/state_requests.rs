@@ -18,14 +18,14 @@ impl State {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| connector.make_request::<LoginRequest>())
+            .make_request((), |connector| connector.make_request::<LoginRequest>())
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
         let request = RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector
                     .make_request::<LoginRequest>()
                     .json(&login::Body { email, password })
@@ -52,7 +52,7 @@ impl State {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector
                     .make_request::<LoginByKeyRequest>()
                     .bearer_auth(key)
@@ -68,7 +68,7 @@ impl State {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector
                     .make_request::<RegisterRequest>()
                     .json(&register::Body {
@@ -91,7 +91,7 @@ impl UserState {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request((), |connector| {
+            .make_request((), |connector| {
                 connector
                     .make_request::<NewPasswordRequest>()
                     .json(&new_password::Body {
@@ -107,7 +107,7 @@ impl UserState {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request(None, |connector| {
+            .make_request(None, |connector| {
                 connector
                     .make_request::<LoadStateRequest>()
                     .query(&user_state::load::Args { user_id: None })
@@ -120,7 +120,7 @@ impl AdminState {
         RequestsHolder::get()
             .read()
             .unwrap()
-            .make_typical_request(Some(user_id), |connector| {
+            .make_request(Some(user_id), |connector| {
                 connector
                     .make_request::<LoadStateRequest>()
                     .query(&user_state::load::Args {

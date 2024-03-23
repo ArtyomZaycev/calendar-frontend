@@ -27,6 +27,8 @@ impl RequestData {
 type RequestChecker = Box<dyn Fn(&DbConnector) -> Option<RequestExecutor> + Send>;
 type RequestExecutor = Box<dyn FnOnce(&mut State) + Send>;
 
+
+// TODO: Separate requests and (checkers, executors)
 /// Keeps count of requests that need to be executed
 /// And how to populate State with the response
 pub(super) struct RequestsHolder {
@@ -62,7 +64,7 @@ impl RequestsHolder {
         self.requests.lock().unwrap().drain(..).collect_vec()
     }
 
-    pub(super) fn make_typical_request<T: 'static + RequestType + Send, F>(
+    pub(super) fn make_request<T: 'static + RequestType + Send, F>(
         &self,
         info: T::Info,
         make_request: F,
