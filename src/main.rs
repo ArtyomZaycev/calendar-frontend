@@ -9,6 +9,7 @@ mod db;
 mod local_storage;
 mod requests;
 mod state;
+mod state_v2;
 mod tables;
 mod ui;
 mod utils;
