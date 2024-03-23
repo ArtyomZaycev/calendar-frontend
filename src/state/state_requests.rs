@@ -1,6 +1,7 @@
 use calendar_lib::api::{
     auth::{types::NewPassword, *},
     user_state,
+    utils::User,
 };
 
 use crate::tables::TableId;
@@ -14,7 +15,9 @@ use super::{
 
 impl State {
     pub fn logout(&mut self) -> RequestIdentifier<LogoutRequest> {
-        // TODO: Clear user all data
+        self.user_state = UserState::new();
+        self.admin_state = AdminState::new();
+        self.me = User::default();
         RequestsHolder::get()
             .read()
             .unwrap()
@@ -55,6 +58,7 @@ impl State {
             .make_request((), |connector| {
                 connector
                     .make_request::<LoginByKeyRequest>()
+                    .json(&login_by_key::Body {})
                     .bearer_auth(key)
             })
     }
@@ -116,7 +120,7 @@ impl UserState {
 }
 
 impl AdminState {
-    pub fn load_state(&self, user_id: TableId) -> RequestIdentifier<LoadStateRequest> {
+    pub fn load_user_state(&self, user_id: TableId) -> RequestIdentifier<LoadStateRequest> {
         RequestsHolder::get()
             .read()
             .unwrap()

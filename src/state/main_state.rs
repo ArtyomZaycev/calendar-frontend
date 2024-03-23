@@ -71,7 +71,7 @@ pub struct UserState {
 }
 
 impl UserState {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             access_levels: StateTable::new(),
             events: StateTable::new(),
@@ -98,7 +98,7 @@ pub struct AdminState {
 }
 
 impl AdminState {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             users: StateTable::new(),
             users_data: HashMap::default(),
@@ -124,11 +124,10 @@ pub struct State {
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
 }
 
-// TODO: If popup is closed before response is received, request type is lost
 impl State {
-    pub fn new(config: &Config) -> Self {
+    pub fn new() -> Self {
         State {
-            db_connector: DbConnector::new(config),
+            db_connector: DbConnector::new(),
             me: User::default(),
             current_access_level: -1,
             user_state: UserState::new(),
@@ -138,6 +137,12 @@ impl State {
 
             events_per_day: HashMap::new(),
         }
+    }
+
+    pub fn any_pending_requests(&self) -> bool {
+        RequestsHolder::get()
+            .try_read()
+            .is_ok_and(|holder| holder.any_pending_requests())
     }
 
     pub fn get_access_level(&self) -> AccessLevel {
@@ -172,14 +177,9 @@ impl State {
         }
     }
 
-    // TODO
-    //pub fn is_failed(&self) -> bool;
-
-    // TODO: Option<reqwest::Error<T::Response>>, to find out about failder requests
-    // TODO: &RequestIdentifier<T>
     pub fn get_response<'a, T: RequestType + 'static>(
         &'a self,
-        identifier: RequestIdentifier<T>,
+        identifier: &RequestIdentifier<T>,
     ) -> Option<Result<Ref<'a, T::Response>, Ref<'a, T::BadResponse>>> {
         self.db_connector
             .convert_response::<T::Response, T::BadResponse>(identifier.id);
@@ -190,7 +190,7 @@ impl State {
 
     pub fn take_response<T: RequestType + 'static>(
         &mut self,
-        identifier: RequestIdentifier<T>,
+        identifier: &RequestIdentifier<T>,
     ) -> Option<Result<Box<T::Response>, Box<T::BadResponse>>> {
         self.db_connector
             .convert_response::<T::Response, T::BadResponse>(identifier.id);

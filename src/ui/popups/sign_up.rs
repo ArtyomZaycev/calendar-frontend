@@ -38,13 +38,11 @@ impl SignUp {
 
 impl PopupContent for SignUp {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(identifier) = self.request.clone() {
+        if let Some(identifier) = self.request.as_ref() {
             if let Some(response_info) = state.get_response(identifier) {
                 self.request = None;
                 match response_info {
-                    Ok(_) => {
-                        info.close();
-                    }
+                    Ok(_) => info.close(),
                     Err(error_info) => match &*error_info {
                         register::BadRequestResponse::EmailAlreadyUsed => self.email_taken(),
                     },

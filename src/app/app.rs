@@ -3,7 +3,7 @@ use crate::{
     app_local_storage::AppLocalStorage,
     config::Config,
     db::request::RequestDescription,
-    state::State,
+    state::{custom_requests::LoginRequest, main_state::RequestIdentifier, State},
     tables::DbTable,
     ui::{popups::popup_manager::PopupManager, signal::AppSignal},
 };
@@ -16,14 +16,9 @@ pub struct CalendarApp {
 }
 
 impl CalendarApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        if let Some(_storage) = cc.storage {
-            //return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
-
-        let config = Config::load();
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         let mut local_storage = AppLocalStorage::new();
-        let mut state = State::new(&config);
+        let state = State::new();
         match local_storage.get_jwt() {
             Some(jwt) => {
                 state.login_by_jwt(jwt);

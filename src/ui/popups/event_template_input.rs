@@ -73,15 +73,22 @@ impl EventTemplateInput {
 
 impl PopupContent for EventTemplateInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        // TODO
-        /*if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
+        if let Some(identifier) = self.update_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.update_request = None;
+                if !response_info.is_err() {
                     info.close();
                 }
             }
-        }*/
+        }
+        if let Some(identifier) = self.insert_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.insert_request = None;
+                if !response_info.is_err() {
+                    info.close();
+                }
+            }
+        }
 
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;

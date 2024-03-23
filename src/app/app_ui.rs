@@ -5,7 +5,7 @@ use super::{
 use crate::{
     db::{aliases::UserUtils, request::RequestDescription},
     requests::AppRequestResponse,
-    tables::DbTable,
+    tables::{DbTable, DbTableGetById},
     ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
@@ -75,10 +75,9 @@ impl CalendarApp {
                     }
                 }
 
-                // TODO
-                /*if self.state.connector.any_request_in_progress() {
+                if self.state.any_pending_requests() {
                     ui.spinner();
-                }*/
+                }
             });
         });
     }
@@ -579,34 +578,31 @@ impl CalendarApp {
     }
 
     fn admin_panel_users_view(&mut self, ui: &mut egui::Ui, table: TableView<User>) {
-        /* TODO
-        if let Some(admin_state) = &mut self.state.admin_state {
-            let actions = table
-                .show(
-                    ui,
-                    admin_state.users.get(),
-                    Some(TableViewActions::new(
-                        vec![(0, "Data".to_owned())],
-                        |user: &User| user.id,
-                    )),
-                )
-                .inner;
+        let actions = table
+            .show(
+                ui,
+                self.state.admin_state.users.get_table().get(),
+                Some(TableViewActions::new(
+                    vec![(0, "Data".to_owned())],
+                    |user: &User| user.id,
+                )),
+            )
+            .inner;
 
-            actions
-                .actions
-                .into_iter()
-                .for_each(|(act, user_id)| match act {
-                    0 => {
-                        self.set_view(AdminPanelView::UserData {
-                            user_id,
-                            view: AdminPanelUserDataView::Events {
-                                table: TableView::new("admin_events_table"),
-                            },
-                        });
-                    }
-                    _ => {}
-                });
-        } */
+        actions
+            .actions
+            .into_iter()
+            .for_each(|(act, user_id)| match act {
+                0 => {
+                    self.set_view(AdminPanelView::UserData {
+                        user_id,
+                        view: AdminPanelUserDataView::Events {
+                            table: TableView::new("admin_events_table"),
+                        },
+                    });
+                }
+                _ => {}
+            });
     }
 
     fn admin_panel_user_data_view(
@@ -615,15 +611,8 @@ impl CalendarApp {
         user_id: i32,
         view: AdminPanelUserDataView,
     ) {
-        /* TODO
         ui.horizontal(|ui| {
-            let user = self
-                .state
-                .admin_state
-                .as_ref()
-                .unwrap()
-                .users
-                .find_item(user_id);
+            let user = self.state.admin_state.users.get_table().get_by_id(user_id);
             let user_name = user.map(|u| u.name.clone()).unwrap_or_default();
             if ui.button("Back").clicked() {
                 self.set_view(AdminPanelView::Users {
@@ -665,10 +654,9 @@ impl CalendarApp {
                 });
 
             if ui.button("Reload").clicked() {
-                self.state
-                    .load_user_state(user_id, RequestDescription::default());
+                self.state.admin_state.load_user_state(user_id);
             }
-        }); */
+        });
     }
 
     fn admin_panel_events_view(
@@ -677,40 +665,37 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<Event>,
     ) {
-        /* TODO
-        if let Some(admin_state) = &mut self.state.admin_state {
-            if ui
-                .add_enabled(
-                    !self.popup_manager.is_open_new_event(),
-                    egui::Button::new("Add Event"),
+        if ui
+            .add_enabled(
+                !self.popup_manager.is_open_new_event(),
+                egui::Button::new("Add Event"),
+            )
+            .clicked()
+        {
+            self.popup_manager.open_new_event(Some(user_id));
+        }
+        if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
+            let actions = table
+                .show(
+                    ui,
+                    user_state.events.get_table().get(),
+                    Some(TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |event: &Event| event.id,
+                    )),
                 )
-                .clicked()
-            {
-                self.popup_manager.open_new_event(Some(user_id));
-            }
-            if let Some(user_state) = admin_state.users_data.get(&user_id) {
-                let actions = table
-                    .show(
-                        ui,
-                        user_state.events.get(),
-                        Some(TableViewActions::new(
-                            vec![(0, "Delete".to_owned())],
-                            |event: &Event| event.id,
-                        )),
-                    )
-                    .inner;
+                .inner;
 
-                actions.actions.into_iter().for_each(|(act, id)| match act {
-                    0 => {
-                        self.state.delete_event(id, RequestDescription::default());
-                    }
-                    _ => {}
-                });
-            } else {
-                self.state
-                    .load_user_state(user_id, RequestDescription::default());
-            }
-        } */
+            actions.actions.into_iter().for_each(|(act, id)| match act {
+                0 => {
+                    user_state.events.delete(id);
+                }
+                _ => {}
+            });
+        } else {
+            self.state.admin_state.load_user_state(user_id);
+            todo!("This will load state multiple times");
+        }
     }
 
     fn admin_panel_event_templates_view(
@@ -719,41 +704,37 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<EventTemplate>,
     ) {
-        /* TODO
-        if let Some(admin_state) = &mut self.state.admin_state {
-            if ui
-                .add_enabled(
-                    !self.popup_manager.is_open_new_event_template(),
-                    egui::Button::new("Add Template"),
+        if ui
+            .add_enabled(
+                !self.popup_manager.is_open_new_event_template(),
+                egui::Button::new("Add Template"),
+            )
+            .clicked()
+        {
+            self.popup_manager.open_new_event_template(Some(user_id));
+        }
+        if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
+            let actions = table
+                .show(
+                    ui,
+                    user_state.event_templates.get_table().get(),
+                    Some(TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |template: &EventTemplate| template.id,
+                    )),
                 )
-                .clicked()
-            {
-                self.popup_manager.open_new_event_template(Some(user_id));
-            }
-            if let Some(user_state) = admin_state.users_data.get(&user_id) {
-                let actions = table
-                    .show(
-                        ui,
-                        user_state.event_templates.get(),
-                        Some(TableViewActions::new(
-                            vec![(0, "Delete".to_owned())],
-                            |template: &EventTemplate| template.id,
-                        )),
-                    )
-                    .inner;
+                .inner;
 
-                actions.actions.into_iter().for_each(|(act, id)| match act {
-                    0 => {
-                        self.state
-                            .delete_event_template(id, RequestDescription::default());
-                    }
-                    _ => {}
-                });
-            } else {
-                self.state
-                    .load_user_state(user_id, RequestDescription::default());
-            }
-        } */
+            actions.actions.into_iter().for_each(|(act, id)| match act {
+                0 => {
+                    user_state.event_templates.delete(id);
+                }
+                _ => {}
+            });
+        } else {
+            self.state.admin_state.load_user_state(user_id);
+            todo!("This will load state multiple times");
+        }
     }
 
     fn admin_panel_schedules_view(
@@ -762,61 +743,48 @@ impl CalendarApp {
         user_id: i32,
         table: TableView<Schedule>,
     ) {
-        /* TODO
-        if let Some(admin_state) = &mut self.state.admin_state {
-            if ui
-                .add_enabled(
-                    !self.popup_manager.is_open_new_schedule(),
-                    egui::Button::new("Add Schedule"),
+        if ui
+            .add_enabled(
+                !self.popup_manager.is_open_new_schedule(),
+                egui::Button::new("Add Schedule"),
+            )
+            .clicked()
+        {
+            self.popup_manager.open_new_schedule(Some(user_id));
+        }
+        if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
+            let actions: crate::ui::table_view::TableViewResponse = table
+                .show(
+                    ui,
+                    user_state.schedules.get_table().get(),
+                    Some(TableViewActions::new(
+                        vec![(0, "Delete".to_owned())],
+                        |schedule: &Schedule| schedule.id,
+                    )),
                 )
-                .clicked()
-            {
-                self.popup_manager.open_new_schedule(Some(user_id));
-            }
-            if let Some(user_state) = admin_state.users_data.get(&user_id) {
-                let actions = table
-                    .show(
-                        ui,
-                        user_state.schedules.get(),
-                        Some(TableViewActions::new(
-                            vec![(0, "Delete".to_owned())],
-                            |schedule: &Schedule| schedule.id,
-                        )),
-                    )
-                    .inner;
+                .inner;
 
-                actions.actions.into_iter().for_each(|(act, id)| match act {
-                    0 => {
-                        self.state
-                            .delete_schedule(id, RequestDescription::default());
-                    }
-                    _ => {}
-                });
-            } else {
-                self.state
-                    .load_user_state(user_id, RequestDescription::default());
-            }
-        } */
+            actions.actions.into_iter().for_each(|(act, id)| match act {
+                0 => {
+                    user_state.schedules.delete(id);
+                }
+                _ => {}
+            });
+        } else {
+            self.state.admin_state.load_user_state(user_id);
+            todo!("This will load state multiple times");
+        }
     }
 }
 
 impl eframe::App for CalendarApp {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // Admins have different view
-        /* TODO
-
-        if self
-            .state
-            .get_me()
-            .as_ref()
-            .map(|v| v.is_admin())
-            .unwrap_or_default()
-            && self.view.is_calendar()
-        {
+        if self.state.get_me().is_some_and(|me| me.is_admin()) && self.view.is_calendar() {
             self.view = AppView::AdminPanel(AdminPanelView::Users {
                 table: TableView::new("users_table"),
             });
-        }*/
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.popup_manager.show(&self.state, ctx);
@@ -835,8 +803,7 @@ impl eframe::App for CalendarApp {
             }
         });
 
-        let polled = self.state.update();
-        // TODO: separate function
+        self.state.update();
         /* TODO
         polled.iter().for_each(
             |&request_id| match self.state.connector.get_response(request_id) {

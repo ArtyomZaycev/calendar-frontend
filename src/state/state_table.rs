@@ -119,7 +119,7 @@ where
     T: 'static + Send + DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
     State: GetStateTable<T>,
 {
-    fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
+    pub fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
         RequestsHolder::get()
             .read()
             .unwrap()

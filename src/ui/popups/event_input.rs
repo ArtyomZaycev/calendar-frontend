@@ -83,9 +83,17 @@ impl EventInput {
 
 impl PopupContent for EventInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(identifier) = self.update_request.clone() {
-            if let Some(response_info) = state.get_response(identifier) {
+        if let Some(identifier) = self.update_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
                 self.update_request = None;
+                if !response_info.is_err() {
+                    info.close();
+                }
+            }
+        }
+        if let Some(identifier) = self.insert_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
                 }

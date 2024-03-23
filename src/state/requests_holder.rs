@@ -27,7 +27,6 @@ impl RequestData {
 type RequestChecker = Box<dyn Fn(&DbConnector) -> Option<RequestExecutor> + Send>;
 type RequestExecutor = Box<dyn FnOnce(&mut State) + Send>;
 
-
 // TODO: Separate requests and (checkers, executors)
 /// Keeps count of requests that need to be executed
 /// And how to populate State with the response
@@ -57,6 +56,12 @@ impl RequestsHolder {
         DATA.get_or_init(|| RwLock::new(RequestsHolder::new()))
     }
 
+    pub fn any_pending_requests(&self) -> bool {
+        self.checkers
+            .try_lock()
+            .is_ok_and(|checkers| checkers.len() > 0)
+    }
+
     pub fn push(&self, request: RequestData) {
         self.requests.lock().unwrap().push(request);
     }
@@ -82,11 +87,13 @@ impl RequestsHolder {
             // TODO: Everything about this can be improved
             let checker: RequestChecker = Box::new(move |connector| {
                 if connector.is_request_completed(request_id) {
+                    connector.convert_response::<T::Response, T::BadResponse>(request_id);
+
+                    let info = info.clone();
                     let identifier: RequestIdentifier<T> =
                         RequestIdentifier::new(request_id, info.clone());
-                    let info = info.clone();
                     let executor: RequestExecutor = Box::new(move |state: &mut State| {
-                        let response = state.take_response(identifier);
+                        let response = state.take_response(&identifier);
                         if let Some(response) = response {
                             match response {
                                 Ok(response) => T::push_to_state(*response, info, state),

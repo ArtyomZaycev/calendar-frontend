@@ -37,13 +37,11 @@ impl Login {
 
 impl PopupContent for Login {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(identifier) = self.request.clone() {
+        if let Some(identifier) = self.request.as_ref() {
             if let Some(response_info) = state.get_response(identifier) {
                 self.request = None;
                 match response_info {
-                    Ok(_) => {
-                        info.close();
-                    }
+                    Ok(_) => info.close(),
                     Err(error_info) => match &*error_info {
                         login::BadRequestResponse::UserNotFound => self.user_not_found(),
                     },
