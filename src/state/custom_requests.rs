@@ -97,6 +97,7 @@ impl RequestType for RegisterRequest {
     type Query = register::Args;
     type Body = register::Body;
     type Response = register::Response;
+    type BadResponse = register::BadRequestResponse;
 
     type Info = ();
 

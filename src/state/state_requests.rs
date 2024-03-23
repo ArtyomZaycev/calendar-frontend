@@ -42,14 +42,13 @@ impl State {
         password: String,
     ) -> RequestIdentifier<RegisterRequest> {
         self.requests.make_typical_request((), |connector| {
-            connector.make_request::<RegisterRequest>().body(
-                serde_json::to_vec(&register::Body {
+            connector
+                .make_request::<RegisterRequest>()
+                .json(&register::Body {
                     name,
                     email,
                     password,
                 })
-                .unwrap(),
-            )
         })
     }
 }
@@ -63,15 +62,14 @@ impl UserState {
         editor_password: Option<NewPassword>,
     ) -> RequestIdentifier<NewPasswordRequest> {
         self.requests.make_typical_request((), |connector| {
-            connector.make_request::<NewPasswordRequest>().body(
-                serde_json::to_vec(&new_password::Body {
+            connector
+                .make_request::<NewPasswordRequest>()
+                .json(&new_password::Body {
                     user_id,
                     access_level,
                     viewer_password,
                     editor_password,
                 })
-                .unwrap(),
-            )
         })
     }
 

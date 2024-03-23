@@ -38,20 +38,19 @@ impl SignUp {
 
 impl PopupContent for SignUp {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        todo!();
-        /*
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if let AppRequestResponseInfo::RegisterError(error_info) = response_info {
-                    match error_info {
-                        register::BadRequestResponse::EmailAlreadyUsed => self.email_taken(),
+        if let Some(identifier) = self.request.clone() {
+            if let Some(response_info) = state.get_response(identifier) {
+                self.request = None;
+                match response_info {
+                    Ok(_) => {
+                        info.close();
                     }
-                } else if !response_info.is_error() {
-                    info.close();
+                    Err(error_info) => match &*error_info {
+                        register::BadRequestResponse::EmailAlreadyUsed => self.email_taken(),
+                    },
                 }
             }
-        } */
+        }
     }
 
     fn get_title(&mut self) -> Option<String> {
