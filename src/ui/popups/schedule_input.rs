@@ -1,7 +1,12 @@
 use super::popup_content::PopupContent;
 use crate::{
     db::request::{RequestDescription, RequestId},
-    state::State,
+    state::{
+        main_state::RequestIdentifier,
+        table_requests::{TableInsertRequest, TableUpdateRequest},
+        State,
+    },
+    tables::DbTable,
     ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
@@ -30,7 +35,8 @@ pub struct ScheduleInput {
     pub new_event_start: NaiveTime,
     pub events: [Vec<NewEventPlan>; 7],
 
-    request_id: Option<RequestId>,
+    update_request: Option<RequestIdentifier<TableUpdateRequest<Schedule>>>,
+    insert_request: Option<RequestIdentifier<TableInsertRequest<Schedule>>>,
 }
 
 impl ScheduleInput {
@@ -59,7 +65,8 @@ impl ScheduleInput {
             new_event_start: now_time,
             events: Default::default(),
 
-            request_id: None,
+            update_request: None,
+            insert_request: None,
         }
     }
 
@@ -99,7 +106,8 @@ impl ScheduleInput {
                     acc
                 }),
 
-            request_id: None,
+            update_request: None,
+            insert_request: None,
         }
     }
 
@@ -111,14 +119,15 @@ impl ScheduleInput {
 
 impl PopupContent for ScheduleInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(request_id) = self.request_id {
+        todo!();
+        /*if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
                 if !response_info.is_error() {
                     info.close();
                 }
             }
-        }
+        }*/
 
         if self.access_level == -1 {
             self.access_level = state.get_access_level().level;
@@ -148,7 +157,10 @@ impl PopupContent for ScheduleInput {
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
                             state
-                                .get_event_templates()
+                                .user_state
+                                .event_templates
+                                .get_table()
+                                .get()
                                 .iter()
                                 .find(|t| t.id == template_id)
                         }) {
@@ -157,13 +169,19 @@ impl PopupContent for ScheduleInput {
                         },
                     )
                     .show_ui(ui, |ui| {
-                        state.get_event_templates().iter().for_each(|template| {
-                            ui.selectable_value(
-                                &mut self.template_id,
-                                Some(template.id),
-                                &template.name,
-                            );
-                        });
+                        state
+                            .user_state
+                            .event_templates
+                            .get_table()
+                            .get()
+                            .iter()
+                            .for_each(|template| {
+                                ui.selectable_value(
+                                    &mut self.template_id,
+                                    Some(template.id),
+                                    &template.name,
+                                );
+                            });
                     });
             }
 
@@ -190,7 +208,7 @@ impl PopupContent for ScheduleInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.get_access_levels(),
+                    state.user_state.access_levels.get_table().get(),
                 ));
             });
 
@@ -264,9 +282,6 @@ impl PopupContent for ScheduleInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                let request_id = state.connector.reserve_request_id();
-                self.request_id = Some(request_id);
-
                 let events = self.events.iter().flatten().collect_vec();
                 let init_events = self.init_events.clone().unwrap_or(vec![]);
                 let delete_events = init_events
@@ -289,43 +304,34 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                info.signal(
-                    RequestSignal::UpdateSchedule(UpdateSchedule {
-                        id,
-                        name: USome(self.name.clone()),
-                        description: USome(
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        ),
-                        first_day: USome(self.first_day),
-                        last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                        access_level: USome(self.access_level),
-                        delete_events,
-                        new_events,
-                    })
-                    .with_description(RequestDescription::new().with_request_id(request_id)),
-                );
+                self.update_request = Some(state.user_state.schedules.update(UpdateSchedule {
+                    id,
+                    name: USome(self.name.clone()),
+                    description: USome(
+                        (!self.description.is_empty()).then_some(self.description.clone()),
+                    ),
+                    first_day: USome(self.first_day),
+                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                    access_level: USome(self.access_level),
+                    delete_events,
+                    new_events,
+                }));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                let request_id = state.connector.reserve_request_id();
-                self.request_id = Some(request_id);
-                info.signal(
-                    RequestSignal::InsertSchedule(NewSchedule {
-                        user_id: self.user_id,
-                        template_id: self.template_id.unwrap(),
-                        name: self.name.clone(),
-                        description: (!self.description.is_empty())
-                            .then_some(self.description.clone()),
-                        first_day: self.first_day,
-                        last_day: self.last_day_enabled.then_some(self.last_day),
-                        access_level: self.access_level,
-                        events: self.events.clone().into_iter().flatten().collect(),
-                    })
-                    .with_description(RequestDescription::new().with_request_id(request_id)),
-                );
+                self.insert_request = Some(state.user_state.schedules.insert(NewSchedule {
+                    user_id: self.user_id,
+                    template_id: self.template_id.unwrap(),
+                    name: self.name.clone(),
+                    description: (!self.description.is_empty()).then_some(self.description.clone()),
+                    first_day: self.first_day,
+                    last_day: self.last_day_enabled.then_some(self.last_day),
+                    access_level: self.access_level,
+                    events: self.events.clone().into_iter().flatten().collect(),
+                }));
             }
         }
         if ui.button("Cancel").clicked() {

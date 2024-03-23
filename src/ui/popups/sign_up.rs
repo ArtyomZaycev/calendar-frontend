@@ -4,7 +4,7 @@ use super::popup_content::PopupContent;
 use crate::{
     db::request::{RequestDescription, RequestId},
     requests::AppRequestResponseInfo,
-    state::State,
+    state::{custom_requests::RegisterRequest, main_state::RequestIdentifier, State},
     ui::signal::RequestSignal,
     utils::{is_password_strong_enough, is_valid_email},
 };
@@ -16,7 +16,7 @@ pub struct SignUp {
     pub password2: String,
     email_taken: Option<String>,
 
-    request_id: Option<RequestId>,
+    request: Option<RequestIdentifier<RegisterRequest>>,
 }
 
 impl SignUp {
@@ -27,7 +27,7 @@ impl SignUp {
             password: String::default(),
             password2: String::default(),
             email_taken: None,
-            request_id: None,
+            request: None,
         }
     }
 
@@ -38,6 +38,8 @@ impl SignUp {
 
 impl PopupContent for SignUp {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+        todo!();
+        /*
         if let Some(request_id) = self.request_id {
             if let Some(response_info) = state.connector.get_response_info(request_id) {
                 self.request_id = None;
@@ -49,7 +51,7 @@ impl PopupContent for SignUp {
                     info.close();
                 }
             }
-        }
+        } */
     }
 
     fn get_title(&mut self) -> Option<String> {
@@ -108,16 +110,8 @@ impl PopupContent for SignUp {
             .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
             .clicked()
         {
-            let request_id = state.connector.reserve_request_id();
-            self.request_id = Some(request_id);
-            info.signal(
-                RequestSignal::Register(
-                    self.name.clone(),
-                    self.email.clone(),
-                    self.password.clone(),
-                )
-                .with_description(RequestDescription::new().with_request_id(request_id)),
-            );
+            self.request =
+                Some(state.register(self.name.clone(), self.email.clone(), self.password.clone()));
         }
         if ui.button("Cancel").clicked() {
             info.close();

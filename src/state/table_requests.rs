@@ -29,18 +29,23 @@ pub trait TableItemDelete {
     const DELETE_PATH: &'static str;
 }
 
+#[derive(Clone, Copy)]
 pub struct TableLoadByIdRequest<T: DbTableItem + TableItemLoadById> {
     _data: PhantomData<T>,
 }
+#[derive(Clone, Copy)]
 pub struct TableLoadAllRequest<T: DbTableItem + TableItemLoadAll> {
     _data: PhantomData<T>,
 }
+#[derive(Clone, Copy)]
 pub struct TableInsertRequest<T: DbTableItem + TableItemInsert> {
     _data: PhantomData<T>,
 }
+#[derive(Clone, Copy)]
 pub struct TableUpdateRequest<T: DbTableItem + TableItemUpdate> {
     _data: PhantomData<T>,
 }
+#[derive(Clone, Copy)]
 pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
 }

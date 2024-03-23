@@ -74,14 +74,16 @@ impl<T> StateTable<T>
 where
     T: DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
     State: GetStateTable<T>,
-    reqwest::Body: From<<TableInsertRequest<T> as RequestType>::Body>,
+    <T as TableItemInsert>::NewItem: Serialize,
 {
     pub fn insert(
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableInsertRequest<T>> {
         self.requests.make_typical_request((), |connector| {
-            connector.make_request::<TableInsertRequest<T>>().body(item)
+            connector
+                .make_request::<TableInsertRequest<T>>()
+                .json(&item)
         })
     }
 }
@@ -90,7 +92,7 @@ impl<T> StateTable<T>
 where
     T: DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
     State: GetStateTable<T>,
-    reqwest::Body: From<<TableUpdateRequest<T> as RequestType>::Body>,
+    <T as TableItemUpdate>::UpdItem: Serialize,
 {
     pub fn update(
         &self,
@@ -98,7 +100,9 @@ where
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
         let item_id = item.get_id();
         self.requests.make_typical_request(item_id, |connector| {
-            connector.make_request::<TableUpdateRequest<T>>().body(item)
+            connector
+                .make_request::<TableUpdateRequest<T>>()
+                .json(&item)
         })
     }
 }

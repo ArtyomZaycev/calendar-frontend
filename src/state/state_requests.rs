@@ -23,7 +23,7 @@ impl State {
         self.requests.make_typical_request((), |connector| {
             connector
                 .make_request::<LoginRequest>()
-                .body(serde_json::to_vec(&login::Body { email, password }).unwrap())
+                .json(&login::Body { email, password })
         })
     }
 

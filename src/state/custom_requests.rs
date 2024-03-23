@@ -14,6 +14,7 @@ use super::{
         load_users
 */
 
+#[derive(Clone, Copy)]
 pub struct LogoutRequest {}
 impl RequestType for LogoutRequest {
     const URL: &'static str = logout::PATH;
@@ -31,6 +32,7 @@ impl RequestType for LogoutRequest {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct LoginRequest {}
 impl RequestType for LoginRequest {
     const URL: &'static str = login::PATH;
@@ -58,6 +60,7 @@ impl RequestType for LoginRequest {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct LoginByKeyRequest {}
 impl RequestType for LoginByKeyRequest {
     const URL: &'static str = login_by_key::PATH;
@@ -84,6 +87,7 @@ impl RequestType for LoginByKeyRequest {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RegisterRequest {}
 impl RequestType for RegisterRequest {
     const URL: &'static str = register::PATH;
@@ -99,6 +103,7 @@ impl RequestType for RegisterRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
 }
 
+#[derive(Clone, Copy)]
 pub struct NewPasswordRequest {}
 impl RequestType for NewPasswordRequest {
     const URL: &'static str = new_password::PATH;
@@ -116,6 +121,7 @@ impl RequestType for NewPasswordRequest {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct LoadStateRequest {}
 impl RequestType for LoadStateRequest {
     const URL: &'static str = user_state::load::PATH;

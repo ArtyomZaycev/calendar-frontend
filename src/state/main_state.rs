@@ -9,7 +9,7 @@ use calendar_lib::api::utils::User;
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
 };
-use chrono::{NaiveDate, NaiveDateTime, Datelike};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 use serde::de::DeserializeOwned;
 
@@ -40,7 +40,11 @@ pub trait RequestType {
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
-pub struct RequestIdentifier<T: RequestType> {
+#[derive(Clone)]
+pub struct RequestIdentifier<T: RequestType>
+where
+    T::Info: Clone,
+{
     id: RequestId,
     info: T::Info,
     _data: PhantomData<T>,
@@ -119,6 +123,7 @@ pub struct State {
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
 }
 
+// TODO: If popup is closed before response is received, request type is lost
 impl State {
     pub fn new(config: &Config) -> Self {
         State {
@@ -131,17 +136,24 @@ impl State {
             events_per_day: HashMap::new(),
         }
     }
-    
+
     pub fn get_access_level(&self) -> AccessLevel {
         let levels = self
             .user_state
-            .access_levels.get_table().get()
+            .access_levels
+            .get_table()
+            .get()
             .iter()
             .filter(|l| l.level == self.current_access_level)
             .collect_vec();
         if levels.len() == 0 {
             self.user_state
-            .access_levels.get_table().get().last().unwrap().clone()
+                .access_levels
+                .get_table()
+                .get()
+                .last()
+                .unwrap()
+                .clone()
         } else if levels.len() == 1 {
             levels[0].clone()
         } else {
@@ -161,6 +173,7 @@ impl State {
     //pub fn is_failed(&self) -> bool;
 
     // TODO: Option<reqwest::Error<T::Response>>, to find out about failder requests
+    // TODO: &RequestIdentifier<T>
     pub fn get_response<'a, T: RequestType + 'static>(
         &'a self,
         identifier: RequestIdentifier<T>,
@@ -211,17 +224,27 @@ impl State {
 
     pub(super) fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
         let event_exists = |plan_id: i32| {
-            self.user_state.events.get_table().get()
+            self.user_state
+                .events
+                .get_table()
+                .get()
                 .iter()
                 .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
         let level = self.get_access_level().level;
-        self.user_state.schedules.get_table().get()
+        self.user_state
+            .schedules
+            .get_table()
+            .get()
             .iter()
             .filter(move |s| s.access_level <= level)
             .flat_map(|schedule| {
-                match self.user_state.event_templates.get_table().get()
+                match self
+                    .user_state
+                    .event_templates
+                    .get_table()
+                    .get()
                     .iter()
                     .find(|template| template.id == schedule.template_id)
                 {
@@ -250,12 +273,15 @@ impl State {
             })
             .collect()
     }
-    
+
     pub fn prepare_date(&mut self, date: NaiveDate) {
         if !self.events_per_day.contains_key(&date) {
             let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
-                self.user_state.events.get_table().get()
+                self.user_state
+                    .events
+                    .get_table()
+                    .get()
                     .iter()
                     .filter(|e| e.start.date() == date)
                     .filter_map(move |e| {

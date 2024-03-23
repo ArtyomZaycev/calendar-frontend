@@ -393,7 +393,10 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .user_state.schedules.get_table().get()
+                .user_state
+                .schedules
+                .get_table()
+                .get()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -434,7 +437,10 @@ impl CalendarApp {
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-            .user_state.event_templates.get_table().get()
+                .user_state
+                .event_templates
+                .get_table()
+                .get()
                 .iter()
                 .filter(|s| s.access_level <= level)
                 .enumerate()
@@ -798,7 +804,7 @@ impl eframe::App for CalendarApp {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // Admins have different view
         /* TODO
-        
+
         if self
             .state
             .get_me()

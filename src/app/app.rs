@@ -1,6 +1,11 @@
 use super::{AppView, EventsView};
 use crate::{
-    app_local_storage::AppLocalStorage, config::Config, db::request::RequestDescription, state::State, tables::DbTable, ui::{popups::popup_manager::PopupManager, signal::AppSignal}
+    app_local_storage::AppLocalStorage,
+    config::Config,
+    db::request::RequestDescription,
+    state::State,
+    tables::DbTable,
+    ui::{popups::popup_manager::PopupManager, signal::AppSignal},
 };
 
 pub struct CalendarApp {
@@ -50,11 +55,14 @@ impl CalendarApp {
             AppSignal::StateSignal(signal) => {
                 todo!()
                 //self.state.parse_signal(signal)
-            },
+            }
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self
                     .state
-                    .user_state.events.get_table().get()
+                    .user_state
+                    .events
+                    .get_table()
+                    .get()
                     .iter()
                     .find(|event| event.id == event_id)
                 {
@@ -64,7 +72,10 @@ impl CalendarApp {
             AppSignal::ChangeEventTemplate(template_id) => {
                 if let Some(template) = self
                     .state
-                    .user_state.event_templates.get_table().get()
+                    .user_state
+                    .event_templates
+                    .get_table()
+                    .get()
                     .iter()
                     .find(|template| template.id == template_id)
                 {
@@ -75,7 +86,10 @@ impl CalendarApp {
             AppSignal::ChangeSchedule(schedule_id) => {
                 if let Some(schedule) = self
                     .state
-                    .user_state.schedules.get_table().get()
+                    .user_state
+                    .schedules
+                    .get_table()
+                    .get()
                     .iter()
                     .find(|schedule| schedule.id == schedule_id)
                 {
