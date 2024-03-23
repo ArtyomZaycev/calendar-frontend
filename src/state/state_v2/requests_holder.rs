@@ -7,6 +7,12 @@ pub(super) struct RequestData {
     pub request: reqwest::Request,
 }
 
+impl RequestData {
+    pub(super) fn new(id: RequestId, request: reqwest::Request) -> Self {
+        Self { id, request }
+    }
+}
+
 // Rename?
 /// Holds requests that should be sent at the end of the frame
 pub(super) struct RequestsHolder {

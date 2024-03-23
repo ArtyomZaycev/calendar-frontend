@@ -1,9 +1,11 @@
+use serde::Serialize;
+
 pub trait TableId
 where
-    Self: Clone + Copy + PartialEq,
+    Self: Clone + Copy + PartialEq + Serialize,
 {
 }
-impl<T> TableId for T where T: Clone + Copy + PartialEq {}
+impl<T> TableId for T where T: Clone + Copy + PartialEq + Serialize {}
 
 pub trait DbTableItem {
     type Id: TableId = i32;

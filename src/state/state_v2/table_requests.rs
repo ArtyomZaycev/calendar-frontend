@@ -18,11 +18,11 @@ pub trait TableItemLoadAll {
     const LOAD_ALL_PATH: &'static str;
 }
 pub trait TableItemInsert {
-    type NewItem: DbTableNewItem;
+    type NewItem: DbTableNewItem + DeserializeOwned;
     const INSERT_PATH: &'static str;
 }
 pub trait TableItemUpdate {
-    type UpdItem: DbTableUpdateItem;
+    type UpdItem: DbTableUpdateItem + DeserializeOwned;
     const UPDATE_PATH: &'static str;
 }
 pub trait TableItemDelete {
@@ -79,11 +79,7 @@ where
     type Response = Vec<Item>;
     type Info = ();
 
-    fn push_to_state(
-        response: Self::Response,
-        info: Self::Info,
-        state: &mut super::main_state::State,
-    ) {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<Item> = state.get_table_mut();
         table.get_table_mut().replace_all(response);
     }
@@ -103,11 +99,7 @@ where
     type Response = ();
     type Info = ();
 
-    fn push_to_state(
-        response: Self::Response,
-        info: Self::Info,
-        state: &mut super::main_state::State,
-    ) {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         todo!("Load inserted");
     }
@@ -125,36 +117,27 @@ where
     type Query = ();
     type Body = T::UpdItem;
     type Response = ();
-    type Info = ();
+    type Info = <<T as TableItemUpdate>::UpdItem as DbTableUpdateItem>::Id;
 
-    fn push_to_state(
-        response: Self::Response,
-        info: Self::Info,
-        state: &mut super::main_state::State,
-    ) {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         todo!("Load updated (or just replace the loaded one)");
     }
 }
 
-impl<Item: DbTableItem + TableItemDelete + DeserializeOwned> RequestType
-    for TableDeleteRequest<Item>
+impl<T: DbTableItem + TableItemDelete + DeserializeOwned> RequestType for TableDeleteRequest<T>
 where
-    State: GetStateTable<Item>,
+    State: GetStateTable<T>,
 {
-    const URL: &'static str = Item::DELETE_PATH;
+    const URL: &'static str = T::DELETE_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::DELETE;
-    type Query = Item::Id;
+    type Query = T::Id;
     type Response = ();
-    type Info = ();
+    type Info = T::Id;
 
-    fn push_to_state(
-        response: Self::Response,
-        info: Self::Info,
-        state: &mut super::main_state::State,
-    ) {
-        let table: &mut StateTable<Item> = state.get_table_mut();
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        let table: &mut StateTable<T> = state.get_table_mut();
         todo!("Reload table (or just remove deleted)");
     }
 }

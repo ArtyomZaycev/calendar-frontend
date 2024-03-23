@@ -1,15 +1,18 @@
 use std::any::Any;
-use std::cell::Ref;
+use std::cell::{Cell, Ref};
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{atomic, Arc, RwLock};
 use std::{cell::RefCell, rc::Rc};
 
 use bytes::Bytes;
+use egui::mutex::Mutex;
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 
 use crate::config::Config;
 
-use super::request::RequestId;
+use super::request::{RequestId, RequestIdAtomic};
+use super::requests_holder::RequestData;
 
 struct RequestResult<T> {
     id: RequestId,
@@ -41,29 +44,59 @@ impl RequestResult<Bytes> {
         )
     }
 }
-/*
-pub enum RequestResultTyped<T, E> {
-    OnSuccess(Box<T>),
-    OnBadRequest(Box<E>),
-    Other(String),
+
+// TODO: Rename with DbConnector
+pub struct DbConnectorData {
+    client: reqwest::Client,
+    server_url: String,
+    jwt: Arc<RwLock<Option<String>>>,
+    next_request_id: Arc<RequestIdAtomic>,
 }
 
-impl RequestResult<Box<dyn Any>> {
-    fn take_typed<T, E>(self) -> RequestResultTyped<T, E> {
-        if self.status == StatusCode::OK {
-            OnSuccess(T)
-        } else if status == StatusCode::BAD_REQUEST {
-            Box::new(serde_json::from_slice::<E>(&bytes).unwrap())
+impl DbConnectorData {
+    fn new(config: &Config) -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            server_url: config.api_url.clone(),
+            jwt: Arc::new(RwLock::new(None)),
+            next_request_id: Arc::new(RequestIdAtomic::default()),
+        }
+    }
+
+    pub fn get() -> &'static Self {
+        use std::sync::OnceLock;
+
+        static DATA: OnceLock<DbConnectorData> = OnceLock::new();
+        DATA.get_or_init(|| DbConnectorData::new(&Config::load()))
+    }
+
+    pub(super) fn next_request_id(&self) -> RequestId {
+        self.next_request_id
+            .fetch_add(1, atomic::Ordering::SeqCst)
+            .into()
+    }
+
+    pub(super) fn make_request(
+        &self,
+        method: reqwest::Method,
+        op: &str,
+        authorize: bool,
+    ) -> reqwest::RequestBuilder {
+        let client = self.client.clone();
+        let request = client
+            .request(method, self.server_url.clone() + op)
+            // TODO: Proper value
+            .header("Access-Control-Allow-Origin", "*");
+        if authorize {
+            let jwt = self.jwt.read().unwrap();
+            request.bearer_auth(jwt.clone().unwrap_or_default())
         } else {
-            Box::new(bytes.as_bytes())
+            request
         }
     }
 }
- */
-pub struct DbConnector {
-    client: reqwest::Client,
-    server_url: String,
 
+pub struct DbConnector {
     sender: Sender<RequestResult<Bytes>>,
     reciever: Receiver<RequestResult<Bytes>>,
 
@@ -75,32 +108,30 @@ pub struct DbConnector {
     typed_results: Rc<RefCell<Vec<RequestResult<Box<dyn Any>>>>>,
 
     pub error_handler: Box<dyn FnMut(reqwest::Error)>,
-
-    next_request_id: RequestId,
 }
 
 impl DbConnector {
     pub fn new(config: &Config) -> Self {
         let (sender, reciever) = channel();
         Self {
-            client: reqwest::Client::new(),
-            server_url: config.api_url.clone(),
             sender,
             reciever,
             results: Rc::new(RefCell::new(Vec::new())),
             typed_results: Rc::new(RefCell::new(Vec::new())),
             error_handler: Box::new(|error| println!("ConnectorError: {error:?}")),
-            next_request_id: RequestId::default(),
         }
     }
 
-    pub fn request(&mut self, request: reqwest::Request) -> RequestId {
+    pub(super) fn request(&mut self, request: RequestData) -> RequestId {
         use crate::utils::easy_spawn;
 
-        let request_id = self.next_request_id;
-        self.next_request_id += 1;
+        let data = DbConnectorData::get();
+        let RequestData {
+            id: request_id,
+            request,
+        } = request;
 
-        let client = self.client.clone();
+        let client = data.client.clone();
         let sender = self.sender.clone();
         easy_spawn(async move {
             let res: Result<reqwest::Response, reqwest::Error> = client.execute(request).await;

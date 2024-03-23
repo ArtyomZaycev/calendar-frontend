@@ -40,6 +40,16 @@ pub struct RequestIdentifier<T: RequestType> {
     _data: PhantomData<T>,
 }
 
+impl<T: RequestType> RequestIdentifier<T> {
+    pub(super) fn new(request_id: RequestId, info: T::Info) -> Self {
+        Self {
+            id: request_id,
+            info,
+            _data: PhantomData::default(),
+        }
+    }
+}
+
 pub struct State {
     db_connector: DbConnector,
     pub access_levels: StateTable<AccessLevel>,
@@ -60,6 +70,9 @@ impl State {
             requests: RequestsHolder::new(),
         }
     }
+
+    // TODO
+    //pub fn is_failed(&self) -> bool;
 
     // TODO: Option<reqwest::Error<T::Response>>, to find out about failder requests
     pub fn get_response<'a, T: RequestType + 'static>(
@@ -82,6 +95,23 @@ impl State {
         self.db_connector
             .take_response::<T::Response, T::BadResponse>(identifier.id)
             .and_then(|r| r.ok())
+    }
+
+    fn send_requests(&mut self) {
+        let mut requests = self.requests.take();
+        requests.extend(self.access_levels.requests.take());
+        requests.extend(self.events.requests.take());
+        requests.extend(self.event_templates.requests.take());
+        requests.extend(self.schedules.requests.take());
+
+        requests.into_iter().for_each(|request| {
+            self.db_connector.request(request);
+        });
+    }
+
+    pub fn update(&mut self) {
+        self.db_connector.pull();
+        self.send_requests();
     }
 }
 

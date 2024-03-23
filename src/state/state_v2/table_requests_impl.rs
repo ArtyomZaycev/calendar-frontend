@@ -1,5 +1,7 @@
 use calendar_lib::api::{
-    auth::types::AccessLevel, event_templates::types::{EventTemplate, NewEventTemplate, UpdateEventTemplate}, events::types::{Event, NewEvent, UpdateEvent},
+    auth::types::AccessLevel,
+    event_templates::types::{EventTemplate, NewEventTemplate, UpdateEventTemplate},
+    events::types::{Event, NewEvent, UpdateEvent},
     schedules::types::{NewSchedule, Schedule, UpdateSchedule},
 };
 

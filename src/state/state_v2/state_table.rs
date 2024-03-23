@@ -1,6 +1,6 @@
 use std::cell::OnceCell;
 
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::tables::{
     table::{Table, TableDeleteById},
@@ -8,8 +8,9 @@ use crate::tables::{
 };
 
 use super::{
-    main_state::{GetStateTable, RequestIdentifier, State},
-    requests_holder::RequestsHolder,
+    db_connector::DbConnectorData,
+    main_state::{GetStateTable, RequestIdentifier, RequestType, State},
+    requests_holder::{RequestData, RequestsHolder},
     table_requests::{
         TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll,
         TableItemLoadById, TableItemUpdate, TableLoadAllRequest, TableLoadByIdRequest,
@@ -19,7 +20,7 @@ use super::{
 
 pub struct StateTable<T: DbTableItem> {
     data: Table<T>,
-    requests: RequestsHolder,
+    pub(super) requests: RequestsHolder,
 }
 
 impl<T: DbTableItem> StateTable<T> {
@@ -45,7 +46,18 @@ where
     State: GetStateTable<T>,
 {
     fn load_by_id(&self, id: T::Id) -> RequestIdentifier<TableLoadByIdRequest<T>> {
-        todo!()
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = connector
+            .make_request(
+                TableLoadByIdRequest::<T>::METHOD,
+                TableLoadByIdRequest::<T>::URL,
+                TableLoadByIdRequest::<T>::IS_AUTHORIZED,
+            )
+            .query(&id);
+        self.requests
+            .push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, id)
     }
 }
 
@@ -54,19 +66,65 @@ where
     State: GetStateTable<T>,
 {
     fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
-        todo!()
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = connector.make_request(
+            TableLoadAllRequest::<T>::METHOD,
+            TableLoadAllRequest::<T>::URL,
+            TableLoadAllRequest::<T>::IS_AUTHORIZED,
+        );
+        self.requests
+            .push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, ())
     }
 }
 
-impl<T: DbTableItem + TableItemInsert> StateTable<T> where State: GetStateTable<T>, T::NewItem: DeserializeOwned {
-    fn insert(&self, item: T::NewItem) -> RequestIdentifier<TableInsertRequest<T>> {
-        todo!()
+impl<T: DbTableItem + TableItemInsert> StateTable<T>
+where
+    State: GetStateTable<T>,
+    reqwest::Body: From<<TableInsertRequest<T> as RequestType>::Body>,
+{
+    fn insert(
+        &self,
+        item: <TableInsertRequest<T> as RequestType>::Body,
+    ) -> RequestIdentifier<TableInsertRequest<T>> {
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = connector
+            .make_request(
+                TableInsertRequest::<T>::METHOD,
+                TableInsertRequest::<T>::URL,
+                TableInsertRequest::<T>::IS_AUTHORIZED,
+            )
+            .body(item);
+        self.requests
+            .push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, ())
     }
 }
 
-impl<T: DbTableItem + TableItemUpdate> StateTable<T> where State: GetStateTable<T>, T::UpdItem: DeserializeOwned {
-    fn update(&self, item: T) -> RequestIdentifier<TableUpdateRequest<T>> {
-        todo!()
+impl<T: DbTableItem + TableItemUpdate> StateTable<T>
+where
+    State: GetStateTable<T>,
+    reqwest::Body: From<<TableUpdateRequest<T> as RequestType>::Body>,
+{
+    fn update(
+        &self,
+        item: <TableUpdateRequest<T> as RequestType>::Body,
+    ) -> RequestIdentifier<TableUpdateRequest<T>> {
+        let item_id = item.get_id();
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = connector
+            .make_request(
+                TableUpdateRequest::<T>::METHOD,
+                TableUpdateRequest::<T>::URL,
+                TableUpdateRequest::<T>::IS_AUTHORIZED,
+            )
+            .body(item);
+        self.requests
+            .push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, item_id)
     }
 }
 
@@ -75,6 +133,17 @@ where
     State: GetStateTable<T>,
 {
     fn delete(&self, id: T::Id) -> RequestIdentifier<TableDeleteRequest<T>> {
-        todo!()
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = connector
+            .make_request(
+                TableDeleteRequest::<T>::METHOD,
+                TableDeleteRequest::<T>::URL,
+                TableDeleteRequest::<T>::IS_AUTHORIZED,
+            )
+            .query(&id);
+        self.requests
+            .push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, id)
     }
 }
