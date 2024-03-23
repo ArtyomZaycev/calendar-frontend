@@ -189,6 +189,11 @@ impl DbConnector {
         }
     }
 
+    pub fn is_request_completed(&self, id: RequestId) -> bool {
+        let typed_results = self.typed_results.borrow();
+        typed_results.iter().any(|result| result.id == id)
+    }
+
     pub fn get_response<'a, T: 'static, E: 'static>(
         &'a self,
         id: RequestId,

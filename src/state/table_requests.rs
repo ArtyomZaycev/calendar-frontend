@@ -50,7 +50,7 @@ pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
 }
 
-impl<T: DbTableItem + TableItemLoadById + DeserializeOwned> RequestType for TableLoadByIdRequest<T>
+impl<T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned> RequestType for TableLoadByIdRequest<T>
 where
     State: GetStateTable<T>,
 {
@@ -67,7 +67,7 @@ where
     }
 }
 
-impl<Item: DbTableItem + TableItemLoadAll + DeserializeOwned> RequestType
+impl<Item: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned> RequestType
     for TableLoadAllRequest<Item>
 where
     State: GetStateTable<Item>,
@@ -87,7 +87,7 @@ where
 
 impl<T> RequestType for TableInsertRequest<T>
 where
-    T: DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
+    T: 'static + DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
     T::NewItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
@@ -107,7 +107,7 @@ where
 
 impl<T> RequestType for TableUpdateRequest<T>
 where
-    T: DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
+    T: 'static + DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
     T::UpdItem: DeserializeOwned,
     State: GetStateTable<T>,
 {
@@ -127,7 +127,7 @@ where
 
 impl<T> RequestType for TableDeleteRequest<T>
 where
-    T: DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
+    T: 'static + DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
     State: GetStateTable<T>,
 {
     const URL: &'static str = T::DELETE_PATH;

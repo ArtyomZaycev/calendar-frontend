@@ -48,7 +48,7 @@ impl<T: DbTableItem> StateTable<T> {
     }
 }
 
-impl<T: DbTableItem + TableItemLoadById + DeserializeOwned> StateTable<T>
+impl<T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned> StateTable<T>
 where
     State: GetStateTable<T>,
 {
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<T: DbTableItem + TableItemLoadAll + DeserializeOwned> StateTable<T>
+impl<T: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned> StateTable<T>
 where
     State: GetStateTable<T>,
 {
@@ -72,7 +72,7 @@ where
 
 impl<T> StateTable<T>
 where
-    T: DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
+    T: 'static + DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
     State: GetStateTable<T>,
     <T as TableItemInsert>::NewItem: Serialize,
 {
@@ -90,7 +90,7 @@ where
 
 impl<T> StateTable<T>
 where
-    T: DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
+    T: 'static + DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
     State: GetStateTable<T>,
     <T as TableItemUpdate>::UpdItem: Serialize,
 {
@@ -109,7 +109,7 @@ where
 
 impl<T> StateTable<T>
 where
-    T: DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
+    T: 'static + DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
     State: GetStateTable<T>,
 {
     fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {

@@ -35,7 +35,7 @@ pub trait RequestType {
     type BadResponse: DeserializeOwned = ();
 
     /// e.g. update request item.id
-    type Info: Clone = ();
+    type Info: 'static + Clone = ();
 
     // TODO: Separate into different trait, move struct to request.rs
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
@@ -219,16 +219,7 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        {
-            let parsers = self.request_parsers.take();
-            parsers.iter().for_each(|parser| {
-                let parse_fn = parser(&self.db_connector);
-                if let Some(parse_fn) = parse_fn {
-                    parse_fn(self);
-                }
-            });
-            self.request_parsers.replace(parsers);
-        }
+        //self.requests.update(self);
         self.db_connector.pull();
         self.send_requests();
     }
