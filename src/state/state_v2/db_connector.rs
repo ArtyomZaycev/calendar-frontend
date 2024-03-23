@@ -11,6 +11,7 @@ use serde::de::DeserializeOwned;
 
 use crate::config::Config;
 
+use super::main_state::RequestType;
 use super::request::{RequestId, RequestIdAtomic};
 use super::requests_holder::RequestData;
 
@@ -76,7 +77,14 @@ impl DbConnectorData {
             .into()
     }
 
-    pub(super) fn make_request(
+    pub(super) fn make_request<T: RequestType>(&self) -> reqwest::RequestBuilder {
+        let method = T::METHOD;
+        let op = T::URL;
+        let authorize = T::IS_AUTHORIZED;
+        self.make_request2(method, op, authorize)
+    }
+
+    pub(super) fn make_request2(
         &self,
         method: reqwest::Method,
         op: &str,

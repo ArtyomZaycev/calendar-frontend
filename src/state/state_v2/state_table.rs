@@ -31,6 +31,13 @@ impl<T: DbTableItem> StateTable<T> {
         }
     }
 
+    pub(super) fn from_vec(items: Vec<T>) -> Self {
+        Self {
+            data: Table::from_vec(items),
+            requests: RequestsHolder::new(),
+        }
+    }
+
     // Hide?
     pub fn get_table(&self) -> &Table<T> {
         &self.data
@@ -46,18 +53,9 @@ where
     State: GetStateTable<T>,
 {
     pub fn load_by_id(&self, id: TableId) -> RequestIdentifier<TableLoadByIdRequest<T>> {
-        let connector = DbConnectorData::get();
-        let request_id = connector.next_request_id();
-        let request = connector
-            .make_request(
-                TableLoadByIdRequest::<T>::METHOD,
-                TableLoadByIdRequest::<T>::URL,
-                TableLoadByIdRequest::<T>::IS_AUTHORIZED,
-            )
-            .query(&id);
-        self.requests
-            .push(RequestData::new(request_id, request.build().unwrap()));
-        RequestIdentifier::new(request_id, id)
+        self.requests.make_typical_request(id, |connector| {
+            connector.make_request::<TableLoadByIdRequest<T>>()
+        })
     }
 }
 
@@ -66,16 +64,9 @@ where
     State: GetStateTable<T>,
 {
     pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
-        let connector = DbConnectorData::get();
-        let request_id = connector.next_request_id();
-        let request = connector.make_request(
-            TableLoadAllRequest::<T>::METHOD,
-            TableLoadAllRequest::<T>::URL,
-            TableLoadAllRequest::<T>::IS_AUTHORIZED,
-        );
-        self.requests
-            .push(RequestData::new(request_id, request.build().unwrap()));
-        RequestIdentifier::new(request_id, ())
+        self.requests.make_typical_request((), |connector| {
+            connector.make_request::<TableLoadAllRequest<T>>()
+        })
     }
 }
 
@@ -89,18 +80,9 @@ where
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableInsertRequest<T>> {
-        let connector = DbConnectorData::get();
-        let request_id = connector.next_request_id();
-        let request = connector
-            .make_request(
-                TableInsertRequest::<T>::METHOD,
-                TableInsertRequest::<T>::URL,
-                TableInsertRequest::<T>::IS_AUTHORIZED,
-            )
-            .body(item);
-        self.requests
-            .push(RequestData::new(request_id, request.build().unwrap()));
-        RequestIdentifier::new(request_id, ())
+        self.requests.make_typical_request((), |connector| {
+            connector.make_request::<TableInsertRequest<T>>().body(item)
+        })
     }
 }
 
@@ -115,18 +97,9 @@ where
         item: <TableUpdateRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
         let item_id = item.get_id();
-        let connector = DbConnectorData::get();
-        let request_id = connector.next_request_id();
-        let request = connector
-            .make_request(
-                TableUpdateRequest::<T>::METHOD,
-                TableUpdateRequest::<T>::URL,
-                TableUpdateRequest::<T>::IS_AUTHORIZED,
-            )
-            .body(item);
-        self.requests
-            .push(RequestData::new(request_id, request.build().unwrap()));
-        RequestIdentifier::new(request_id, item_id)
+        self.requests.make_typical_request(item_id, |connector| {
+            connector.make_request::<TableUpdateRequest<T>>().body(item)
+        })
     }
 }
 
@@ -136,17 +109,8 @@ where
     State: GetStateTable<T>,
 {
     fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
-        let connector = DbConnectorData::get();
-        let request_id = connector.next_request_id();
-        let request = connector
-            .make_request(
-                TableDeleteRequest::<T>::METHOD,
-                TableDeleteRequest::<T>::URL,
-                TableDeleteRequest::<T>::IS_AUTHORIZED,
-            )
-            .query(&id);
-        self.requests
-            .push(RequestData::new(request_id, request.build().unwrap()));
-        RequestIdentifier::new(request_id, id)
+        self.requests.make_typical_request(id, |connector| {
+            connector.make_request::<TableDeleteRequest<T>>().query(&id)
+        })
     }
 }

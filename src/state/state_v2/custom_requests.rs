@@ -1,10 +1,13 @@
-use calendar_lib::api::auth::*;
+use calendar_lib::api::{auth::*, user_state};
 
-use super::{db_connector::DbConnectorData, main_state::{RequestType, State}};
+use crate::tables::TableId;
 
+use super::{
+    db_connector::DbConnectorData,
+    main_state::{RequestType, State},
+};
 
 /* TODO:
-    load_state
     admin requests:
         load_user_memory_usage
         user_roles
@@ -43,11 +46,15 @@ impl RequestType for LoginRequest {
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
-        state.me = Some(response.user);
+        state.me = response.user;
         state.current_access_level = response.access_level.level;
-        state.access_levels.get_table_mut().replace_all(vec![response.access_level]);
+        state
+            .user_state
+            .access_levels
+            .get_table_mut()
+            .replace_all(vec![response.access_level]);
 
-        state.load_state();
+        state.user_state.load_state();
     }
 }
 
@@ -65,11 +72,15 @@ impl RequestType for LoginByKeyRequest {
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
-        state.me = Some(response.user);
+        state.me = response.user;
         state.current_access_level = response.access_level.level;
-        state.access_levels.get_table_mut().replace_all(vec![response.access_level]);
+        state
+            .user_state
+            .access_levels
+            .get_table_mut()
+            .replace_all(vec![response.access_level]);
 
-        state.load_state();
+        state.user_state.load_state();
     }
 }
 
@@ -85,9 +96,7 @@ impl RequestType for RegisterRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        
-    }
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
 }
 
 pub struct NewPasswordRequest {}
@@ -103,6 +112,34 @@ impl RequestType for NewPasswordRequest {
     type Info = ();
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        state.access_levels.load_all();
+        state.user_state.access_levels.load_all();
+    }
+}
+
+pub struct LoadStateRequest {}
+impl RequestType for LoadStateRequest {
+    const URL: &'static str = user_state::load::PATH;
+    const IS_AUTHORIZED: bool = true;
+    const METHOD: reqwest::Method = user_state::load::METHOD;
+
+    type Query = user_state::load::Args;
+    type Response = user_state::load::Response;
+
+    /// None for loading own state, Some(user_id) for admin request
+    type Info = Option<TableId>;
+
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        match info {
+            Some(user_id) => {
+                state
+                    .admin_state
+                    .users_data
+                    .insert(user_id, response.into());
+            }
+            None => {
+                // TODO: Properly replace data, we are losing requests now
+                state.user_state = response.into();
+            }
+        }
     }
 }

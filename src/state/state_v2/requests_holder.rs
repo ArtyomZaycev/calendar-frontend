@@ -1,6 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use super::request::RequestId;
+use super::{
+    db_connector::DbConnectorData,
+    main_state::{RequestIdentifier, RequestType},
+    request::RequestId,
+};
 
 pub(super) struct RequestData {
     pub id: RequestId,
@@ -31,5 +35,20 @@ impl RequestsHolder {
     }
     pub fn take(&mut self) -> Vec<RequestData> {
         self.requests.replace(Vec::new())
+    }
+
+    pub(super) fn make_typical_request<T: RequestType, F>(
+        &self,
+        info: T::Info,
+        make_request: F,
+    ) -> RequestIdentifier<T>
+    where
+        F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
+    {
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = make_request(connector);
+        self.push(RequestData::new(request_id, request.build().unwrap()));
+        RequestIdentifier::new(request_id, info)
     }
 }

@@ -1,5 +1,18 @@
 use calendar_lib::api::{
-    auth::types::AccessLevel, event_templates::{self, types::{EventTemplate, NewEventTemplate, UpdateEventTemplate}}, events::{self, types::{Event, NewEvent, UpdateEvent}}, roles::{self, types::Role}, schedules::{self, types::{NewSchedule, Schedule, UpdateSchedule}}
+    auth::types::AccessLevel,
+    event_templates::{
+        self,
+        types::{EventTemplate, NewEventTemplate, UpdateEventTemplate},
+    },
+    events::{
+        self,
+        types::{Event, NewEvent, UpdateEvent},
+    },
+    roles::{self, types::Role},
+    schedules::{
+        self,
+        types::{NewSchedule, Schedule, UpdateSchedule},
+    },
 };
 
 use super::table_requests::{
