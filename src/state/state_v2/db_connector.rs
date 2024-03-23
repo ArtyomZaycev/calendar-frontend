@@ -94,6 +94,10 @@ impl DbConnectorData {
             request
         }
     }
+
+    pub(super) fn push_jwt(&self, jwt: String) {
+        *self.jwt.write().unwrap() = Some(jwt);
+    }
 }
 
 pub struct DbConnector {

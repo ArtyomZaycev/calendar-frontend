@@ -5,3 +5,4 @@ pub mod requests_holder;
 pub mod state_table;
 pub mod table_requests;
 pub mod table_requests_impl;
+pub mod custom_requests;

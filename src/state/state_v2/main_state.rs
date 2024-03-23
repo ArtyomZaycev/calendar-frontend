@@ -2,6 +2,7 @@ use std::cell::Ref;
 use std::marker::PhantomData;
 
 use calendar_lib::api::auth::types::AccessLevel;
+use calendar_lib::api::utils::User;
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
 };
@@ -52,22 +53,30 @@ impl<T: RequestType> RequestIdentifier<T> {
 
 pub struct State {
     db_connector: DbConnector,
+    requests: RequestsHolder,
+
+    pub(super) me: Option<User>,
+    pub(super) current_access_level: i32,
+
+    // TODO: Move to UserState
     pub access_levels: StateTable<AccessLevel>,
     pub events: StateTable<Event>,
     pub event_templates: StateTable<EventTemplate>,
     pub schedules: StateTable<Schedule>,
-    requests: RequestsHolder,
+    
 }
 
 impl State {
     pub fn new(config: &Config) -> Self {
         State {
             db_connector: DbConnector::new(config),
+            requests: RequestsHolder::new(),
+            me: None,
+            current_access_level: -1,
             access_levels: StateTable::new(),
             events: StateTable::new(),
             schedules: StateTable::new(),
             event_templates: StateTable::new(),
-            requests: RequestsHolder::new(),
         }
     }
 
@@ -112,6 +121,13 @@ impl State {
     pub fn update(&mut self) {
         self.db_connector.pull();
         self.send_requests();
+    }
+
+    pub fn load_state(&self) {
+        self.access_levels.load_all();
+        self.events.load_all();
+        self.event_templates.load_all();
+        self.schedules.load_all();
     }
 }
 
