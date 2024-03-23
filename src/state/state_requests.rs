@@ -20,11 +20,27 @@ impl State {
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
-        self.requests.make_typical_request((), |connector| {
+        let request = self.requests.make_typical_request((), |connector| {
             connector
                 .make_request::<LoginRequest>()
                 .json(&login::Body { email, password })
-        })
+        });
+        self.request_parsers.borrow_mut().push(Box::new(move |connector| {
+            let response = connector.take_response::<<LoginRequest as RequestType>::Response, <LoginRequest as RequestType>::BadResponse>(request.id);
+            response.map(|response| {
+                let func: Box<dyn FnOnce(&mut State)> = Box::new(move |state: &mut State| {
+                    if let Ok(response) = response {
+                        match response {
+                            Ok(response) => LoginRequest::push_to_state(*response, request.info, state),
+                            Err(response) => LoginRequest::push_bad_to_state(*response, request.info, state),
+                        }
+                    }
+                });
+                func
+            })
+        }));
+
+        request
     }
 
     pub fn login_by_jwt(&self, key: String) -> RequestIdentifier<LoginByKeyRequest> {

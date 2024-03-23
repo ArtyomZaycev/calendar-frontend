@@ -228,9 +228,8 @@ impl DbConnector {
         )
     }
 
-    /// Doesn't have to be mutable
     pub fn take_response<T: 'static, E: 'static>(
-        &mut self,
+        &self,
         id: RequestId,
     ) -> Option<Result<Result<Box<T>, Box<E>>, String>> {
         let mut typed_results = self.typed_results.borrow_mut();

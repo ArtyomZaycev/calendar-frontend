@@ -1,6 +1,8 @@
-use std::cell::Ref;
+use std::borrow::BorrowMut;
+use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 use calendar_lib::api::auth::types::AccessLevel;
 use calendar_lib::api::events::types::EventVisibility;
@@ -16,6 +18,7 @@ use serde::de::DeserializeOwned;
 use crate::config::Config;
 use crate::tables::{DbTable, DbTableItem};
 
+use super::custom_requests::LoginRequest;
 use super::db_connector::{DbConnector, DbConnectorData};
 use super::request::RequestId;
 use super::requests_holder::{RequestData, RequestsHolder};
@@ -45,8 +48,8 @@ pub struct RequestIdentifier<T: RequestType>
 where
     T::Info: Clone,
 {
-    id: RequestId,
-    info: T::Info,
+    pub(super) id: RequestId,
+    pub(super) info: T::Info,
     _data: PhantomData<T>,
 }
 
@@ -108,6 +111,8 @@ impl AdminState {
     }
 }
 
+pub type RequestParser = Box<dyn Fn(&DbConnector) -> Option<Box<dyn FnOnce(&mut State)>>>;
+
 pub struct State {
     db_connector: DbConnector,
     pub(super) requests: RequestsHolder,
@@ -117,6 +122,8 @@ pub struct State {
 
     pub user_state: UserState,
     pub admin_state: AdminState,
+
+    pub request_parsers: Rc<RefCell<Vec<RequestParser>>>,
 
     // TODO: Move to app
     /// Has both server and phantom events
@@ -133,6 +140,9 @@ impl State {
             current_access_level: -1,
             user_state: UserState::new(),
             admin_state: AdminState::new(),
+
+            request_parsers: Rc::new(RefCell::new(Vec::new())),
+
             events_per_day: HashMap::new(),
         }
     }
@@ -209,6 +219,16 @@ impl State {
     }
 
     pub fn update(&mut self) {
+        {
+            let parsers = self.request_parsers.take();
+            parsers.iter().for_each(|parser| {
+                let parse_fn = parser(&self.db_connector);
+                if let Some(parse_fn) = parse_fn {
+                    parse_fn(self);
+                }
+            });
+            self.request_parsers.replace(parsers);
+        }
         self.db_connector.pull();
         self.send_requests();
     }
