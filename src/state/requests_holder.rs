@@ -83,14 +83,12 @@ impl RequestsHolder {
             // TODO: Everything about this can be improved
             let checker: RequestChecker = Box::new(move |connector| {
                 if connector.is_request_completed(request_id) {
-                    println!("Request completed");
                     connector.convert_response::<T::Response, T::BadResponse>(request_id);
 
                     let info = info.clone();
                     let identifier: RequestIdentifier<T> =
                         RequestIdentifier::new(request_id, info.clone());
                     let executor: RequestExecutor = Box::new(move |state: &mut State| {
-                        println!("Executor running from handler");
                         let response = state.take_response(&identifier);
                         if let Some(response) = response {
                             match response {

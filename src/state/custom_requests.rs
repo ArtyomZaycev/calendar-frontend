@@ -151,7 +151,6 @@ impl RequestType for LoadStateRequest {
     type Info = Option<TableId>;
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        println!("LoadStateRequest pushing to state: {response:#?}");
         match info {
             Some(user_id) => {
                 state
