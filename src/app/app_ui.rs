@@ -3,7 +3,7 @@ use super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::{aliases::UserUtils, request::RequestDescription},
+    db::{aliases::UserUtils},
     requests::AppRequestResponse,
     tables::{DbTable, DbTableGetById},
     ui::{

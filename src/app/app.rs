@@ -2,7 +2,6 @@ use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
     config::Config,
-    db::request::RequestDescription,
     state::{custom_requests::LoginRequest, main_state::RequestIdentifier, State},
     tables::DbTable,
     ui::{popups::popup_manager::PopupManager, signal::AppSignal},

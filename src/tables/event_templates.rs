@@ -1,12 +1,6 @@
 use calendar_lib::api::event_templates::{self, types::*};
 
-use crate::{
-    db::{request_parser::RequestParser, table::*},
-    requests::*,
-    tables::utils::*,
-};
-
-use super::table::*;
+use super::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
 impl DbTableItem for EventTemplate {
     fn get_id(&self) -> TableId {

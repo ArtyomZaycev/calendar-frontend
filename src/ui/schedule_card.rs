@@ -44,8 +44,10 @@ impl<'a> Widget for ScheduleCard<'a> {
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {
+                                    /* TODO
                                     self.signals
                                         .push(RequestSignal::DeleteSchedule(*schedule_id).into());
+                                     */
                                     ui.close_menu();
                                 }
                             });

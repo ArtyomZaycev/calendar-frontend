@@ -92,8 +92,10 @@ impl<'a> Widget for EventCard<'a> {
                                         ui.close_menu();
                                     }
                                     if ui.button("Delete").clicked() {
+                                        /* TODO
                                         self.signals
                                             .push(RequestSignal::DeleteEvent(*event_id).into());
+                                         */
                                         ui.close_menu();
                                     }
                                 });
@@ -141,6 +143,8 @@ impl<'a> Widget for EventCard<'a> {
                                 ui.add_space(4.);
                                 ui.vertical_centered(|ui| {
                                     if ui.button("Accept").clicked() {
+                                        /*
+                                        TODO:
                                         self.signals.push(
                                             RequestSignal::AcceptScheduledEvent(
                                                 start.date(),
@@ -148,6 +152,7 @@ impl<'a> Widget for EventCard<'a> {
                                             )
                                             .into(),
                                         )
+                                         */
                                     }
                                 });
                             }

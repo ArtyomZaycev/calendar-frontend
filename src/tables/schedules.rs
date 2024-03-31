@@ -1,12 +1,6 @@
 use calendar_lib::api::schedules::{self, types::*};
 
-use crate::{
-    db::{request_parser::RequestParser, table::*},
-    requests::*,
-    tables::utils::*,
-};
-
-use super::table::*;
+use super::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
 impl DbTableItem for Schedule {
     fn get_id(&self) -> TableId {

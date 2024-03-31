@@ -2,7 +2,6 @@ use calendar_lib::api::auth::login;
 
 use super::popup_content::PopupContent;
 use crate::{
-    db::request::{RequestDescription, RequestId},
     requests::AppRequestResponseInfo,
     state::{custom_requests::LoginRequest, main_state::RequestIdentifier, State},
     ui::signal::RequestSignal,

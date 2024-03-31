@@ -1,6 +1,5 @@
 use super::popup_content::PopupContent;
 use crate::{
-    db::request::{RequestDescription, RequestId},
     state::{
         main_state::RequestIdentifier,
         table_requests::{TableInsertRequest, TableUpdateRequest},

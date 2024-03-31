@@ -1,4 +1,3 @@
-use crate::db::request::RequestDescription;
 use calendar_lib::api::{
     auth::types::NewPassword,
     event_templates::types::{NewEventTemplate, UpdateEventTemplate},
@@ -21,7 +20,7 @@ pub enum AppSignal {
 #[derive(Debug, Clone)]
 pub enum StateSignal {
     ChangeAccessLevel(i32),
-    RequestSignal(RequestDescription, RequestSignal),
+    //RequestSignal(RequestDescription, RequestSignal),
 }
 
 #[derive(Debug, Clone)]
@@ -56,7 +55,7 @@ impl Into<AppSignal> for StateSignal {
         AppSignal::StateSignal(self)
     }
 }
-
+/*
 impl Into<StateSignal> for RequestSignal {
     fn into(self) -> StateSignal {
         StateSignal::RequestSignal(RequestDescription::default(), self)
@@ -81,3 +80,4 @@ impl RequestSignal {
         StateSignal::RequestSignal(description, self).into()
     }
 }
+ */

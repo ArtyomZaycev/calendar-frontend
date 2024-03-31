@@ -1,4 +1,3 @@
-use crate::db::request_parser::FromResponse;
 use calendar_lib::api::*;
 use derive_is_enum_variant::is_enum_variant;
 use reqwest::StatusCode;
@@ -95,7 +94,7 @@ pub enum AppRequestResponseInfo {
     None,
     Error(StatusCode, String),
 }
-
+/*
 impl FromResponse<AppRequestResponse> for AppRequestResponseInfo {
     fn from_response(response: &AppRequestResponse) -> Self {
         match response {
@@ -114,3 +113,4 @@ impl FromResponse<AppRequestResponse> for AppRequestResponseInfo {
         }
     }
 }
+ */

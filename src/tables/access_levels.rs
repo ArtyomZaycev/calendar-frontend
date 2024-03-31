@@ -1,11 +1,6 @@
-use calendar_lib::api::auth::{self, types::AccessLevel};
+use calendar_lib::api::auth::types::AccessLevel;
 
-use super::table::*;
-use crate::{
-    db::{request_parser::RequestParser, table::*},
-    requests::*,
-    tables::utils::*,
-};
+use super::{DbTableItem, TableId};
 
 impl DbTableItem for AccessLevel {
     fn get_id(&self) -> TableId {

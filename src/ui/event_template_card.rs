@@ -56,9 +56,11 @@ impl<'a> Widget for EventTemplateCard<'a> {
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {
+                                    /* TODO:
                                     self.signals.push(
                                         RequestSignal::DeleteEventTemplate(*template_id).into(),
                                     );
+                                     */
                                     ui.close_menu();
                                 }
                             });
