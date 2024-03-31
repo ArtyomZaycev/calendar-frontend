@@ -1,5 +1,5 @@
 use std::borrow::BorrowMut;
-use std::cell::{Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
@@ -112,7 +112,7 @@ pub struct State {
     pub(super) db_connector: DbConnector,
 
     pub(super) me: User,
-    pub(super) current_access_level: i32,
+    pub(super) current_access_level: Cell<i32>,
 
     pub user_state: UserState,
     pub admin_state: AdminState,
@@ -129,7 +129,7 @@ impl State {
         State {
             db_connector: DbConnector::new(),
             me: User::default(),
-            current_access_level: -1,
+            current_access_level: Cell::new(-1),
             user_state: UserState::new(),
             admin_state: AdminState::new(),
 
@@ -145,6 +145,11 @@ impl State {
             .is_ok_and(|holder| holder.any_pending_requests())
     }
 
+    pub fn change_access_level(&self, new_access_level: i32) {
+        self.current_access_level.replace(new_access_level);
+        //self.clear_events();
+    }
+
     pub fn get_access_level(&self) -> AccessLevel {
         let levels = self
             .user_state
@@ -152,7 +157,7 @@ impl State {
             .get_table()
             .get()
             .iter()
-            .filter(|l| l.level == self.current_access_level)
+            .filter(|l| l.level == self.current_access_level.get())
             .collect_vec();
         if levels.len() == 0 {
             self.user_state

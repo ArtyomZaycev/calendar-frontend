@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 pub type TableId = i32;
 
 pub trait DbTableItem {

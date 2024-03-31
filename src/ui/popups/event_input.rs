@@ -8,7 +8,7 @@ use crate::{
     tables::DbTable,
     ui::{
         access_level_picker::AccessLevelPicker, event_visibility_picker::EventVisibilityPicker,
-        signal::RequestSignal, time_picker::TimePicker,
+        time_picker::TimePicker,
     },
 };
 use calendar_lib::api::{events::types::*, utils::*};

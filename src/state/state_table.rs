@@ -1,11 +1,9 @@
 use std::{borrow::Borrow, cell::OnceCell};
 
+use calendar_lib::api::utils::{DeleteByIdQuery, LoadByIdQuery};
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::tables::{
-    table::{Table},
-    DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId,
-};
+use crate::tables::{table::Table, DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
 use super::{
     db_connector::DbConnectorData,
@@ -52,8 +50,9 @@ where
             .read()
             .unwrap()
             .make_request(id, |connector| {
-                connector.make_request::<TableLoadByIdRequest<T>>()
-                // TODO: Query!!
+                connector
+                    .make_request::<TableLoadByIdRequest<T>>()
+                    .query(&LoadByIdQuery { id })
             })
     }
 }
@@ -125,7 +124,9 @@ where
             .read()
             .unwrap()
             .make_request(id, |connector| {
-                connector.make_request::<TableDeleteRequest<T>>().query(&id)
+                connector
+                    .make_request::<TableDeleteRequest<T>>()
+                    .query(&DeleteByIdQuery { id })
             })
     }
 }

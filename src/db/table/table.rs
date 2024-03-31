@@ -1,8 +1,7 @@
-use crate::{
-    requests::*,
-    tables::*,
+use super::{
+    basic::DbTable,
+    item::{DbTableItem, TableId},
 };
-use serde::Serialize;
 
 pub struct Table<T: DbTableItem> {
     items: Vec<T>,
@@ -33,14 +32,6 @@ impl<T: DbTableItem> Table<T> {
 }
 
 impl<T: DbTableItem> Table<T> {
-    pub fn find_item(&self, id: TableId) -> Option<&T> {
-        self.items.iter().find(|i| i.get_id() == id)
-    }
-
-    pub fn find_item_mut(&mut self, id: TableId) -> Option<&mut T> {
-        self.items.iter_mut().find(|i| i.get_id() == id)
-    }
-
     /// True if this is a new item, false if it was updated
     pub fn push_one(&mut self, new_item: T) -> bool {
         match self

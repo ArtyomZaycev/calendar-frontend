@@ -46,10 +46,6 @@ impl CalendarApp {
 
     pub(super) fn parse_signal(&mut self, signal: AppSignal) {
         match signal {
-            AppSignal::StateSignal(signal) => {
-                todo!()
-                //self.state.parse_signal(signal)
-            }
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self
                     .state

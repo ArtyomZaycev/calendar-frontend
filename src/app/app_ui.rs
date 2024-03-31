@@ -3,8 +3,7 @@ use super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::{aliases::UserUtils},
-    requests::AppRequestResponse,
+    db::aliases::UserUtils,
     tables::{DbTable, DbTableGetById},
     ui::{
         event_card::EventCard,
@@ -103,7 +102,8 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event(self.state.get_me_unwrap().id);
+                        self.popup_manager
+                            .open_new_event(self.state.get_me_unwrap().id);
                     }
                 }
                 CalendarView::Schedules => {
@@ -114,7 +114,8 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_schedule(self.state.get_me_unwrap().id);
+                        self.popup_manager
+                            .open_new_schedule(self.state.get_me_unwrap().id);
                     }
                 }
                 CalendarView::EventTemplates => {
@@ -125,7 +126,8 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event_template(self.state.get_me_unwrap().id);
+                        self.popup_manager
+                            .open_new_event_template(self.state.get_me_unwrap().id);
                     }
                 }
             });
@@ -259,12 +261,14 @@ impl CalendarApp {
                         ui.add_space(4.);
 
                         let level = self.state.get_access_level().level;
+                        self.state.prepare_date(date);
                         self.state
-                            .get_prepared_events_for_date(date)
+                            .get_events_for_date(date)
                             .iter()
                             .for_each(|event| {
                                 ui.add(
                                     EventCard::new(
+                                        &self.state,
                                         &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
@@ -290,10 +294,11 @@ impl CalendarApp {
             let mut signals = vec![];
 
             let level = self.state.get_access_level().level;
+            self.state.prepare_date(date);
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
-                .get_prepared_events_for_date(date)
+                .get_events_for_date(date)
                 .iter()
                 .enumerate()
                 .fold(Vec::default(), |mut acc, (i, event)| {
@@ -308,6 +313,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         events.into_iter().for_each(|event| {
                             ui.add(EventCard::new(
+                                &self.state,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
@@ -346,10 +352,11 @@ impl CalendarApp {
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
                         let level = self.state.get_access_level().level;
+                        self.state.prepare_date(date);
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state
-                            .get_prepared_events_for_date(date)
+                            .get_events_for_date(date)
                             .iter()
                             .enumerate()
                             .fold(Vec::default(), |mut acc, (i, event)| {
@@ -364,6 +371,7 @@ impl CalendarApp {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events.into_iter().for_each(|event| {
                                         ui.add(EventCard::new(
+                                            &self.state,
                                             &mut signals,
                                             egui::Vec2::new(column_width, 200.),
                                             &event,
@@ -411,6 +419,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         schedules.into_iter().for_each(|schedule| {
                             ui.add(ScheduleCard::new(
+                                &self.state,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &schedule,
@@ -455,6 +464,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         templates.into_iter().for_each(|template| {
                             ui.add(EventTemplateCard::new(
+                                &self.state,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &template,

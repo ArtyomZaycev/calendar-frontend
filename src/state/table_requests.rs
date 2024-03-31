@@ -51,8 +51,7 @@ pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
 }
 
-impl<T> RequestType
-    for TableLoadByIdRequest<T>
+impl<T> RequestType for TableLoadByIdRequest<T>
 where
     T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned,
     State: GetStateTable<T>,
@@ -70,8 +69,7 @@ where
     }
 }
 
-impl<T> RequestType
-    for TableLoadAllRequest<T>
+impl<T> RequestType for TableLoadAllRequest<T>
 where
     T: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned,
     State: GetStateTable<T>,

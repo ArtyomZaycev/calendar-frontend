@@ -2,9 +2,7 @@ use calendar_lib::api::auth::login;
 
 use super::popup_content::PopupContent;
 use crate::{
-    requests::AppRequestResponseInfo,
     state::{custom_requests::LoginRequest, main_state::RequestIdentifier, State},
-    ui::signal::RequestSignal,
     utils::{is_password_valid, is_valid_email},
 };
 

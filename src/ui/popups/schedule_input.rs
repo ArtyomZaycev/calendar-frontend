@@ -6,7 +6,7 @@ use crate::{
         State,
     },
     tables::DbTable,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
+    ui::{access_level_picker::AccessLevelPicker, time_picker::TimePicker},
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};

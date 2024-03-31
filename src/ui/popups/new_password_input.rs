@@ -2,7 +2,7 @@ use super::popup_content::PopupContent;
 use crate::{
     state::{custom_requests::NewPasswordRequest, main_state::RequestIdentifier, State},
     tables::DbTable,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal},
+    ui::access_level_picker::AccessLevelPicker,
 };
 use calendar_lib::api::auth::types::NewPassword;
 use egui::TextEdit;
@@ -118,20 +118,16 @@ impl PopupContent for NewPasswordInput {
             .add_enabled(!info.is_error(), egui::Button::new("Add"))
             .clicked()
         {
-            /*
-            let request_id = state.connector.reserve_request_id();
-            self.request_id = Some(request_id);
-            info.signal(
-                RequestSignal::InsertPassword(
+            self.request = Some(
+                state.user_state.insert_password(
+                    state.get_me_unwrap().id,
                     self.next_password_level - 1,
                     self.viewer_password_enabled
                         .then_some(self.viewer_password.clone()),
                     self.editor_password_enabled
                         .then_some(self.editor_password.clone()),
-                )
-                .with_description(RequestDescription::new().with_request_id(request_id)),
-            ); */
-            todo!()
+                ),
+            );
         }
         if ui.button("Cancel").clicked() {
             info.close();

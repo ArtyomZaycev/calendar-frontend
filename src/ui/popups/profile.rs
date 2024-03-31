@@ -2,10 +2,7 @@ use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     state::State,
     tables::DbTable,
-    ui::{
-        access_level_picker::AccessLevelPicker,
-        signal::{AppSignal, StateSignal},
-    },
+    ui::{access_level_picker::AccessLevelPicker, signal::AppSignal},
 };
 use egui::{Align, Layout, Vec2};
 
@@ -61,7 +58,7 @@ impl PopupContent for Profile {
                         state.user_state.access_levels.get_table().get(),
                     ));
                     if state.get_access_level().level != level {
-                        info.signal(StateSignal::ChangeAccessLevel(level));
+                        state.change_access_level(level);
                     }
                 });
             });

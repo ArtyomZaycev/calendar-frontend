@@ -7,7 +7,6 @@ mod app_local_storage;
 mod config;
 mod db;
 mod local_storage;
-mod requests;
 mod state;
 mod tables;
 mod ui;
