@@ -3,7 +3,7 @@ use std::{borrow::Borrow, cell::OnceCell};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::tables::{
-    table::{Table, TableDeleteById},
+    table::{Table},
     DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId,
 };
 
@@ -53,6 +53,7 @@ where
             .unwrap()
             .make_request(id, |connector| {
                 connector.make_request::<TableLoadByIdRequest<T>>()
+                // TODO: Query!!
             })
     }
 }

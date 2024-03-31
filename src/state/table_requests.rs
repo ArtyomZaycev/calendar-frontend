@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use calendar_lib::api::utils::EmptyResponse;
 use serde::{de::DeserializeOwned, Deserialize};
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
@@ -50,9 +51,10 @@ pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
     _data: PhantomData<T>,
 }
 
-impl<T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned> RequestType
+impl<T> RequestType
     for TableLoadByIdRequest<T>
 where
+    T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned,
     State: GetStateTable<T>,
 {
     const URL: &'static str = T::LOAD_BY_ID_PATH;
@@ -68,20 +70,21 @@ where
     }
 }
 
-impl<Item: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned> RequestType
-    for TableLoadAllRequest<Item>
+impl<T> RequestType
+    for TableLoadAllRequest<T>
 where
-    State: GetStateTable<Item>,
+    T: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned,
+    State: GetStateTable<T>,
 {
-    const URL: &'static str = Item::LOAD_ALL_PATH;
+    const URL: &'static str = T::LOAD_ALL_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::GET;
     type Query = ();
-    type Response = Vec<Item>;
+    type Response = Vec<T>;
     type Info = ();
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<Item> = state.get_table_mut();
+        let table: &mut StateTable<T> = state.get_table_mut();
         table.get_table_mut().replace_all(response);
     }
 }
@@ -97,7 +100,7 @@ where
     const METHOD: reqwest::Method = reqwest::Method::POST;
     type Query = ();
     type Body = T::NewItem;
-    type Response = ();
+    type Response = EmptyResponse;
     type Info = ();
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
@@ -117,7 +120,7 @@ where
     const METHOD: reqwest::Method = reqwest::Method::PATCH;
     type Query = ();
     type Body = T::UpdItem;
-    type Response = ();
+    type Response = EmptyResponse;
     type Info = TableId;
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
@@ -135,7 +138,7 @@ where
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::DELETE;
     type Query = TableId;
-    type Response = ();
+    type Response = EmptyResponse;
     type Info = TableId;
 
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {

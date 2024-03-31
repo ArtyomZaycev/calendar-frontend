@@ -177,6 +177,10 @@ impl State {
         }
     }
 
+    pub fn get_me_unwrap(&self) -> &User {
+        &self.me
+    }
+
     pub fn get_response<'a, T: RequestType + 'static>(
         &'a self,
         identifier: &RequestIdentifier<T>,

@@ -93,6 +93,7 @@ impl PopupContent for EventInput {
         }
         if let Some(identifier) = self.insert_request.as_ref() {
             if let Some(response_info) = state.get_response(&identifier) {
+                println!("insert_request: got response!");
                 self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -183,6 +184,7 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
+                println!("self.insert_request = ");
                 self.insert_request = Some(state.user_state.events.insert(NewEvent {
                     user_id: self.user_id,
                     name: self.name.clone(),

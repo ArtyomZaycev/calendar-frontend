@@ -103,7 +103,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event(None);
+                        self.popup_manager.open_new_event(self.state.get_me_unwrap().id);
                     }
                 }
                 CalendarView::Schedules => {
@@ -114,7 +114,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_schedule(None);
+                        self.popup_manager.open_new_schedule(self.state.get_me_unwrap().id);
                     }
                 }
                 CalendarView::EventTemplates => {
@@ -125,7 +125,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event_template(None);
+                        self.popup_manager.open_new_event_template(self.state.get_me_unwrap().id);
                     }
                 }
             });
@@ -672,7 +672,7 @@ impl CalendarApp {
             )
             .clicked()
         {
-            self.popup_manager.open_new_event(Some(user_id));
+            self.popup_manager.open_new_event(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions = table
@@ -711,7 +711,7 @@ impl CalendarApp {
             )
             .clicked()
         {
-            self.popup_manager.open_new_event_template(Some(user_id));
+            self.popup_manager.open_new_event_template(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions = table
@@ -750,7 +750,7 @@ impl CalendarApp {
             )
             .clicked()
         {
-            self.popup_manager.open_new_schedule(Some(user_id));
+            self.popup_manager.open_new_schedule(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions: crate::ui::table_view::TableViewResponse = table
