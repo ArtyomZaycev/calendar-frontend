@@ -268,35 +268,40 @@ impl DbConnector {
         let typed_results = self.typed_results.borrow();
 
         let request_result = Ref::filter_map(typed_results, |typed_results| {
-            typed_results.iter().find(|r| r.result.as_ref().is_ok_and(|(status, response)| {
-                if *status == StatusCode::OK {
-                    response.is::<T>()
-                } else if *status == StatusCode::BAD_REQUEST {
-                    response.is::<E>()
-                } else {
-                    false
-                }
-            }))
-        }).ok()?;
-        
-        // This probably can be simplified, but I can't even understand how it works
-        Ref::filter_map(request_result, |result| result.result.as_ref().err()).err().and_then(|request_result| {
-            let (status, response) = Ref::map_split(
-                Ref::map(request_result, |result| result.result.as_ref().unwrap()),
-                |(status, response)| (status, response),
-            );
-            let status = *status;
-            if status == StatusCode::OK {
-                Some(Ok(Ref::map(response, |response| {
-                    response.downcast_ref::<T>().unwrap()
-                })))
-            } else if status == StatusCode::BAD_REQUEST {
-                Some(Err(Ref::map(response, |response| {
-                    response.downcast_ref::<E>().unwrap()
-                })))
-            } else {
-                None
-            }
+            typed_results.iter().find(|r| {
+                r.result.as_ref().is_ok_and(|(status, response)| {
+                    if *status == StatusCode::OK {
+                        response.is::<T>()
+                    } else if *status == StatusCode::BAD_REQUEST {
+                        response.is::<E>()
+                    } else {
+                        false
+                    }
+                })
+            })
         })
+        .ok()?;
+
+        // This probably can be simplified, but I can't even understand how it works
+        Ref::filter_map(request_result, |result| result.result.as_ref().err())
+            .err()
+            .and_then(|request_result| {
+                let (status, response) = Ref::map_split(
+                    Ref::map(request_result, |result| result.result.as_ref().unwrap()),
+                    |(status, response)| (status, response),
+                );
+                let status = *status;
+                if status == StatusCode::OK {
+                    Some(Ok(Ref::map(response, |response| {
+                        response.downcast_ref::<T>().unwrap()
+                    })))
+                } else if status == StatusCode::BAD_REQUEST {
+                    Some(Err(Ref::map(response, |response| {
+                        response.downcast_ref::<E>().unwrap()
+                    })))
+                } else {
+                    None
+                }
+            })
     }
 }

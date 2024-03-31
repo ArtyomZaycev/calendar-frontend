@@ -38,7 +38,7 @@ pub trait RequestType {
     // TODO: Separate into different trait, move struct to request.rs
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
     #[allow(unused_variables)]
-    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State);
 }
 
 #[derive(Clone)]
@@ -185,6 +185,7 @@ impl State {
 
     pub fn change_access_level(&self, new_access_level: i32) {
         self.current_access_level.replace(new_access_level);
+        // TODO:
         //self.clear_events();
     }
 

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use calendar_lib::api::utils::EmptyResponse;
+use calendar_lib::api::utils::{EmptyResponse, LoadByIdBadRequestResponse};
 use serde::de::DeserializeOwned;
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
@@ -61,11 +61,21 @@ where
     const METHOD: reqwest::Method = reqwest::Method::GET;
     type Query = TableId;
     type Response = T;
+    type BadResponse = LoadByIdBadRequestResponse;
     type Info = TableId;
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         table.get_table_mut().push_one(response);
+    }
+
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        let table: &mut StateTable<T> = state.get_table_mut();
+        match response {
+            LoadByIdBadRequestResponse::NotFound => {
+                table.get_table_mut().remove_one(info);
+            }
+        }
     }
 }
 
@@ -81,10 +91,12 @@ where
     type Response = Vec<T>;
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         table.get_table_mut().replace_all(response);
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 impl<T> RequestType for TableInsertRequest<T>
@@ -101,10 +113,12 @@ where
     type Response = EmptyResponse;
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(_response: Self::Response, _info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         table.load_all();
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 impl<T> RequestType for TableUpdateRequest<T>
@@ -121,10 +135,12 @@ where
     type Response = EmptyResponse;
     type Info = TableId;
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
         table.load_by_id(info);
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 impl<T> RequestType for TableDeleteRequest<T>
@@ -139,8 +155,10 @@ where
     type Response = EmptyResponse;
     type Info = TableId;
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
         let table: &mut StateTable<T> = state.get_table_mut();
-        table.load_all();
+        table.get_table_mut().remove_one(info);
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }

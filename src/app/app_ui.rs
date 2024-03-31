@@ -3,14 +3,18 @@ use super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::aliases::UserUtils, state::custom_requests::LoginRequest, tables::{DbTable, DbTableGetById}, ui::{
+    db::aliases::UserUtils,
+    state::custom_requests::LoginRequest,
+    tables::{DbTable, DbTableGetById},
+    ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
         layout_info::GridLayoutInfo,
         schedule_card::ScheduleCard,
         table_view::{TableView, TableViewActions},
         utils::UiUtils,
-    }, utils::*
+    },
+    utils::*,
 };
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, roles::types::Role,

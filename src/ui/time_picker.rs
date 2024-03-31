@@ -1,10 +1,7 @@
 // TODO: Move to lib
 
 use chrono::prelude::*;
-use eframe::{
-    egui,
-    egui::{Response, Ui, Widget},
-};
+use eframe::egui::{Response, Ui, Widget};
 use egui::Id;
 use std::hash::Hash;
 

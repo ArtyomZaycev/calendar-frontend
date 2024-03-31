@@ -27,9 +27,11 @@ impl RequestType for LogoutRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(_response: Self::Response, _info: Self::Info, _state: &mut State) {
         // We should clear all data as soon as request is made, not after it's done
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -46,7 +48,7 @@ impl RequestType for LoginRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
         state
@@ -60,6 +62,8 @@ impl RequestType for LoginRequest {
 
         state.user_state.load_state();
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -75,7 +79,7 @@ impl RequestType for LoginByKeyRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
         state
@@ -89,6 +93,8 @@ impl RequestType for LoginByKeyRequest {
 
         state.user_state.load_state();
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -105,7 +111,9 @@ impl RequestType for RegisterRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
+    fn push_to_state(_response: Self::Response, _info: Self::Info, _state: &mut State) {}
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -121,9 +129,11 @@ impl RequestType for NewPasswordRequest {
 
     type Info = ();
 
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+    fn push_to_state(_response: Self::Response, _info: Self::Info, state: &mut State) {
         state.user_state.access_levels.load_all();
     }
+
+    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -135,6 +145,7 @@ impl RequestType for LoadStateRequest {
 
     type Query = user_state::load::Args;
     type Response = user_state::load::Response;
+    type BadResponse = user_state::load::BadRequestResponse;
 
     /// None for loading own state, Some(user_id) for admin request
     type Info = Option<TableId>;
@@ -152,6 +163,18 @@ impl RequestType for LoadStateRequest {
                 // TODO: Properly replace data, we are losing requests now
                 state.user_state = response.into();
             }
+        }
+    }
+
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        match info {
+            Some(user_id) => match response {
+                user_state::load::BadRequestResponse::UserNotFound => {
+                    state.admin_state.users.get_table_mut().remove_one(user_id);
+                    state.admin_state.users_data.remove(&user_id);
+                }
+            },
+            None => todo!(),
         }
     }
 }
