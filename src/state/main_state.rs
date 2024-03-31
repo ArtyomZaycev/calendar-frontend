@@ -235,6 +235,13 @@ impl State {
             .and_then(|r| r.ok())
     }
 
+    pub fn find_response_by_type<'a, T: RequestType + 'static>(
+        &'a self,
+    ) -> Option<Result<Ref<'a, T::Response>, Ref<'a, T::BadResponse>>> {
+        self.db_connector
+            .find_response_by_type::<T::Response, T::BadResponse>()
+    }
+
     pub fn take_response<T: RequestType + 'static>(
         &mut self,
         identifier: &RequestIdentifier<T>,

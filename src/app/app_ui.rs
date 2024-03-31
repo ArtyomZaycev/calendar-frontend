@@ -3,17 +3,14 @@ use super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::aliases::UserUtils,
-    tables::{DbTable, DbTableGetById},
-    ui::{
+    db::aliases::UserUtils, state::custom_requests::LoginRequest, tables::{DbTable, DbTableGetById}, ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
         layout_info::GridLayoutInfo,
         schedule_card::ScheduleCard,
         table_view::{TableView, TableViewActions},
         utils::UiUtils,
-    },
-    utils::*,
+    }, utils::*
 };
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, roles::types::Role,
@@ -814,14 +811,8 @@ impl eframe::App for CalendarApp {
         });
 
         self.state.update();
-        /* TODO
-        polled.iter().for_each(
-            |&request_id| match self.state.connector.get_response(request_id) {
-                Some(AppRequestResponse::Login(response)) => {
-                    self.local_storage.store_jwt(response.jwt);
-                }
-                _ => {}
-            },
-        );*/
+        if let Some(Ok(login_response)) = self.state.find_response_by_type::<LoginRequest>() {
+            self.local_storage.store_jwt(login_response.jwt.clone());
+        }
     }
 }
