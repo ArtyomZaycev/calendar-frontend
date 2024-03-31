@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use calendar_lib::api::utils::EmptyResponse;
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::de::DeserializeOwned;
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 

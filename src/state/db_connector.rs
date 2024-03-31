@@ -1,11 +1,10 @@
 use std::any::Any;
-use std::cell::{Cell, Ref};
+use std::cell::Ref;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{atomic, Arc, RwLock};
 use std::{cell::RefCell, rc::Rc};
 
 use bytes::Bytes;
-use egui::mutex::Mutex;
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
 

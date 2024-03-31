@@ -143,16 +143,9 @@ impl<'a> Widget for EventCard<'a> {
                                 ui.add_space(4.);
                                 ui.vertical_centered(|ui| {
                                     if ui.button("Accept").clicked() {
-                                        /*
-                                        TODO:
-                                        self.signals.push(
-                                            RequestSignal::AcceptScheduledEvent(
-                                                start.date(),
-                                                *plan_id,
-                                            )
-                                            .into(),
-                                        )
-                                         */
+                                        self.state
+                                            .user_state
+                                            .accept_scheduled_event(*plan_id, start.date());
                                     }
                                 });
                             }

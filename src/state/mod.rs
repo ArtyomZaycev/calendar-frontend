@@ -8,4 +8,4 @@ pub mod state_table;
 pub mod table_requests;
 pub mod table_requests_impl;
 
-pub use main_state::{AdminState, State, UserState};
+pub use main_state::State;

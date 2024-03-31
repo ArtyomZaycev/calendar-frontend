@@ -1,28 +1,26 @@
-use std::borrow::BorrowMut;
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
 use calendar_lib::api::auth::types::AccessLevel;
-use calendar_lib::api::events::types::EventVisibility;
+use calendar_lib::api::events::types::{EventVisibility, NewEvent};
 use calendar_lib::api::user_state;
-use calendar_lib::api::utils::User;
+use calendar_lib::api::utils::{TableId, User};
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
 };
-use chrono::{Datelike, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 use serde::de::DeserializeOwned;
 
-use crate::config::Config;
 use crate::tables::{DbTable, DbTableItem};
 
-use super::custom_requests::LoginRequest;
-use super::db_connector::{DbConnector, DbConnectorData};
+use super::db_connector::DbConnector;
 use super::request::RequestId;
-use super::requests_holder::{RequestData, RequestsHolder};
+use super::requests_holder::RequestsHolder;
 use super::state_table::StateTable;
+use super::table_requests::TableInsertRequest;
 
 pub trait RequestType {
     const URL: &'static str;
@@ -78,6 +76,46 @@ impl UserState {
             schedules: StateTable::new(),
             event_templates: StateTable::new(),
         }
+    }
+
+    pub fn accept_scheduled_event(
+        &self,
+        plan_id: TableId,
+        date: NaiveDate,
+    ) -> Option<RequestIdentifier<TableInsertRequest<Event>>> {
+        self.schedules
+            .get_table()
+            .get()
+            .iter()
+            .find_map(|schedule| {
+                schedule
+                    .event_plans
+                    .iter()
+                    .find(|plan| plan.id == plan_id)
+                    .and_then(|plan| {
+                        self.event_templates
+                            .get_table()
+                            .get()
+                            .iter()
+                            .find(|template| schedule.template_id == template.id)
+                            .map(|template| (plan, template))
+                    })
+            })
+            .map(|(plan, template)| {
+                let start = NaiveDateTime::new(date, plan.time);
+                self.events.insert(NewEvent {
+                    user_id: -1,
+                    name: template.event_name.clone(),
+                    description: template.event_description.clone(),
+                    start,
+                    end: start
+                        .checked_add_signed(Duration::from_std(template.duration).unwrap())
+                        .unwrap(),
+                    access_level: template.access_level,
+                    visibility: EventVisibility::HideAll,
+                    plan_id: Some(plan_id),
+                })
+            })
     }
 }
 
@@ -209,8 +247,7 @@ impl State {
     }
 
     fn send_requests(&mut self) {
-        let mut requests = RequestsHolder::get().write().unwrap().take();
-
+        let requests = RequestsHolder::get().write().unwrap().take();
         requests.into_iter().for_each(|request| {
             self.db_connector.request(request);
         });

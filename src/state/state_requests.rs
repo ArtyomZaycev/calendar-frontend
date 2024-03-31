@@ -8,9 +8,8 @@ use crate::tables::TableId;
 
 use super::{
     custom_requests::*,
-    db_connector::DbConnectorData,
     main_state::{AdminState, RequestIdentifier, RequestType, State, UserState},
-    requests_holder::{RequestData, RequestsHolder},
+    requests_holder::RequestsHolder,
 };
 
 impl State {

@@ -1,4 +1,4 @@
-pub type TableId = i32;
+pub use calendar_lib::api::utils::TableId;
 
 pub trait DbTableItem {
     fn get_id(&self) -> TableId;

@@ -4,7 +4,7 @@ pub use events::types::*;
 use itertools::Itertools;
 pub use roles::types::*;
 pub use schedules::types::*;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 pub use utils::User;
 
 #[derive(Debug, Deserialize)]
@@ -24,22 +24,5 @@ impl UserUtils for User {
 
     fn has_role(&self, role: Role) -> bool {
         self.roles.iter().contains(&role)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserInfo {
-    pub user: User,
-    // TODO: Move to Connector?
-    pub jwt: String,
-}
-
-impl UserInfo {
-    pub fn is_admin(&self) -> bool {
-        self.has_role(Role::Admin) || self.has_role(Role::SuperAdmin)
-    }
-
-    pub fn has_role(&self, role: Role) -> bool {
-        self.user.roles.iter().contains(&role)
     }
 }

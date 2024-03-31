@@ -50,7 +50,7 @@ impl EventInput {
             visibility: EventVisibility::HideAll,
             date: now.date(),
             start: now.time(),
-            end: now.time() + Duration::minutes(30),
+            end: now.time() + Duration::try_minutes(30).unwrap(),
             update_request: None,
             insert_request: None,
         }

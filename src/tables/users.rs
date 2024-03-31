@@ -1,6 +1,6 @@
-use calendar_lib::api::{users, utils::User};
+use calendar_lib::api::utils::User;
 
-use super::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
+use super::{DbTableItem, TableId};
 
 impl DbTableItem for User {
     fn get_id(&self) -> TableId {

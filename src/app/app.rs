@@ -1,8 +1,7 @@
 use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
-    config::Config,
-    state::{custom_requests::LoginRequest, main_state::RequestIdentifier, State},
+    state::State,
     tables::DbTable,
     ui::{popups::popup_manager::PopupManager, signal::AppSignal},
 };

@@ -1,4 +1,4 @@
-use calendar_lib::api::events::{self, types::*};
+use calendar_lib::api::events::types::*;
 
 use super::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
