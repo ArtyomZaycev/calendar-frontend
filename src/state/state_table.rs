@@ -4,7 +4,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId};
 
 use super::{
-    main_state::{GetStateTable, RequestIdentifier, RequestType, State},
+    main_state::{GetStateTable, RequestType, State},
+    request::RequestIdentifier,
     table_requests::{
         TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll,
         TableItemLoadById, TableItemUpdate, TableLoadAllRequest, TableLoadByIdRequest,

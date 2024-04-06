@@ -1,7 +1,7 @@
 use super::popup_content::PopupContent;
 use crate::{
     state::{
-        main_state::RequestIdentifier,
+        request::RequestIdentifier,
         table_requests::{TableInsertRequest, TableUpdateRequest},
         State,
     },

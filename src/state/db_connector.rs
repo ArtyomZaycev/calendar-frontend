@@ -45,7 +45,6 @@ impl RequestResult<Bytes> {
     }
 }
 
-// TODO: Rename with DbConnector
 pub struct DbConnectorData {
     client: reqwest::Client,
     server_url: String,

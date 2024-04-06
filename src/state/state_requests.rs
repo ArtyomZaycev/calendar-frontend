@@ -9,8 +9,8 @@ use crate::tables::TableId;
 use super::{
     custom_requests::*,
     db_connector::DbConnectorData,
-    main_state::{AdminState, RequestIdentifier, RequestType, State, UserState},
-    request::RequestId,
+    main_state::{AdminState, RequestType, State, UserState},
+    request::{RequestId, RequestIdentifier},
     requests_holder::{RequestData, RequestsHolder},
     state_updater::{StateChecker, StateExecutor, StateUpdater},
 };
@@ -74,7 +74,7 @@ impl State {
         self.user_state = UserState::new();
         self.admin_state = AdminState::new();
         self.me = User::default();
-        State::make_request((), |connector| connector.make_request::<LoginRequest>())
+        State::make_request((), |connector| connector.make_request::<LogoutRequest>())
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {

@@ -1,7 +1,6 @@
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 
 use calendar_lib::api::auth::types::AccessLevel;
 use calendar_lib::api::events::types::{EventVisibility, NewEvent};
@@ -17,7 +16,7 @@ use serde::de::DeserializeOwned;
 use crate::tables::{DbTable, DbTableItem};
 
 use super::db_connector::DbConnector;
-use super::request::RequestId;
+use super::request::RequestIdentifier;
 use super::requests_holder::RequestsHolder;
 use super::state_table::StateTable;
 use super::state_updater::StateUpdater;
@@ -40,26 +39,6 @@ pub trait RequestType {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
     #[allow(unused_variables)]
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State);
-}
-
-#[derive(Clone)]
-pub struct RequestIdentifier<T: RequestType>
-where
-    T::Info: Clone,
-{
-    pub(super) id: RequestId,
-    pub(super) info: T::Info,
-    _data: PhantomData<T>,
-}
-
-impl<T: RequestType> RequestIdentifier<T> {
-    pub(super) fn new(request_id: RequestId, info: T::Info) -> Self {
-        Self {
-            id: request_id,
-            info,
-            _data: PhantomData::default(),
-        }
-    }
 }
 
 pub struct UserState {

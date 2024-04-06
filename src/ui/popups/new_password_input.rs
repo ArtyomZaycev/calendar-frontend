@@ -1,6 +1,6 @@
 use super::popup_content::PopupContent;
 use crate::{
-    state::{custom_requests::NewPasswordRequest, main_state::RequestIdentifier, State},
+    state::{custom_requests::NewPasswordRequest, request::RequestIdentifier, State},
     tables::DbTable,
     ui::access_level_picker::AccessLevelPicker,
 };
