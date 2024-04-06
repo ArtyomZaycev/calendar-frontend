@@ -1,7 +1,7 @@
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::Ref;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use calendar_lib::api::auth::types::AccessLevel;
 use calendar_lib::api::events::types::{EventVisibility, NewEvent};
@@ -20,6 +20,7 @@ use super::db_connector::DbConnector;
 use super::request::RequestId;
 use super::requests_holder::RequestsHolder;
 use super::state_table::StateTable;
+use super::state_updater::StateUpdater;
 use super::table_requests::TableInsertRequest;
 
 pub trait RequestType {
@@ -33,7 +34,7 @@ pub trait RequestType {
     type BadResponse: DeserializeOwned = ();
 
     /// e.g. update request item.id
-    type Info: 'static + Clone + Send = ();
+    type Info: 'static + Clone + Debug + Send = ();
 
     // TODO: Separate into different trait, move struct to request.rs
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
@@ -144,18 +145,14 @@ impl AdminState {
     }
 }
 
-pub type RequestParser = Box<dyn Fn(&DbConnector) -> Option<Box<dyn FnOnce(&mut State)>>>;
-
 pub struct State {
     pub(super) db_connector: DbConnector,
 
     pub(super) me: User,
-    pub(super) current_access_level: Cell<i32>,
+    pub(super) current_access_level: i32,
 
     pub user_state: UserState,
     pub admin_state: AdminState,
-
-    pub request_parsers: Rc<RefCell<Vec<RequestParser>>>,
 
     // TODO: Move to app
     /// Has both server and phantom events
@@ -167,26 +164,22 @@ impl State {
         State {
             db_connector: DbConnector::new(),
             me: User::default(),
-            current_access_level: Cell::new(-1),
+            current_access_level: -1,
             user_state: UserState::new(),
             admin_state: AdminState::new(),
-
-            request_parsers: Rc::new(RefCell::new(Vec::new())),
 
             events_per_day: HashMap::new(),
         }
     }
 
     pub fn any_pending_requests(&self) -> bool {
-        RequestsHolder::get()
-            .try_read()
-            .is_ok_and(|holder| holder.any_pending_requests())
+        // This is not quite correct
+        StateUpdater::get().any_checkers()
     }
 
-    pub fn change_access_level(&self, new_access_level: i32) {
-        self.current_access_level.replace(new_access_level);
-        // TODO:
-        //self.clear_events();
+    pub fn change_access_level(&mut self, new_access_level: i32) {
+        self.current_access_level = new_access_level;
+        self.clear_events();
     }
 
     pub fn get_access_level(&self) -> AccessLevel {
@@ -196,7 +189,7 @@ impl State {
             .get_table()
             .get()
             .iter()
-            .filter(|l| l.level == self.current_access_level.get())
+            .filter(|l| l.level == self.current_access_level)
             .collect_vec();
         if levels.len() == 0 {
             self.user_state
@@ -255,14 +248,14 @@ impl State {
     }
 
     fn send_requests(&mut self) {
-        let requests = RequestsHolder::get().write().unwrap().take();
+        let requests = RequestsHolder::get().take();
         requests.into_iter().for_each(|request| {
             self.db_connector.request(request);
         });
     }
 
     pub fn update(&mut self) {
-        RequestsHolder::get().read().unwrap().update(self);
+        StateUpdater::get().update(self);
         self.db_connector.pull();
         self.send_requests();
     }

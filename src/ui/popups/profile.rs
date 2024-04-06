@@ -1,6 +1,6 @@
 use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::State,
+    state::{state_updater::StateUpdater, State},
     tables::DbTable,
     ui::{access_level_picker::AccessLevelPicker, signal::AppSignal},
 };
@@ -58,7 +58,9 @@ impl PopupContent for Profile {
                         state.user_state.access_levels.get_table().get(),
                     ));
                     if state.get_access_level().level != level {
-                        state.change_access_level(level);
+                        StateUpdater::get().push_executor(Box::new(move |state: &mut State| {
+                            state.change_access_level(level);
+                        }));
                     }
                 });
             });

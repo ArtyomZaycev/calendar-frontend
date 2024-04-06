@@ -5,7 +5,6 @@ use crate::tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId};
 
 use super::{
     main_state::{GetStateTable, RequestIdentifier, RequestType, State},
-    requests_holder::RequestsHolder,
     table_requests::{
         TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll,
         TableItemLoadById, TableItemUpdate, TableLoadAllRequest, TableLoadByIdRequest,
@@ -43,14 +42,11 @@ where
     State: GetStateTable<T>,
 {
     pub fn load_by_id(&self, id: TableId) -> RequestIdentifier<TableLoadByIdRequest<T>> {
-        RequestsHolder::get()
-            .read()
-            .unwrap()
-            .make_request(id, |connector| {
-                connector
-                    .make_request::<TableLoadByIdRequest<T>>()
-                    .query(&LoadByIdQuery { id })
-            })
+        State::make_request(id, |connector| {
+            connector
+                .make_request::<TableLoadByIdRequest<T>>()
+                .query(&LoadByIdQuery { id })
+        })
     }
 }
 
@@ -59,12 +55,9 @@ where
     State: GetStateTable<T>,
 {
     pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
-        RequestsHolder::get()
-            .read()
-            .unwrap()
-            .make_request((), |connector| {
-                connector.make_request::<TableLoadAllRequest<T>>()
-            })
+        State::make_request((), |connector| {
+            connector.make_request::<TableLoadAllRequest<T>>()
+        })
     }
 }
 
@@ -78,14 +71,11 @@ where
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableInsertRequest<T>> {
-        RequestsHolder::get()
-            .read()
-            .unwrap()
-            .make_request((), |connector| {
-                connector
-                    .make_request::<TableInsertRequest<T>>()
-                    .json(&item)
-            })
+        State::make_request((), |connector| {
+            connector
+                .make_request::<TableInsertRequest<T>>()
+                .json(&item)
+        })
     }
 }
 
@@ -100,14 +90,11 @@ where
         item: <TableUpdateRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
         let item_id = item.get_id();
-        RequestsHolder::get()
-            .read()
-            .unwrap()
-            .make_request(item_id, |connector| {
-                connector
-                    .make_request::<TableUpdateRequest<T>>()
-                    .json(&item)
-            })
+        State::make_request(item_id, |connector| {
+            connector
+                .make_request::<TableUpdateRequest<T>>()
+                .json(&item)
+        })
     }
 }
 
@@ -117,13 +104,10 @@ where
     State: GetStateTable<T>,
 {
     pub fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
-        RequestsHolder::get()
-            .read()
-            .unwrap()
-            .make_request(id, |connector| {
-                connector
-                    .make_request::<TableDeleteRequest<T>>()
-                    .query(&DeleteByIdQuery { id })
-            })
+        State::make_request(id, |connector| {
+            connector
+                .make_request::<TableDeleteRequest<T>>()
+                .query(&DeleteByIdQuery { id })
+        })
     }
 }

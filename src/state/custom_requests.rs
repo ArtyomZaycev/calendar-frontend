@@ -51,9 +51,7 @@ impl RequestType for LoginRequest {
     fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
-        state
-            .current_access_level
-            .replace(response.access_level.level);
+        state.current_access_level = response.access_level.level;
         state
             .user_state
             .access_levels
@@ -82,9 +80,7 @@ impl RequestType for LoginByKeyRequest {
     fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
-        state
-            .current_access_level
-            .replace(response.access_level.level);
+        state.current_access_level = response.access_level.level;
         state
             .user_state
             .access_levels
