@@ -74,7 +74,7 @@ impl State {
         self.user_state = UserState::new();
         self.admin_state = AdminState::new();
         self.me = User::default();
-        State::make_request((), |connector| connector.make_request::<LogoutRequest>())
+        State::make_request((), |connector| connector.make_request::<LogoutRequest>().json(&logout::Body {}))
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
