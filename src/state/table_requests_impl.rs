@@ -13,6 +13,8 @@ use calendar_lib::api::{
         self,
         types::{NewSchedule, Schedule, UpdateSchedule},
     },
+    users,
+    utils::User,
 };
 
 use super::table_requests::{
@@ -79,4 +81,8 @@ impl TableItemDelete for Schedule {
 
 impl TableItemLoadAll for Role {
     const LOAD_ALL_PATH: &'static str = roles::load_array::PATH;
+}
+
+impl TableItemLoadAll for User {
+    const LOAD_ALL_PATH: &'static str = users::load_array::PATH;
 }

@@ -58,7 +58,7 @@ impl RequestType for LoginRequest {
             .get_table_mut()
             .replace_all(vec![response.access_level]);
 
-        state.user_state.load_state();
+        state.load_state();
     }
 
     fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
@@ -87,7 +87,7 @@ impl RequestType for LoginByKeyRequest {
             .get_table_mut()
             .replace_all(vec![response.access_level]);
 
-        state.user_state.load_state();
+        state.load_state();
     }
 
     fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}

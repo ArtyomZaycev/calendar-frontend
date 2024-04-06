@@ -4,7 +4,7 @@ use calendar_lib::api::{
     utils::User,
 };
 
-use crate::tables::TableId;
+use crate::{db::aliases::UserUtils, tables::TableId};
 
 use super::{
     custom_requests::*,
@@ -74,7 +74,11 @@ impl State {
         self.user_state = UserState::new();
         self.admin_state = AdminState::new();
         self.me = User::default();
-        State::make_request((), |connector| connector.make_request::<LogoutRequest>().json(&logout::Body {}))
+        State::make_request((), |connector| {
+            connector
+                .make_request::<LogoutRequest>()
+                .json(&logout::Body {})
+        })
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
@@ -110,9 +114,24 @@ impl State {
                 })
         })
     }
+
+    pub fn load_state(&self) {
+        self.user_state.load_state();
+        if self.me.is_admin() {
+            self.admin_state.load_state();
+        }
+    }
 }
 
 impl UserState {
+    pub fn load_state(&self) -> RequestIdentifier<LoadStateRequest> {
+        State::make_request(None, |connector| {
+            connector
+                .make_request::<LoadStateRequest>()
+                .query(&user_state::load::Args { user_id: None })
+        })
+    }
+
     pub fn insert_password(
         &self,
         user_id: i32,
@@ -131,17 +150,13 @@ impl UserState {
                 })
         })
     }
-
-    pub fn load_state(&self) -> RequestIdentifier<LoadStateRequest> {
-        State::make_request(None, |connector| {
-            connector
-                .make_request::<LoadStateRequest>()
-                .query(&user_state::load::Args { user_id: None })
-        })
-    }
 }
 
 impl AdminState {
+    pub fn load_state(&self) {
+        self.users.load_all();
+    }
+
     pub fn load_user_state(&self, user_id: TableId) -> RequestIdentifier<LoadStateRequest> {
         State::make_request(Some(user_id), |connector| {
             connector

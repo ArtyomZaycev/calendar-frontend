@@ -241,10 +241,10 @@ impl State {
 }
 
 impl State {
-    pub(super) fn clear_events_for_day(&mut self, date: NaiveDate) {
+    pub fn clear_events_for_day(&mut self, date: NaiveDate) {
         self.events_per_day.remove(&date);
     }
-    pub(super) fn clear_events(&mut self) {
+    pub fn clear_events(&mut self) {
         self.events_per_day.clear();
     }
 
@@ -387,5 +387,15 @@ impl GetStateTable<EventTemplate> for State {
 
     fn get_table_mut(&mut self) -> &mut StateTable<EventTemplate> {
         &mut self.user_state.event_templates
+    }
+}
+
+impl GetStateTable<User> for State {
+    fn get_table(&self) -> &StateTable<User> {
+        &self.admin_state.users
+    }
+
+    fn get_table_mut(&mut self) -> &mut StateTable<User> {
+        &mut self.admin_state.users
     }
 }
