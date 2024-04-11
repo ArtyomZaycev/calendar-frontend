@@ -18,7 +18,7 @@ use super::{
 impl State {
     pub(super) fn make_request<T, F>(info: T::Info, make_request: F) -> RequestIdentifier<T>
     where
-        T: 'static + RequestType + Send,
+        T: RequestType,
         F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
     {
         let rinfo = info.clone();
@@ -57,7 +57,7 @@ impl State {
         make_checker: G,
     ) -> RequestIdentifier<T>
     where
-        T: 'static + RequestType + Send,
+        T: RequestType,
         F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
         G: FnOnce(RequestId) -> StateChecker,
     {

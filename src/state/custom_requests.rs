@@ -157,6 +157,7 @@ impl RequestType for LoadStateRequest {
             None => {
                 // TODO: Properly replace data, we are losing requests now
                 state.user_state = response.into();
+                state.clear_events();
             }
         }
     }
@@ -169,7 +170,10 @@ impl RequestType for LoadStateRequest {
                     state.admin_state.users_data.remove(&user_id);
                 }
             },
-            None => todo!(),
+            None => {
+                println!("Failed loading state");
+                state.clear_events();
+            }
         }
     }
 }

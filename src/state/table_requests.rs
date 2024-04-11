@@ -1,61 +1,86 @@
 use std::marker::PhantomData;
 
 use calendar_lib::api::utils::{EmptyResponse, LoadByIdBadRequestResponse};
-use serde::de::DeserializeOwned;
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
-use super::{
-    main_state::{GetStateTable, RequestType, State},
-    state_table::StateTable,
-};
+use super::main_state::{RequestType, State};
 
-// Should be moved to lib
-
-pub trait TableItemLoadById {
-    const LOAD_BY_ID_PATH: &'static str;
-}
-pub trait TableItemLoadAll {
-    const LOAD_ALL_PATH: &'static str;
-}
-pub trait TableItemInsert {
-    type NewItem: DbTableNewItem + DeserializeOwned;
-    const INSERT_PATH: &'static str;
-}
-pub trait TableItemUpdate {
-    type UpdItem: DbTableUpdateItem + DeserializeOwned;
-    const UPDATE_PATH: &'static str;
-}
-pub trait TableItemDelete {
-    const DELETE_PATH: &'static str;
-}
-
-#[derive(Clone, Copy)]
-pub struct TableLoadByIdRequest<T: DbTableItem + TableItemLoadById> {
-    _data: PhantomData<T>,
-}
-#[derive(Clone, Copy)]
-pub struct TableLoadAllRequest<T: DbTableItem + TableItemLoadAll> {
-    _data: PhantomData<T>,
-}
-#[derive(Clone, Copy)]
-pub struct TableInsertRequest<T: DbTableItem + TableItemInsert> {
-    _data: PhantomData<T>,
-}
-#[derive(Clone, Copy)]
-pub struct TableUpdateRequest<T: DbTableItem + TableItemUpdate> {
-    _data: PhantomData<T>,
-}
-#[derive(Clone, Copy)]
-pub struct TableDeleteRequest<T: DbTableItem + TableItemDelete> {
-    _data: PhantomData<T>,
-}
-
-impl<T> RequestType for TableLoadByIdRequest<T>
+pub trait TableItemLoadById
 where
-    T: 'static + DbTableItem + TableItemLoadById + DeserializeOwned,
-    State: GetStateTable<T>,
+    Self: DbTableItem,
 {
+    const LOAD_BY_ID_PATH: &'static str;
+
+    fn push_from_load_by_id(state: &mut State, id: TableId, item: Self);
+    fn push_bad_from_load_by_id(
+        state: &mut State,
+        id: TableId,
+        response: LoadByIdBadRequestResponse,
+    );
+}
+pub trait TableItemLoadAll
+where
+    Self: DbTableItem,
+{
+    const LOAD_ALL_PATH: &'static str;
+
+    fn push_from_load_all(state: &mut State, items: Vec<Self>);
+    fn push_bad_from_load_all(state: &mut State);
+}
+pub trait TableItemInsert
+where
+    Self: DbTableItem,
+{
+    type NewItem: DbTableNewItem;
+    const INSERT_PATH: &'static str;
+
+    fn push_from_insert(state: &mut State);
+    fn push_bad_from_insert(state: &mut State);
+}
+pub trait TableItemUpdate
+where
+    Self: DbTableItem,
+{
+    type UpdItem: DbTableUpdateItem;
+    const UPDATE_PATH: &'static str;
+
+    fn push_from_update(state: &mut State, id: TableId);
+    fn push_bad_from_update(state: &mut State, id: TableId);
+}
+pub trait TableItemDelete
+where
+    Self: DbTableItem,
+{
+    const DELETE_PATH: &'static str;
+
+    fn push_from_delete(state: &mut State, id: TableId);
+    fn push_bad_from_delete(state: &mut State, id: TableId);
+}
+
+#[derive(Clone, Copy)]
+pub struct TableLoadByIdRequest<T: TableItemLoadById> {
+    _data: PhantomData<T>,
+}
+#[derive(Clone, Copy)]
+pub struct TableLoadAllRequest<T: TableItemLoadAll> {
+    _data: PhantomData<T>,
+}
+#[derive(Clone, Copy)]
+pub struct TableInsertRequest<T: TableItemInsert> {
+    _data: PhantomData<T>,
+}
+#[derive(Clone, Copy)]
+pub struct TableUpdateRequest<T: TableItemUpdate> {
+    _data: PhantomData<T>,
+}
+#[derive(Clone, Copy)]
+pub struct TableDeleteRequest<T: TableItemDelete> {
+    _data: PhantomData<T>,
+}
+
+#[allow(unused_variables)]
+impl<T: TableItemLoadById> RequestType for TableLoadByIdRequest<T> {
     const URL: &'static str = T::LOAD_BY_ID_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::GET;
@@ -64,26 +89,17 @@ where
     type BadResponse = LoadByIdBadRequestResponse;
     type Info = TableId;
 
-    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        table.get_table_mut().push_one(response);
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        T::push_from_load_by_id(state, info, response);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        match response {
-            LoadByIdBadRequestResponse::NotFound => {
-                table.get_table_mut().remove_one(info);
-            }
-        }
+        T::push_bad_from_load_by_id(state, info, response);
     }
 }
 
-impl<T> RequestType for TableLoadAllRequest<T>
-where
-    T: 'static + DbTableItem + TableItemLoadAll + DeserializeOwned,
-    State: GetStateTable<T>,
-{
+#[allow(unused_variables)]
+impl<T: TableItemLoadAll> RequestType for TableLoadAllRequest<T> {
     const URL: &'static str = T::LOAD_ALL_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::GET;
@@ -91,20 +107,17 @@ where
     type Response = Vec<T>;
     type Info = ();
 
-    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        table.get_table_mut().replace_all(response);
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        T::push_from_load_all(state, response);
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        T::push_bad_from_load_all(state);
+    }
 }
 
-impl<T> RequestType for TableInsertRequest<T>
-where
-    T: 'static + Send + DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
-    T::NewItem: DeserializeOwned,
-    State: GetStateTable<T>,
-{
+#[allow(unused_variables)]
+impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     const URL: &'static str = T::INSERT_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::POST;
@@ -113,20 +126,17 @@ where
     type Response = EmptyResponse;
     type Info = ();
 
-    fn push_to_state(_response: Self::Response, _info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        table.load_all();
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        T::push_from_insert(state);
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        T::push_bad_from_insert(state);
+    }
 }
 
-impl<T> RequestType for TableUpdateRequest<T>
-where
-    T: 'static + Send + DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
-    T::UpdItem: DeserializeOwned,
-    State: GetStateTable<T>,
-{
+#[allow(unused_variables)]
+impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     const URL: &'static str = T::UPDATE_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::PATCH;
@@ -135,19 +145,17 @@ where
     type Response = EmptyResponse;
     type Info = TableId;
 
-    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        table.load_by_id(info);
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        T::push_from_update(state, info);
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(_response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        T::push_bad_from_update(state, info);
+    }
 }
 
-impl<T> RequestType for TableDeleteRequest<T>
-where
-    T: 'static + Send + DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
-    State: GetStateTable<T>,
-{
+#[allow(unused_variables)]
+impl<T: TableItemDelete> RequestType for TableDeleteRequest<T> {
     const URL: &'static str = T::DELETE_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::DELETE;
@@ -155,10 +163,11 @@ where
     type Response = EmptyResponse;
     type Info = TableId;
 
-    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
-        let table: &mut StateTable<T> = state.get_table_mut();
-        table.get_table_mut().remove_one(info);
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        T::push_from_delete(state, info)
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        T::push_bad_from_delete(state, info);
+    }
 }

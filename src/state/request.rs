@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref, sync::atomic::AtomicU16};
+use std::{marker::PhantomData, sync::atomic::AtomicU16};
 
 use super::main_state::RequestType;
 
@@ -7,8 +7,6 @@ pub type RequestIdAtomic = AtomicU16;
 
 #[derive(Clone)]
 pub struct RequestIdentifier<T: RequestType>
-where
-    T::Info: Clone,
 {
     pub(super) id: RequestId,
     pub(super) info: T::Info,

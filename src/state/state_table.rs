@@ -1,10 +1,9 @@
 use calendar_lib::api::utils::{DeleteByIdQuery, LoadByIdQuery};
-use serde::{de::DeserializeOwned, Serialize};
 
 use crate::tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId};
 
 use super::{
-    main_state::{GetStateTable, RequestType, State},
+    main_state::{RequestType, State},
     request::RequestIdentifier,
     table_requests::{
         TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll,
@@ -38,10 +37,7 @@ impl<T: DbTableItem> StateTable<T> {
     }
 }
 
-impl<T: 'static + Send + DbTableItem + TableItemLoadById + DeserializeOwned> StateTable<T>
-where
-    State: GetStateTable<T>,
-{
+impl<T: TableItemLoadById> StateTable<T> {
     pub fn load_by_id(&self, id: TableId) -> RequestIdentifier<TableLoadByIdRequest<T>> {
         State::make_request(id, |connector| {
             connector
@@ -51,10 +47,7 @@ where
     }
 }
 
-impl<T: 'static + Send + DbTableItem + TableItemLoadAll + DeserializeOwned> StateTable<T>
-where
-    State: GetStateTable<T>,
-{
+impl<T: TableItemLoadAll> StateTable<T> {
     pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
         State::make_request((), |connector| {
             connector.make_request::<TableLoadAllRequest<T>>()
@@ -62,12 +55,7 @@ where
     }
 }
 
-impl<T> StateTable<T>
-where
-    T: 'static + Send + DbTableItem + TableItemInsert + TableItemLoadAll + DeserializeOwned,
-    State: GetStateTable<T>,
-    <T as TableItemInsert>::NewItem: Serialize,
-{
+impl<T: TableItemInsert> StateTable<T> {
     pub fn insert(
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
@@ -80,12 +68,7 @@ where
     }
 }
 
-impl<T> StateTable<T>
-where
-    T: 'static + Send + DbTableItem + TableItemUpdate + TableItemLoadById + DeserializeOwned,
-    State: GetStateTable<T>,
-    <T as TableItemUpdate>::UpdItem: Serialize,
-{
+impl<T: TableItemUpdate> StateTable<T> {
     pub fn update(
         &self,
         item: <TableUpdateRequest<T> as RequestType>::Body,
@@ -99,11 +82,7 @@ where
     }
 }
 
-impl<T> StateTable<T>
-where
-    T: 'static + Send + DbTableItem + TableItemDelete + DeserializeOwned + TableItemLoadAll,
-    State: GetStateTable<T>,
-{
+impl<T: TableItemDelete> StateTable<T> {
     pub fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
         State::make_request(id, |connector| {
             connector

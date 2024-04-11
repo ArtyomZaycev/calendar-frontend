@@ -4,10 +4,7 @@ use super::{
 };
 use crate::{
     db::aliases::UserUtils,
-    state::{
-        custom_requests::{LoadStateRequest, LoginRequest},
-        table_requests::{TableLoadAllRequest, TableLoadByIdRequest},
-    },
+    state::custom_requests::LoginRequest,
     tables::{DbTable, DbTableGetById},
     ui::{
         event_card::EventCard,
@@ -818,32 +815,6 @@ impl eframe::App for CalendarApp {
         self.state.update();
         if let Some(Ok(login_response)) = self.state.find_response_by_type::<LoginRequest>() {
             self.local_storage.store_jwt(login_response.jwt.clone());
-        }
-
-        // TODO: Request listener?
-        let mut clear_all_events = false;
-        let mut clear_events_dates = vec![];
-        if let Some(Ok(_)) = self.state.find_response_by_type::<LoadStateRequest>() {
-            clear_all_events = true;
-        }
-        if let Some(Ok(event)) = self
-            .state
-            .find_response_by_type::<TableLoadByIdRequest<Event>>()
-        {
-            clear_events_dates.push(event.start.date());
-        }
-        if let Some(Ok(events)) = self
-            .state
-            .find_response_by_type::<TableLoadAllRequest<Event>>()
-        {
-            clear_events_dates.extend(events.iter().map(|event| event.start.date()));
-        }
-        if clear_all_events {
-            self.state.clear_events();
-        } else {
-            clear_events_dates.into_iter().for_each(|date| {
-                self.state.clear_events_for_day(date);
-            });
         }
     }
 }

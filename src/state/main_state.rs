@@ -13,7 +13,8 @@ use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 use serde::de::DeserializeOwned;
 
-use crate::tables::{DbTable, DbTableItem};
+use crate::db::aliases::UserUtils;
+use crate::tables::DbTable;
 
 use super::db_connector::DbConnector;
 use super::request::RequestIdentifier;
@@ -22,7 +23,7 @@ use super::state_table::StateTable;
 use super::state_updater::StateUpdater;
 use super::table_requests::TableInsertRequest;
 
-pub trait RequestType {
+pub trait RequestType where Self: 'static + Send {
     const URL: &'static str;
     const IS_AUTHORIZED: bool;
     const METHOD: reqwest::Method;
@@ -185,6 +186,7 @@ impl State {
         }
     }
 
+    // TODO: rename to try_get_me
     pub fn get_me(&self) -> Option<&User> {
         if self.me.id > 0 {
             Some(&self.me)
@@ -197,7 +199,21 @@ impl State {
         &self.me
     }
 
-    pub fn get_response<'a, T: RequestType + 'static>(
+    pub fn get_user_state(&mut self, user_id: i32) -> &mut UserState {
+        if self.me.is_admin() {
+            self.admin_state
+                .users_data
+                .entry(user_id)
+                .or_insert_with(|| {
+                    println!("Admin mode: New user state created: {user_id}");
+                    UserState::new()
+                })
+        } else {
+            &mut self.user_state
+        }
+    }
+
+    pub fn get_response<'a, T: RequestType>(
         &'a self,
         identifier: &RequestIdentifier<T>,
     ) -> Option<Result<Ref<'a, T::Response>, Ref<'a, T::BadResponse>>> {
@@ -208,14 +224,14 @@ impl State {
             .and_then(|r| r.ok())
     }
 
-    pub fn find_response_by_type<'a, T: RequestType + 'static>(
+    pub fn find_response_by_type<'a, T: RequestType>(
         &'a self,
     ) -> Option<Result<Ref<'a, T::Response>, Ref<'a, T::BadResponse>>> {
         self.db_connector
             .find_response_by_type::<T::Response, T::BadResponse>()
     }
 
-    pub fn take_response<T: RequestType + 'static>(
+    pub fn take_response<T: RequestType>(
         &mut self,
         identifier: &RequestIdentifier<T>,
     ) -> Option<Result<Box<T::Response>, Box<T::BadResponse>>> {
@@ -342,60 +358,5 @@ impl State {
     pub fn get_prepared_events_for_date(&mut self, date: NaiveDate) -> &[Event] {
         self.prepare_date(date);
         self.get_events_for_date(date)
-    }
-}
-
-pub trait GetStateTable<T: DbTableItem> {
-    fn get_table(&self) -> &StateTable<T>;
-    fn get_table_mut(&mut self) -> &mut StateTable<T>;
-}
-
-impl GetStateTable<AccessLevel> for State {
-    fn get_table(&self) -> &StateTable<AccessLevel> {
-        &self.user_state.access_levels
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<AccessLevel> {
-        &mut self.user_state.access_levels
-    }
-}
-
-impl GetStateTable<Event> for State {
-    fn get_table(&self) -> &StateTable<Event> {
-        &self.user_state.events
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<Event> {
-        &mut self.user_state.events
-    }
-}
-
-impl GetStateTable<Schedule> for State {
-    fn get_table(&self) -> &StateTable<Schedule> {
-        &self.user_state.schedules
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<Schedule> {
-        &mut self.user_state.schedules
-    }
-}
-
-impl GetStateTable<EventTemplate> for State {
-    fn get_table(&self) -> &StateTable<EventTemplate> {
-        &self.user_state.event_templates
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<EventTemplate> {
-        &mut self.user_state.event_templates
-    }
-}
-
-impl GetStateTable<User> for State {
-    fn get_table(&self) -> &StateTable<User> {
-        &self.admin_state.users
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<User> {
-        &mut self.admin_state.users
     }
 }
