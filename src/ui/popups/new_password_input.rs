@@ -1,8 +1,8 @@
 use super::popup_content::PopupContent;
 use crate::{
-    db::request::{RequestDescription, RequestId},
-    state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal},
+    state::{custom_requests::NewPasswordRequest, request::RequestIdentifier, State},
+    tables::DbTable,
+    ui::access_level_picker::AccessLevelPicker,
 };
 use calendar_lib::api::auth::types::NewPassword;
 use egui::TextEdit;
@@ -16,7 +16,7 @@ pub struct NewPasswordInput {
     pub editor_password_enabled: bool,
     pub editor_password: NewPassword,
 
-    request_id: Option<RequestId>,
+    request: Option<RequestIdentifier<NewPasswordRequest>>,
 }
 
 impl NewPasswordInput {
@@ -33,17 +33,17 @@ impl NewPasswordInput {
                 name: Default::default(),
                 password: Default::default(),
             },
-            request_id: None,
+            request: None,
         }
     }
 }
 
 impl PopupContent for NewPasswordInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
+        if let Some(identifier) = self.request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.request = None;
+                if !response_info.is_err() {
                     info.close();
                 }
             }
@@ -79,7 +79,7 @@ impl PopupContent for NewPasswordInput {
             ui.add(AccessLevelPicker::new(
                 "new_password_access_level_picker",
                 &mut self.next_password_level,
-                state.get_access_levels(),
+                state.user_state.access_levels.get_table().get(),
             ));
 
             show_pass_input(
@@ -118,17 +118,15 @@ impl PopupContent for NewPasswordInput {
             .add_enabled(!info.is_error(), egui::Button::new("Add"))
             .clicked()
         {
-            let request_id = state.connector.reserve_request_id();
-            self.request_id = Some(request_id);
-            info.signal(
-                RequestSignal::InsertPassword(
+            self.request = Some(
+                state.user_state.insert_password(
+                    state.get_me().id,
                     self.next_password_level - 1,
                     self.viewer_password_enabled
                         .then_some(self.viewer_password.clone()),
                     self.editor_password_enabled
                         .then_some(self.editor_password.clone()),
-                )
-                .with_description(RequestDescription::new().with_request_id(request_id)),
+                ),
             );
         }
         if ui.button("Cancel").clicked() {

@@ -142,12 +142,9 @@ impl PopupManager {
     pub fn open_sign_up(&mut self) {
         self.popups.push(PopupType::SignUp(SignUp::new()).popup());
     }
-    pub fn open_new_event(&mut self, user_id: Option<i32>) {
+    pub fn open_new_event(&mut self, user_id: i32) {
         self.popups.push(
-            PopupType::NewEvent(
-                EventInput::new("new_event_popup").with_user_id(user_id.unwrap_or(-1)),
-            )
-            .popup(),
+            PopupType::NewEvent(EventInput::new("new_event_popup").with_user_id(user_id)).popup(),
         );
     }
     pub fn open_update_event(&mut self, event: &Event) {
@@ -159,11 +156,10 @@ impl PopupManager {
             .popup(),
         );
     }
-    pub fn open_new_event_template(&mut self, user_id: Option<i32>) {
+    pub fn open_new_event_template(&mut self, user_id: i32) {
         self.popups.push(
             PopupType::NewEventTemplate(
-                EventTemplateInput::new("new_event_template_popup")
-                    .with_user_id(user_id.unwrap_or(-1)),
+                EventTemplateInput::new("new_event_template_popup").with_user_id(user_id),
             )
             .popup(),
         );
@@ -177,12 +173,10 @@ impl PopupManager {
             .popup(),
         );
     }
-    pub fn open_new_schedule(&mut self, user_id: Option<i32>) {
+    pub fn open_new_schedule(&mut self, user_id: i32) {
         self.popups.push(
-            PopupType::NewSchedule(
-                ScheduleInput::new("new_schedule_popup").with_user_id(user_id.unwrap_or(-1)),
-            )
-            .popup(),
+            PopupType::NewSchedule(ScheduleInput::new("new_schedule_popup").with_user_id(user_id))
+                .popup(),
         );
     }
     pub fn open_update_schedule(&mut self, schedule: &Schedule) {

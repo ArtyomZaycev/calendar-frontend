@@ -7,12 +7,6 @@ pub trait UiUtils {
         is_selected: bool,
         on_clicked: F,
     ) -> Response;
-    fn selectable_label<F: FnOnce()>(
-        &mut self,
-        text: &str,
-        is_selected: bool,
-        on_clicked: F,
-    ) -> Response;
     fn selectable_header<F: FnOnce()>(
         &mut self,
         text: &str,
@@ -39,15 +33,6 @@ impl UiUtils for Ui {
         }
 
         response
-    }
-
-    fn selectable_label<F: FnOnce()>(
-        &mut self,
-        text: &str,
-        is_selected: bool,
-        on_clicked: F,
-    ) -> Response {
-        self.selectable_rich_text(RichText::new(text), is_selected, on_clicked)
     }
 
     fn selectable_header<F: FnOnce()>(

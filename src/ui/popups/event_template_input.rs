@@ -1,8 +1,12 @@
 use super::popup_content::PopupContent;
 use crate::{
-    db::request::{RequestDescription, RequestId},
-    state::State,
-    ui::{access_level_picker::AccessLevelPicker, signal::RequestSignal, time_picker::TimePicker},
+    state::{
+        request::RequestIdentifier,
+        table_requests::{TableInsertRequest, TableUpdateRequest},
+        State,
+    },
+    tables::DbTable,
+    ui::{access_level_picker::AccessLevelPicker, time_picker::TimePicker},
 };
 use calendar_lib::api::{event_templates::types::*, utils::*};
 use chrono::NaiveTime;
@@ -21,7 +25,8 @@ pub struct EventTemplateInput {
     pub duration: NaiveTime,
     pub access_level: i32,
 
-    request_id: Option<RequestId>,
+    update_request: Option<RequestIdentifier<TableUpdateRequest<EventTemplate>>>,
+    insert_request: Option<RequestIdentifier<TableInsertRequest<EventTemplate>>>,
 }
 
 impl EventTemplateInput {
@@ -36,7 +41,8 @@ impl EventTemplateInput {
             event_description: String::default(),
             duration: NaiveTime::from_hms_opt(0, 30, 0).unwrap(),
             access_level: -1,
-            request_id: None,
+            update_request: None,
+            insert_request: None,
         }
     }
 
@@ -53,7 +59,8 @@ impl EventTemplateInput {
             duration: NaiveTime::from_hms_opt(duration_minutes / 60, duration_minutes % 60, 0)
                 .unwrap(),
             access_level: template.access_level,
-            request_id: None,
+            update_request: None,
+            insert_request: None,
         }
     }
 
@@ -65,10 +72,18 @@ impl EventTemplateInput {
 
 impl PopupContent for EventTemplateInput {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if !response_info.is_error() {
+        if let Some(identifier) = self.update_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.update_request = None;
+                if !response_info.is_err() {
+                    info.close();
+                }
+            }
+        }
+        if let Some(identifier) = self.insert_request.as_ref() {
+            if let Some(response_info) = state.get_response(&identifier) {
+                self.insert_request = None;
+                if !response_info.is_err() {
                     info.close();
                 }
             }
@@ -113,7 +128,7 @@ impl PopupContent for EventTemplateInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.get_access_levels(),
+                    state.user_state.access_levels.get_table().get(),
                 ));
             });
 
@@ -139,26 +154,26 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Update"))
                 .clicked()
             {
-                let request_id = state.connector.reserve_request_id();
-                self.request_id = Some(request_id);
-                info.signal(
-                    RequestSignal::UpdateEventTemplate(UpdateEventTemplate {
-                        id,
-                        name: USome(self.name.clone()),
-                        event_name: USome(self.event_name.clone()),
-                        event_description: USome(
-                            (!self.event_description.is_empty())
-                                .then_some(self.event_description.clone()),
-                        ),
-                        duration: USome(
-                            self.duration
-                                .signed_duration_since(NaiveTime::default())
-                                .to_std()
-                                .unwrap(),
-                        ),
-                        access_level: USome(self.access_level),
-                    })
-                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                self.update_request = Some(
+                    state
+                        .user_state
+                        .event_templates
+                        .update(UpdateEventTemplate {
+                            id,
+                            name: USome(self.name.clone()),
+                            event_name: USome(self.event_name.clone()),
+                            event_description: USome(
+                                (!self.event_description.is_empty())
+                                    .then_some(self.event_description.clone()),
+                            ),
+                            duration: USome(
+                                self.duration
+                                    .signed_duration_since(NaiveTime::default())
+                                    .to_std()
+                                    .unwrap(),
+                            ),
+                            access_level: USome(self.access_level),
+                        }),
                 );
             }
         } else {
@@ -166,10 +181,8 @@ impl PopupContent for EventTemplateInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                let request_id = state.connector.reserve_request_id();
-                self.request_id = Some(request_id);
-                info.signal(
-                    RequestSignal::InsertEventTemplate(NewEventTemplate {
+                self.insert_request = Some(
+                    state.user_state.event_templates.insert(NewEventTemplate {
                         user_id: self.user_id,
                         name: self.name.clone(),
                         event_name: self.event_name.clone(),
@@ -181,8 +194,7 @@ impl PopupContent for EventTemplateInput {
                             .to_std()
                             .unwrap(),
                         access_level: self.access_level,
-                    })
-                    .with_description(RequestDescription::new().with_request_id(request_id)),
+                    }),
                 );
             }
         }

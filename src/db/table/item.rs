@@ -1,20 +1,22 @@
-pub trait TableId
+pub use calendar_lib::api::utils::TableId;
+use serde::{de::DeserializeOwned, Serialize};
+
+pub trait DbTableItem
 where
-    Self: Clone + Copy + PartialEq,
+    Self: 'static + DeserializeOwned + Serialize + Send,
+{
+    fn get_id(&self) -> TableId;
+}
+
+pub trait DbTableUpdateItem
+where
+    Self: 'static + DeserializeOwned + Serialize + Send,
+{
+    fn get_id(&self) -> TableId;
+}
+
+pub trait DbTableNewItem
+where
+    Self: 'static + DeserializeOwned + Serialize + Send,
 {
 }
-impl<T> TableId for T where T: Clone + Copy + PartialEq {}
-
-pub trait DbTableItem {
-    type Id: TableId = i32;
-
-    fn get_id(&self) -> Self::Id;
-}
-
-pub trait DbTableUpdateItem {
-    type Id: TableId = i32;
-
-    fn get_id(&self) -> Self::Id;
-}
-
-pub trait DbTableNewItem {}

@@ -2,10 +2,7 @@ use calendar_lib::api::auth::login;
 
 use super::popup_content::PopupContent;
 use crate::{
-    db::request::{RequestDescription, RequestId},
-    requests::AppRequestResponseInfo,
-    state::State,
-    ui::signal::RequestSignal,
+    state::{custom_requests::LoginRequest, request::RequestIdentifier, State},
     utils::{is_password_valid, is_valid_email},
 };
 
@@ -15,7 +12,7 @@ pub struct Login {
     email_not_found: Option<String>,
     password_not_found: Option<String>,
 
-    request_id: Option<RequestId>,
+    request: Option<RequestIdentifier<LoginRequest>>,
 }
 
 impl Login {
@@ -25,7 +22,7 @@ impl Login {
             password: String::default(),
             email_not_found: None,
             password_not_found: None,
-            request_id: None,
+            request: None,
         }
     }
 
@@ -37,15 +34,14 @@ impl Login {
 
 impl PopupContent for Login {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
-        if let Some(request_id) = self.request_id {
-            if let Some(response_info) = state.connector.get_response_info(request_id) {
-                self.request_id = None;
-                if let AppRequestResponseInfo::LoginError(error_info) = response_info {
-                    match error_info {
+        if let Some(identifier) = self.request.as_ref() {
+            if let Some(response_info) = state.get_response(identifier) {
+                self.request = None;
+                match response_info {
+                    Ok(_) => info.close(),
+                    Err(error_info) => match &*error_info {
                         login::BadRequestResponse::UserNotFound => self.user_not_found(),
-                    }
-                } else if !response_info.is_error() {
-                    info.close();
+                    },
                 }
             }
         }
@@ -103,12 +99,7 @@ impl PopupContent for Login {
             .add_enabled(!info.is_error(), egui::Button::new("Login"))
             .clicked()
         {
-            let request_id = state.connector.reserve_request_id();
-            self.request_id = Some(request_id);
-            info.signal(
-                RequestSignal::Login(self.email.clone(), self.password.clone())
-                    .with_description(RequestDescription::default().with_request_id(request_id)),
-            );
+            self.request = Some(state.login(self.email.clone(), self.password.clone()));
         }
         if ui.button("Cancel").clicked() {
             info.close();

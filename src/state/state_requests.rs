@@ -1,368 +1,169 @@
-use crate::requests::AppRequestResponse;
-use crate::tables::utils::*;
-use crate::{
-    db::{aliases::*, request::*, request_parser::*, table::*},
-    requests::AppRequestInfo,
-    state::*,
+use calendar_lib::api::{
+    auth::{types::NewPassword, *},
+    user_state,
+    utils::User,
 };
 
-use calendar_lib::api::{
-    self,
-    auth::{self, types::NewPassword},
-    user_roles,
+use crate::{db::aliases::UserUtils, tables::TableId};
+
+use super::{
+    custom_requests::*,
+    db_connector::DbConnectorData,
+    main_state::{AdminState, State, UserState},
+    request::{RequestId, RequestIdentifier, RequestType, StateRequestType},
+    requests_holder::{RequestData, RequestsHolder},
+    state_updater::{StateChecker, StateExecutor, StateUpdater},
 };
-use serde::Serialize;
 
 impl State {
-    fn request<Q: Serialize, B: Serialize>(
-        &mut self,
-        request: RequestBuilder<Q, B>,
-        description: RequestDescription,
-    ) -> RequestId {
-        let jwt = self.get_me().map(|u| u.jwt.clone()).unwrap_or_default();
-        match self.connector.request2(request, &jwt, description) {
-            Ok(id) => id,
-            Err(err) => {
-                println!("Error sending the request: {err:?}");
-                RequestId::default()
-            }
+    pub(super) fn make_request<T, F>(info: T::Info, make_request: F) -> RequestIdentifier<T>
+    where
+        T: StateRequestType,
+        F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
+    {
+        let rinfo = info.clone();
+        let make_checker = |request_id| {
+            let checker: StateChecker = Box::new(move |state| {
+                if state.db_connector.is_request_completed(request_id) {
+                    state
+                        .db_connector
+                        .convert_response::<T::Response, T::BadResponse>(request_id);
+
+                    let info = info.clone();
+                    let identifier: RequestIdentifier<T> =
+                        RequestIdentifier::new(request_id, info.clone());
+                    let executor: StateExecutor = Box::new(move |state: &mut State| {
+                        let response = state.take_response(&identifier);
+                        if let Some(response) = response {
+                            match response {
+                                Ok(response) => T::push_to_state(*response, info, state),
+                                Err(response) => T::push_bad_to_state(*response, info, state),
+                            }
+                        }
+                    });
+                    Some(executor)
+                } else {
+                    None
+                }
+            });
+            checker
+        };
+        Self::make_request_custom(rinfo, make_request, make_checker)
+    }
+
+    pub(super) fn make_request_custom<T, F, G>(
+        info: T::Info,
+        make_request: F,
+        make_checker: G,
+    ) -> RequestIdentifier<T>
+    where
+        T: RequestType,
+        F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
+        G: FnOnce(RequestId) -> StateChecker,
+    {
+        let connector = DbConnectorData::get();
+        let request_id = connector.next_request_id();
+        let request = make_request(connector);
+        RequestsHolder::get().push(RequestData::new(request_id, request.build().unwrap()));
+        let identifier: RequestIdentifier<T> = RequestIdentifier::new(request_id, info.clone());
+        StateUpdater::get().push_checker(make_checker(request_id));
+        identifier
+    }
+
+    pub fn logout(&mut self) -> RequestIdentifier<LogoutRequest> {
+        self.user_state = UserState::new();
+        self.admin_state = AdminState::new();
+        self.me = User::default();
+        State::make_request((), |connector| {
+            connector
+                .make_request::<LogoutRequest>()
+                .json(&logout::Body {})
+        })
+    }
+
+    pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
+        State::make_request((), |connector| {
+            connector
+                .make_request::<LoginRequest>()
+                .json(&login::Body { email, password })
+        })
+    }
+
+    pub fn login_by_jwt(&self, key: String) -> RequestIdentifier<LoginByKeyRequest> {
+        State::make_request((), |connector| {
+            connector
+                .make_request::<LoginByKeyRequest>()
+                .json(&login_by_key::Body {})
+                .bearer_auth(key)
+        })
+    }
+
+    pub fn register(
+        &self,
+        name: String,
+        email: String,
+        password: String,
+    ) -> RequestIdentifier<RegisterRequest> {
+        State::make_request((), |connector| {
+            connector
+                .make_request::<RegisterRequest>()
+                .json(&register::Body {
+                    name,
+                    email,
+                    password,
+                })
+        })
+    }
+
+    pub fn load_state(&self) {
+        self.user_state.load_state();
+        if self.me.is_admin() {
+            self.admin_state.load_state();
         }
     }
 }
 
-impl State {
-    pub fn change_access_level(&mut self, new_access_level: i32) {
-        self.current_access_level = new_access_level;
-        self.clear_events();
+impl UserState {
+    pub fn load_state(&self) -> RequestIdentifier<LoadStateRequest> {
+        State::make_request(None, |connector| {
+            connector
+                .make_request::<LoadStateRequest>()
+                .query(&user_state::load::Args { user_id: None })
+        })
     }
 
-    pub fn load_access_levels(&mut self, description: RequestDescription) -> RequestId {
-        use auth::load_access_levels::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::LoadAccessLevels(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn load_user_roles(&mut self, description: RequestDescription) -> RequestId {
-        use user_roles::load_array::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { user_id: None })
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::LoadUserRoles(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn logout(&mut self, description: RequestDescription) -> RequestId {
-        use auth::logout::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body {})
-            .build()
-            .unwrap();
-
-        self.clear_state();
-
-        let parser = RequestParser::new_split(
-            |_| AppRequestResponse::None,
-            |code, _| AppRequestResponse::Error(code, "Logout error".to_owned()),
-        );
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn login_by_jwt(&mut self, jwt: &str, description: RequestDescription) -> RequestId {
-        use auth::login_by_key::*;
-
-        let request = self
-            .make_request(METHOD.clone(), PATH)
-            .bearer_auth(jwt)
-            .query(&Args {})
-            .json(&Body {})
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::LoginByKey(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn login(
-        &mut self,
-        email: &str,
-        password: &str,
-        description: RequestDescription,
-    ) -> RequestId {
-        use auth::login::*;
-
-        // Always save login data for persistency
-        let description = description.save_results();
-
-        let request = self
-            .make_request(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body {
-                email: email.to_owned(),
-                password: password.to_owned(),
-            })
-            .build()
-            .unwrap();
-
-        let parser = make_typed_bad_request_parser(
-            |r| AppRequestResponse::Login(r),
-            |r| AppRequestResponse::LoginError(r),
-        );
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn register(
-        &mut self,
-        name: &str,
-        email: &str,
-        password: &str,
-        description: RequestDescription,
-    ) -> RequestId {
-        use auth::register::*;
-
-        let request = self
-            .make_request(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body {
-                name: name.to_owned(),
-                email: email.to_owned(),
-                password: password.to_owned(),
-            })
-            .build()
-            .unwrap();
-
-        let parser = make_typed_bad_request_parser(
-            |r| AppRequestResponse::Register(r),
-            |r| AppRequestResponse::RegisterError(r),
-        );
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn new_password(
-        &mut self,
+    pub fn insert_password(
+        &self,
+        user_id: i32,
         access_level: i32,
-        viewer: Option<NewPassword>,
-        editor: Option<NewPassword>,
-        description: RequestDescription,
-    ) -> RequestId {
-        use auth::new_password::*;
+        viewer_password: Option<NewPassword>,
+        editor_password: Option<NewPassword>,
+    ) -> RequestIdentifier<NewPasswordRequest> {
+        State::make_request((), |connector| {
+            connector
+                .make_request::<NewPasswordRequest>()
+                .json(&new_password::Body {
+                    user_id,
+                    access_level,
+                    viewer_password,
+                    editor_password,
+                })
+        })
+    }
+}
 
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .json(&Body {
-                user_id: self.me.as_ref().unwrap().user.id,
-                access_level,
-                viewer_password: viewer,
-                editor_password: editor,
-            })
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::NewPassword(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
+impl AdminState {
+    pub fn load_state(&self) {
+        self.users.load_all();
     }
 
-    pub fn load_user_ids(&mut self, description: RequestDescription) -> RequestId {
-        use users::load_ids::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::LoadUserIds(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn load_user(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        use users::load::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args { user_id: id })
-            .build()
-            .unwrap();
-
-        let parser = make_typed_bad_request_parser(
-            |r| AppRequestResponse::LoadUser(r),
-            |r| AppRequestResponse::LoadUserError(r),
-        );
-        self.connector
-            .request(request, parser, AppRequestInfo::LoadUser(id), description)
-    }
-
-    pub fn load_users(&mut self, description: RequestDescription) -> RequestId {
-        use users::load_array::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {})
-            .build()
-            .unwrap();
-
-        let parser = make_parser(|r| AppRequestResponse::LoadUsers(r));
-        self.connector
-            .request(request, parser, AppRequestInfo::None, description)
-    }
-
-    pub fn load_user_state(&mut self, user_id: i32, description: RequestDescription) -> RequestId {
-        use api::user_state::load::*;
-
-        let request = self
-            .make_request_authorized(METHOD.clone(), PATH)
-            .query(&Args {
-                user_id: Some(user_id),
-            })
-            .build()
-            .unwrap();
-
-        let parser = make_typed_bad_request_parser(
-            |r| AppRequestResponse::LoadUserState(r),
-            |r| AppRequestResponse::LoadUserStateError(r),
-        );
-        self.connector.request(
-            request,
-            parser,
-            AppRequestInfo::LoadUserState { user_id },
-            description,
-        )
-    }
-
-    pub fn load_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.load_by_id_request(id), description)
-    }
-    pub fn load_events(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.load_all(), description)
-    }
-    pub fn insert_event(
-        &mut self,
-        mut new_event: NewEvent,
-        description: RequestDescription,
-    ) -> RequestId {
-        if new_event.user_id == -1 {
-            new_event.user_id = self.me.as_ref().unwrap().user.id;
-        }
-        self.request(
-            self.user_state.events.insert_request(new_event),
-            description,
-        )
-    }
-    pub fn update_event(
-        &mut self,
-        upd_event: UpdateEvent,
-        description: RequestDescription,
-    ) -> RequestId {
-        self.request(
-            self.user_state.events.update_request(upd_event),
-            description,
-        )
-    }
-    pub fn delete_event(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.events.delete_by_id_request(id), description)
-    }
-
-    pub fn load_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(
-            self.user_state.event_templates.load_by_id_request(id),
-            description,
-        )
-    }
-    pub fn load_event_templates(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.event_templates.load_all(), description)
-    }
-    pub fn insert_event_template(
-        &mut self,
-        mut new_event_template: NewEventTemplate,
-        description: RequestDescription,
-    ) -> RequestId {
-        if new_event_template.user_id == -1 {
-            new_event_template.user_id = self.me.as_ref().unwrap().user.id;
-        }
-        self.request(
-            self.user_state
-                .event_templates
-                .insert_request(new_event_template),
-            description,
-        )
-    }
-    pub fn update_event_template(
-        &mut self,
-        upd_event_template: UpdateEventTemplate,
-        description: RequestDescription,
-    ) -> RequestId {
-        self.request(
-            self.user_state
-                .event_templates
-                .update_request(upd_event_template),
-            description,
-        )
-    }
-    pub fn delete_event_template(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(
-            self.user_state.event_templates.delete_by_id_request(id),
-            description,
-        )
-    }
-
-    pub fn load_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(
-            self.user_state.schedules.load_by_id_request(id),
-            description,
-        )
-    }
-    pub fn load_schedules(&mut self, description: RequestDescription) -> RequestId {
-        self.request(self.user_state.schedules.load_all(), description)
-    }
-    pub fn insert_schedule(
-        &mut self,
-        mut new_schedule: NewSchedule,
-        description: RequestDescription,
-    ) -> RequestId {
-        if new_schedule.user_id == -1 {
-            new_schedule.user_id = self.me.as_ref().unwrap().user.id;
-        }
-        self.request(
-            self.user_state.schedules.insert_request(new_schedule),
-            description,
-        )
-    }
-    pub fn update_schedule(
-        &mut self,
-        upd_schedule: UpdateSchedule,
-        description: RequestDescription,
-    ) -> RequestId {
-        self.request(
-            self.user_state.schedules.update_request(upd_schedule),
-            description,
-        )
-    }
-    pub fn delete_schedule(&mut self, id: i32, description: RequestDescription) -> RequestId {
-        self.request(
-            self.user_state.schedules.delete_by_id_request(id),
-            description,
-        )
+    pub fn load_user_state(&self, user_id: TableId) -> RequestIdentifier<LoadStateRequest> {
+        State::make_request(Some(user_id), |connector| {
+            connector
+                .make_request::<LoadStateRequest>()
+                .query(&user_state::load::Args {
+                    user_id: Some(user_id),
+                })
+        })
     }
 }
