@@ -59,6 +59,13 @@ impl UserState {
         }
     }
 
+    pub fn replace_data(&mut self, data: user_state::load::Response) {
+        self.access_levels.get_table_mut().replace_all(data.access_levels);
+        self.events.get_table_mut().replace_all(data.events);
+        self.schedules.get_table_mut().replace_all(data.schedules);
+        self.event_templates.get_table_mut().replace_all(data.event_templates);
+    }
+
     pub fn accept_scheduled_event(
         &self,
         plan_id: TableId,
@@ -134,7 +141,6 @@ pub struct State {
     pub user_state: UserState,
     pub admin_state: AdminState,
 
-    // TODO: Move to app
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
 }

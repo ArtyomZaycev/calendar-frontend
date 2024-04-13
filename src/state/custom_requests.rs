@@ -155,8 +155,7 @@ impl RequestType for LoadStateRequest {
                     .insert(user_id, response.into());
             }
             None => {
-                // TODO: Properly replace data, we are losing requests now
-                state.user_state = response.into();
+                state.user_state.replace_data(response);
                 state.clear_events();
             }
         }
