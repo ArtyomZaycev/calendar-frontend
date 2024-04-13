@@ -4,7 +4,8 @@ use crate::tables::TableId;
 
 use super::{
     db_connector::DbConnectorData,
-    main_state::{RequestType, State},
+    main_state::State,
+    request::{RequestType, StateRequestType},
 };
 
 /* TODO:
@@ -26,12 +27,14 @@ impl RequestType for LogoutRequest {
     type Response = logout::Response;
 
     type Info = ();
-
-    fn push_to_state(_response: Self::Response, _info: Self::Info, _state: &mut State) {
+}
+#[allow(unused_variables)]
+impl StateRequestType for LogoutRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         // We should clear all data as soon as request is made, not after it's done
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -47,8 +50,10 @@ impl RequestType for LoginRequest {
     type BadResponse = login::BadRequestResponse;
 
     type Info = ();
-
-    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
+}
+#[allow(unused_variables)]
+impl StateRequestType for LoginRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
         state.current_access_level = response.access_level.level;
@@ -61,7 +66,7 @@ impl RequestType for LoginRequest {
         state.load_state();
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -76,8 +81,10 @@ impl RequestType for LoginByKeyRequest {
     type Response = login_by_key::Response;
 
     type Info = ();
-
-    fn push_to_state(response: Self::Response, _info: Self::Info, state: &mut State) {
+}
+#[allow(unused_variables)]
+impl StateRequestType for LoginByKeyRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
         state.current_access_level = response.access_level.level;
@@ -90,7 +97,7 @@ impl RequestType for LoginByKeyRequest {
         state.load_state();
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -106,10 +113,11 @@ impl RequestType for RegisterRequest {
     type BadResponse = register::BadRequestResponse;
 
     type Info = ();
-
-    fn push_to_state(_response: Self::Response, _info: Self::Info, _state: &mut State) {}
-
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+}
+#[allow(unused_variables)]
+impl StateRequestType for RegisterRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -124,12 +132,14 @@ impl RequestType for NewPasswordRequest {
     type Response = new_password::Response;
 
     type Info = ();
-
-    fn push_to_state(_response: Self::Response, _info: Self::Info, state: &mut State) {
+}
+#[allow(unused_variables)]
+impl StateRequestType for NewPasswordRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         state.user_state.access_levels.load_all();
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, _info: Self::Info, _state: &mut State) {}
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
 #[derive(Clone, Copy)]
@@ -145,7 +155,9 @@ impl RequestType for LoadStateRequest {
 
     /// None for loading own state, Some(user_id) for admin request
     type Info = Option<TableId>;
-
+}
+#[allow(unused_variables)]
+impl StateRequestType for LoadStateRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         match info {
             Some(user_id) => {

@@ -4,7 +4,10 @@ use calendar_lib::api::utils::{EmptyResponse, LoadByIdBadRequestResponse};
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
 
-use super::main_state::{RequestType, State};
+use super::{
+    main_state::State,
+    request::{RequestType, StateRequestType},
+};
 
 pub trait TableItemLoadById
 where
@@ -79,7 +82,6 @@ pub struct TableDeleteRequest<T: TableItemDelete> {
     _data: PhantomData<T>,
 }
 
-#[allow(unused_variables)]
 impl<T: TableItemLoadById> RequestType for TableLoadByIdRequest<T> {
     const URL: &'static str = T::LOAD_BY_ID_PATH;
     const IS_AUTHORIZED: bool = true;
@@ -88,7 +90,9 @@ impl<T: TableItemLoadById> RequestType for TableLoadByIdRequest<T> {
     type Response = T;
     type BadResponse = LoadByIdBadRequestResponse;
     type Info = TableId;
-
+}
+#[allow(unused_variables)]
+impl<T: TableItemLoadById> StateRequestType for TableLoadByIdRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         T::push_from_load_by_id(state, info, response);
     }
@@ -98,7 +102,6 @@ impl<T: TableItemLoadById> RequestType for TableLoadByIdRequest<T> {
     }
 }
 
-#[allow(unused_variables)]
 impl<T: TableItemLoadAll> RequestType for TableLoadAllRequest<T> {
     const URL: &'static str = T::LOAD_ALL_PATH;
     const IS_AUTHORIZED: bool = true;
@@ -106,7 +109,9 @@ impl<T: TableItemLoadAll> RequestType for TableLoadAllRequest<T> {
     type Query = ();
     type Response = Vec<T>;
     type Info = ();
-
+}
+#[allow(unused_variables)]
+impl<T: TableItemLoadAll> StateRequestType for TableLoadAllRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         T::push_from_load_all(state, response);
     }
@@ -125,7 +130,9 @@ impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     type Body = T::NewItem;
     type Response = EmptyResponse;
     type Info = ();
-
+}
+#[allow(unused_variables)]
+impl<T: TableItemInsert> StateRequestType for TableInsertRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         T::push_from_insert(state);
     }
@@ -144,7 +151,9 @@ impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     type Body = T::UpdItem;
     type Response = EmptyResponse;
     type Info = TableId;
-
+}
+#[allow(unused_variables)]
+impl<T: TableItemUpdate> StateRequestType for TableUpdateRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         T::push_from_update(state, info);
     }
@@ -162,7 +171,9 @@ impl<T: TableItemDelete> RequestType for TableDeleteRequest<T> {
     type Query = TableId;
     type Response = EmptyResponse;
     type Info = TableId;
-
+}
+#[allow(unused_variables)]
+impl<T: TableItemDelete> StateRequestType for TableDeleteRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         T::push_from_delete(state, info)
     }

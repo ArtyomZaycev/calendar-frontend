@@ -17,7 +17,7 @@ use crate::{
     utils::*,
 };
 use calendar_lib::api::{
-    event_templates::types::EventTemplate, events::types::Event, roles::types::Role,
+    event_templates::types::EventTemplate, events::types::Event,
     schedules::types::Schedule, utils::User,
 };
 use chrono::{Days, Months, NaiveDate};
@@ -99,8 +99,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager
-                            .open_new_event(self.state.get_me().id);
+                        self.popup_manager.open_new_event(self.state.get_me().id);
                     }
                 }
                 CalendarView::Schedules => {
@@ -111,8 +110,7 @@ impl CalendarApp {
                         )
                         .clicked()
                     {
-                        self.popup_manager
-                            .open_new_schedule(self.state.get_me().id);
+                        self.popup_manager.open_new_schedule(self.state.get_me().id);
                     }
                 }
                 CalendarView::EventTemplates => {

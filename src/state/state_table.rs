@@ -3,8 +3,8 @@ use calendar_lib::api::utils::{DeleteByIdQuery, LoadByIdQuery};
 use crate::tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId};
 
 use super::{
-    main_state::{RequestType, State},
-    request::RequestIdentifier,
+    main_state::State,
+    request::{RequestIdentifier, RequestType},
     table_requests::{
         TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll,
         TableItemLoadById, TableItemUpdate, TableLoadAllRequest, TableLoadByIdRequest,

@@ -10,8 +10,7 @@ use serde::de::DeserializeOwned;
 
 use crate::config::Config;
 
-use super::main_state::RequestType;
-use super::request::{RequestId, RequestIdAtomic};
+use super::request::{RequestId, RequestIdAtomic, RequestType};
 use super::requests_holder::RequestData;
 
 struct RequestResult<T> {

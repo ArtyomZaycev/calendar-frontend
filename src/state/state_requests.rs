@@ -9,8 +9,8 @@ use crate::{db::aliases::UserUtils, tables::TableId};
 use super::{
     custom_requests::*,
     db_connector::DbConnectorData,
-    main_state::{AdminState, RequestType, State, UserState},
-    request::{RequestId, RequestIdentifier},
+    main_state::{AdminState, State, UserState},
+    request::{RequestId, RequestIdentifier, RequestType, StateRequestType},
     requests_holder::{RequestData, RequestsHolder},
     state_updater::{StateChecker, StateExecutor, StateUpdater},
 };
@@ -18,7 +18,7 @@ use super::{
 impl State {
     pub(super) fn make_request<T, F>(info: T::Info, make_request: F) -> RequestIdentifier<T>
     where
-        T: RequestType,
+        T: StateRequestType,
         F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
     {
         let rinfo = info.clone();

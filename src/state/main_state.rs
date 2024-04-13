@@ -1,46 +1,28 @@
-use std::cell::Ref;
-use std::collections::HashMap;
-use std::fmt::Debug;
+use std::{cell::Ref, collections::HashMap};
 
-use calendar_lib::api::auth::types::AccessLevel;
-use calendar_lib::api::events::types::{EventVisibility, NewEvent};
-use calendar_lib::api::user_state;
-use calendar_lib::api::utils::{TableId, User};
 use calendar_lib::api::{
-    event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
+    auth::types::AccessLevel,
+    event_templates::types::EventTemplate,
+    events::types::Event,
+    events::types::{EventVisibility, NewEvent},
+    schedules::types::Schedule,
+    user_state,
+    utils::{TableId, User},
 };
+
 use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
-use serde::de::DeserializeOwned;
 
-use crate::db::aliases::UserUtils;
-use crate::tables::DbTable;
+use crate::{db::aliases::UserUtils, tables::DbTable};
 
-use super::db_connector::DbConnector;
-use super::request::RequestIdentifier;
-use super::requests_holder::RequestsHolder;
-use super::state_table::StateTable;
-use super::state_updater::StateUpdater;
-use super::table_requests::TableInsertRequest;
-
-pub trait RequestType where Self: 'static + Send {
-    const URL: &'static str;
-    const IS_AUTHORIZED: bool;
-    const METHOD: reqwest::Method;
-
-    type Query;
-    type Body = ();
-    type Response: DeserializeOwned;
-    type BadResponse: DeserializeOwned = ();
-
-    /// e.g. update request item.id
-    type Info: 'static + Clone + Debug + Send = ();
-
-    // TODO: Separate into different trait, move struct to request.rs
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State);
-    #[allow(unused_variables)]
-    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State);
-}
+use super::{
+    db_connector::DbConnector,
+    request::{RequestIdentifier, RequestType},
+    requests_holder::RequestsHolder,
+    state_table::StateTable,
+    state_updater::StateUpdater,
+    table_requests::TableInsertRequest,
+};
 
 pub struct UserState {
     pub access_levels: StateTable<AccessLevel>,
@@ -60,10 +42,14 @@ impl UserState {
     }
 
     pub fn replace_data(&mut self, data: user_state::load::Response) {
-        self.access_levels.get_table_mut().replace_all(data.access_levels);
+        self.access_levels
+            .get_table_mut()
+            .replace_all(data.access_levels);
         self.events.get_table_mut().replace_all(data.events);
         self.schedules.get_table_mut().replace_all(data.schedules);
-        self.event_templates.get_table_mut().replace_all(data.event_templates);
+        self.event_templates
+            .get_table_mut()
+            .replace_all(data.event_templates);
     }
 
     pub fn accept_scheduled_event(
