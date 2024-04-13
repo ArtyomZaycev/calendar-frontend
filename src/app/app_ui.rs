@@ -36,13 +36,9 @@ impl CalendarApp {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.heading("Calendar");
 
-            if let Some(me) = self.state.get_me() {
-                if me.has_role(Role::SuperAdmin) {}
-            }
-
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 // RTL
-                if let Some(me) = self.state.get_me() {
+                if let Some(me) = self.state.try_get_me() {
                     let profile = egui::Label::new(&me.name);
                     if self.popup_manager.is_open_profile() {
                         ui.add(profile);
@@ -104,7 +100,7 @@ impl CalendarApp {
                         .clicked()
                     {
                         self.popup_manager
-                            .open_new_event(self.state.get_me_unwrap().id);
+                            .open_new_event(self.state.get_me().id);
                     }
                 }
                 CalendarView::Schedules => {
@@ -116,7 +112,7 @@ impl CalendarApp {
                         .clicked()
                     {
                         self.popup_manager
-                            .open_new_schedule(self.state.get_me_unwrap().id);
+                            .open_new_schedule(self.state.get_me().id);
                     }
                 }
                 CalendarView::EventTemplates => {
@@ -128,7 +124,7 @@ impl CalendarApp {
                         .clicked()
                     {
                         self.popup_manager
-                            .open_new_event_template(self.state.get_me_unwrap().id);
+                            .open_new_event_template(self.state.get_me().id);
                     }
                 }
             });
@@ -789,7 +785,7 @@ impl CalendarApp {
 impl eframe::App for CalendarApp {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         // Admins have different view
-        if self.state.get_me().is_some_and(|me| me.is_admin()) && self.view.is_calendar() {
+        if self.state.get_me().is_admin() && self.view.is_calendar() {
             self.view = AppView::AdminPanel(AdminPanelView::Users {
                 table: TableView::new("users_table"),
             });
@@ -805,7 +801,7 @@ impl eframe::App for CalendarApp {
             ui.separator();
 
             // CALENDAR
-            if let Some(_me) = &self.state.get_me() {
+            if self.state.try_get_me().is_some() {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     self.view_dispatcher(ui);
                 });

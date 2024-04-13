@@ -22,7 +22,7 @@ impl PopupContent for Profile {
                 info.close();
             }
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                ui.heading(&state.get_me().unwrap().name);
+                ui.heading(&state.get_me().name);
             });
         });
         ui.separator();
@@ -32,7 +32,7 @@ impl PopupContent for Profile {
         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
             ui.horizontal(|ui| {
                 ui.label("Email: ");
-                ui.label(&state.get_me().unwrap().email);
+                ui.label(&state.get_me().email);
             });
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 if state

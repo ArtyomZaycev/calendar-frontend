@@ -192,8 +192,7 @@ impl State {
         }
     }
 
-    // TODO: rename to try_get_me
-    pub fn get_me(&self) -> Option<&User> {
+    pub fn try_get_me(&self) -> Option<&User> {
         if self.me.id > 0 {
             Some(&self.me)
         } else {
@@ -201,7 +200,7 @@ impl State {
         }
     }
 
-    pub fn get_me_unwrap(&self) -> &User {
+    pub fn get_me(&self) -> &User {
         &self.me
     }
 

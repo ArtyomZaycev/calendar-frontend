@@ -120,7 +120,7 @@ impl PopupContent for NewPasswordInput {
         {
             self.request = Some(
                 state.user_state.insert_password(
-                    state.get_me_unwrap().id,
+                    state.get_me().id,
                     self.next_password_level - 1,
                     self.viewer_password_enabled
                         .then_some(self.viewer_password.clone()),
