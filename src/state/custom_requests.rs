@@ -12,7 +12,6 @@ use super::{
     admin requests:
         load_user_memory_usage
         user_roles
-        load_users
 */
 
 #[derive(Clone, Copy)]
