@@ -25,24 +25,22 @@ impl Login {
             request: None,
         }
     }
-
-    pub fn user_not_found(&mut self) {
-        self.email_not_found = Some(self.email.clone());
-        self.password_not_found = Some(self.password.clone());
-    }
 }
 
 impl PopupContent for Login {
     fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
             if let Some(response_info) = state.get_response(identifier) {
-                self.request = None;
                 match response_info {
                     Ok(_) => info.close(),
                     Err(error_info) => match &*error_info {
-                        login::BadRequestResponse::UserNotFound => self.user_not_found(),
+                        login::BadRequestResponse::UserNotFound => {
+                            self.email_not_found = Some(identifier.info.email.clone());
+                            self.password_not_found = Some(identifier.info.password.clone());
+                        }
                     },
                 }
+                self.request = None;
             }
         }
     }

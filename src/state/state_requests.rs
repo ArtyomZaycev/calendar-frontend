@@ -82,11 +82,17 @@ impl State {
     }
 
     pub fn login(&self, email: String, password: String) -> RequestIdentifier<LoginRequest> {
-        State::make_request((), |connector| {
-            connector
-                .make_request::<LoginRequest>()
-                .json(&login::Body { email, password })
-        })
+        State::make_request(
+            LoginInfo {
+                email: email.clone(),
+                password: password.clone(),
+            },
+            |connector| {
+                connector
+                    .make_request::<LoginRequest>()
+                    .json(&login::Body { email, password })
+            },
+        )
     }
 
     pub fn login_by_jwt(&self, key: String) -> RequestIdentifier<LoginByKeyRequest> {

@@ -17,8 +17,8 @@ use crate::{
     utils::*,
 };
 use calendar_lib::api::{
-    event_templates::types::EventTemplate, events::types::Event,
-    schedules::types::Schedule, utils::User,
+    event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
+    utils::User,
 };
 use chrono::{Days, Months, NaiveDate};
 use egui::{Align, Layout, RichText, Sense};

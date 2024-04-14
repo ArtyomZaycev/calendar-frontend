@@ -36,6 +36,11 @@ impl StateRequestType for LogoutRequest {
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
 
+#[derive(Debug, Clone)]
+pub struct LoginInfo {
+    pub email: String,
+    pub password: String,
+}
 #[derive(Clone, Copy)]
 pub struct LoginRequest {}
 impl RequestType for LoginRequest {
@@ -48,7 +53,7 @@ impl RequestType for LoginRequest {
     type Response = login::Response;
     type BadResponse = login::BadRequestResponse;
 
-    type Info = ();
+    type Info = LoginInfo;
 }
 #[allow(unused_variables)]
 impl StateRequestType for LoginRequest {

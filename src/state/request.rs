@@ -37,7 +37,7 @@ where
 #[derive(Clone)]
 pub struct RequestIdentifier<T: RequestType> {
     pub(super) id: RequestId,
-    pub(super) info: T::Info,
+    pub info: T::Info,
     _data: PhantomData<T>,
 }
 
