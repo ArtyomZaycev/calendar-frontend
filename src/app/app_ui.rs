@@ -29,6 +29,46 @@ impl CalendarApp {
     fn set_view(&mut self, view: impl Into<AppView>) {
         self.view = view.into();
     }
+
+    pub fn configure_styles(ctx: &egui::Context) {
+        /*
+            Default:
+            {
+                Small: FontId { size: 9.0, family: Proportional }, 
+                Body: FontId { size: 12.5, family: Proportional },
+                Monospace: FontId { size: 12.0, family: Monospace },
+                Button: FontId { size: 12.5, family: Proportional },
+                Heading: FontId { size: 18.0, family: Proportional }
+            }
+         */
+
+        let mut style = (*ctx.style()).clone();
+        style.text_styles = [
+            (
+                egui::TextStyle::Small,
+                egui::FontId::new(11.0, egui::FontFamily::Proportional),
+            ),
+            (
+                egui::TextStyle::Body,
+                egui::FontId::new(14.0, egui::FontFamily::Proportional),
+            ),
+            (
+                egui::TextStyle::Monospace,
+                egui::FontId::new(12.0, egui::FontFamily::Proportional),
+            ),
+            (
+                egui::TextStyle::Button,
+                egui::FontId::new(14.0, egui::FontFamily::Proportional),
+            ),
+            (
+                egui::TextStyle::Heading,
+                egui::FontId::new(22.0, egui::FontFamily::Proportional),
+            ),
+        ]
+        .into();
+        style.interaction.selectable_labels = false;
+        ctx.set_style(style);
+    }
 }
 
 impl CalendarApp {
@@ -132,62 +172,73 @@ impl CalendarApp {
     fn events_view_picker(&mut self, ui: &mut egui::Ui, view: EventsView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let today = chrono::Local::now().naive_local().date();
-            ui.selectable_header("Month", view.is_month(), || {
-                self.set_view(EventsView::Month(today))
-            });
-            ui.selectable_header("Week", view.is_week(), || {
-                self.set_view(EventsView::Week(today))
-            });
-            ui.selectable_header("Day", view.is_day(), || {
-                self.set_view(EventsView::Day(today))
-            });
-            ui.selectable_header("Events", view.is_days(), || {
-                self.set_view(EventsView::Days(today))
-            });
+
+            let view_chooser_response = ui.horizontal(|ui| {
+                ui.selectable_header("Month", view.is_month(), || {
+                    self.set_view(EventsView::Month(today))
+                });
+                ui.selectable_header("Week", view.is_week(), || {
+                    self.set_view(EventsView::Week(today))
+                });
+                ui.selectable_header("Day", view.is_day(), || {
+                    self.set_view(EventsView::Day(today))
+                });
+                ui.selectable_header("Events", view.is_days(), || {
+                    self.set_view(EventsView::Days(today))
+                });
+            }).response;
+            let height = view_chooser_response.rect.height();
 
             ui.add_space(16.);
-            match view {
-                EventsView::Month(date) => {
-                    if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Month(
-                            date.checked_sub_months(Months::new(1)).unwrap(),
-                        ));
+            ui.allocate_ui_with_layout(egui::Vec2::new(f32::INFINITY, height), Layout::left_to_right(Align::Center), |ui| {
+                match view {
+                    EventsView::Month(date) => {
+                        if ui.small_button("<").clicked() {
+                            self.set_view(EventsView::Month(
+                                date.checked_sub_months(Months::new(1)).unwrap(),
+                            ));
+                        }
+                        ui.label(date.format("%B %Y").to_string());
+                        if ui.small_button(">").clicked() {
+                            self.set_view(EventsView::Month(
+                                date.checked_add_months(Months::new(1)).unwrap(),
+                            ));
+                        }
                     }
-                    ui.label(date.format("%B %Y").to_string());
-                    if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Month(
-                            date.checked_add_months(Months::new(1)).unwrap(),
+                    EventsView::Week(date) => {
+                        if ui.small_button("<").clicked() {
+                            self.set_view(EventsView::Week(
+                                date.checked_sub_days(Days::new(7)).unwrap(),
+                            ));
+                        }
+                        ui.label(format!(
+                            "{} - {} {}",
+                            date.format("%B %d"),
+                            date.checked_add_days(Days::new(7)).unwrap().format("%B %d"),
+                            date.format("%Y"),
                         ));
+                        if ui.small_button(">").clicked() {
+                            self.set_view(EventsView::Week(
+                                date.checked_add_days(Days::new(7)).unwrap(),
+                            ));
+                        }
                     }
+                    EventsView::Day(date) => {
+                        if ui.small_button("<").clicked() {
+                            self.set_view(EventsView::Day(
+                                date.checked_sub_days(Days::new(1)).unwrap(),
+                            ));
+                        }
+                        ui.label(date.format("%x").to_string());
+                        if ui.small_button(">").clicked() {
+                            self.set_view(EventsView::Day(
+                                date.checked_add_days(Days::new(1)).unwrap(),
+                            ));
+                        }
+                    }
+                    EventsView::Days(_) => {}
                 }
-                EventsView::Week(date) => {
-                    if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Week(
-                            date.checked_sub_days(Days::new(7)).unwrap(),
-                        ));
-                    }
-                    ui.label(date.format("%W week %Y").to_string());
-                    if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Week(
-                            date.checked_add_days(Days::new(7)).unwrap(),
-                        ));
-                    }
-                }
-                EventsView::Day(date) => {
-                    if ui.small_button("<").clicked() {
-                        self.set_view(EventsView::Day(
-                            date.checked_sub_days(Days::new(1)).unwrap(),
-                        ));
-                    }
-                    ui.label(date.format("%x").to_string());
-                    if ui.small_button(">").clicked() {
-                        self.set_view(EventsView::Day(
-                            date.checked_add_days(Days::new(1)).unwrap(),
-                        ));
-                    }
-                }
-                EventsView::Days(_) => {}
-            }
+            })
         });
     }
 
@@ -198,11 +249,17 @@ impl CalendarApp {
 
         let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
 
+        let get_weekday_name = if column_width < 120. {
+            weekday_human_name_short
+        } else {
+            weekday_human_name
+        };
+
         let signals = vec![];
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
-                let weekday_name = weekday_human_name(&weekday);
+                let weekday_name = get_weekday_name(&weekday);
 
                 ui.vertical(|ui| {
                     ui.set_width(column_width);
@@ -242,13 +299,20 @@ impl CalendarApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let monday = get_monday(&date);
             let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
+
+            let get_weekday_name = if column_width < 120. {
+                weekday_human_name_short
+            } else {
+                weekday_human_name
+            };
+
             ui.horizontal_top(|ui| {
                 let mut signals = vec![];
                 (0..7).for_each(|weekday| {
                     let date = monday + chrono::Days::new(weekday);
                     let weekday = chrono::Weekday::from_u64(weekday).unwrap();
 
-                    let weekday_name = weekday_human_name(&weekday);
+                    let weekday_name = get_weekday_name(&weekday);
 
                     ui.vertical(|ui| {
                         ui.set_width(column_width);

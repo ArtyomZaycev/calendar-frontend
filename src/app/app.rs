@@ -14,7 +14,7 @@ pub struct CalendarApp {
 }
 
 impl CalendarApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let mut local_storage = AppLocalStorage::new();
         let state = State::new();
         match local_storage.get_jwt() {
@@ -25,6 +25,8 @@ impl CalendarApp {
                 println!("Auth info not found");
             }
         }
+
+        Self::configure_styles(&cc.egui_ctx);
 
         Self {
             local_storage,

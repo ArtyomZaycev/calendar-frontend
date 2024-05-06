@@ -60,6 +60,18 @@ pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
     }
 }
 
+pub fn weekday_human_name_short(weekday: &Weekday) -> &'static str {
+    match weekday {
+        chrono::Weekday::Mon => "Mon",
+        chrono::Weekday::Tue => "Tue",
+        chrono::Weekday::Wed => "Wed",
+        chrono::Weekday::Thu => "Thu",
+        chrono::Weekday::Fri => "Fri",
+        chrono::Weekday::Sat => "Sat",
+        chrono::Weekday::Sun => "Sun",
+    }
+}
+
 pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32) -> String {
     access_levels
         .iter()
