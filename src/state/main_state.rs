@@ -16,12 +16,7 @@ use itertools::Itertools;
 use crate::{db::aliases::UserUtils, tables::DbTable};
 
 use super::{
-    db_connector::DbConnector,
-    request::{RequestIdentifier, RequestType},
-    requests_holder::RequestsHolder,
-    state_table::StateTable,
-    state_updater::StateUpdater,
-    table_requests::TableInsertRequest,
+    db_connector::DbConnector, request::{RequestIdentifier, RequestType}, requests_holder::RequestsHolder, shared_state::SharedUserState, state_table::StateTable, state_updater::StateUpdater, table_requests::TableInsertRequest
 };
 
 pub struct UserState {
@@ -125,6 +120,7 @@ pub struct State {
     pub(super) current_access_level: i32,
 
     pub user_state: UserState,
+    pub shared_states: Vec<SharedUserState>,
     pub admin_state: AdminState,
 
     /// Has both server and phantom events
@@ -138,6 +134,7 @@ impl State {
             me: User::default(),
             current_access_level: -1,
             user_state: UserState::new(),
+            shared_states: Vec::new(),
             admin_state: AdminState::new(),
 
             events_per_day: HashMap::new(),
@@ -345,9 +342,5 @@ impl State {
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
-    }
-    pub fn get_prepared_events_for_date(&mut self, date: NaiveDate) -> &[Event] {
-        self.prepare_date(date);
-        self.get_events_for_date(date)
     }
 }

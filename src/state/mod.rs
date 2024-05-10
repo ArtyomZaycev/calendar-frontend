@@ -9,5 +9,7 @@ pub mod state_table_requests;
 pub mod state_updater;
 pub mod table_requests;
 pub mod table_requests_impl;
+pub mod shared_state;
+pub mod sharing;
 
 pub use main_state::State;
