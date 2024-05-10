@@ -145,7 +145,10 @@ impl TableItemUpdate for Event {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
             state.clear_events();
-            state.user_state.events.default_push_bad_from_update(id, response);
+            state
+                .user_state
+                .events
+                .default_push_bad_from_update(id, response);
         }
     }
 }
@@ -167,7 +170,10 @@ impl TableItemDelete for Event {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
             state.clear_events();
-            state.user_state.events.default_push_bad_from_delete(id, response);
+            state
+                .user_state
+                .events
+                .default_push_bad_from_delete(id, response);
         }
     }
 }
@@ -384,7 +390,10 @@ impl TableItemUpdate for Schedule {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.schedules.default_push_bad_from_update(id, response);
+            state
+                .user_state
+                .schedules
+                .default_push_bad_from_update(id, response);
         }
     }
 }
@@ -404,7 +413,10 @@ impl TableItemDelete for Schedule {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.schedules.default_push_bad_from_delete(id, response);
+            state
+                .user_state
+                .schedules
+                .default_push_bad_from_delete(id, response);
         }
     }
 }
