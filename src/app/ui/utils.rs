@@ -1,7 +1,7 @@
 use super::super::{utils::AppView, CalendarApp};
 
 impl CalendarApp {
-    pub fn set_view(&mut self, view: impl Into<AppView>) {
+    pub(super) fn set_view(&mut self, view: impl Into<AppView>) {
         self.view = view.into();
     }
 
