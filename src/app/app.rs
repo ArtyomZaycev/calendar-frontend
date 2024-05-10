@@ -1,3 +1,5 @@
+use chrono::NaiveDate;
+
 use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
@@ -11,6 +13,8 @@ pub struct CalendarApp {
     pub(super) state: State,
     pub(super) view: AppView,
     pub(super) popup_manager: PopupManager,
+
+    pub selected_date: NaiveDate,
 }
 
 impl CalendarApp {
@@ -31,8 +35,9 @@ impl CalendarApp {
         Self {
             local_storage,
             state,
-            view: EventsView::Days(chrono::Local::now().naive_local().date()).into(),
+            view: EventsView::Days.into(),
             popup_manager: PopupManager::new(),
+            selected_date: chrono::Local::now().naive_local().date(),
         }
     }
 }
@@ -41,7 +46,7 @@ impl CalendarApp {
     pub(super) fn logout(&mut self) {
         self.local_storage.clear_jwt();
         self.popup_manager.clear();
-        self.view = EventsView::Days(chrono::Local::now().naive_local().date()).into();
+        self.view = EventsView::Days.into();
         self.state.logout();
     }
 

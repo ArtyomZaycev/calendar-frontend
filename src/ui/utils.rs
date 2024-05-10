@@ -26,10 +26,7 @@ impl UiUtils for Ui {
             text = text.underline()
         }
 
-        let response = self.add(
-            egui::Label::new(text)
-                .sense(Sense::click())
-        );
+        let response = self.add(egui::Label::new(text).sense(Sense::click()));
 
         if response.clicked() {
             on_clicked();

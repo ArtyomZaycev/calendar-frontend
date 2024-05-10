@@ -2,7 +2,6 @@ use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
     utils::User,
 };
-use chrono::NaiveDate;
 use derive_is_enum_variant::is_enum_variant;
 use serde::{Deserialize, Serialize};
 
@@ -53,10 +52,10 @@ impl Into<AppView> for AdminPanelView {
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, is_enum_variant)]
 pub(super) enum EventsView {
-    Month(NaiveDate),
-    Week(NaiveDate),
-    Day(NaiveDate),
-    Days(NaiveDate),
+    Month,
+    Week,
+    Day,
+    Days,
 }
 
 impl Into<CalendarView> for EventsView {

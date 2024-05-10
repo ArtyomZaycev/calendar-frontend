@@ -74,7 +74,7 @@ impl<'a> Widget for EventCard<'a> {
             let is_planned = plan_id.is_some();
             let is_phantom = *event_id == -1;
 
-            egui::Frame::none()
+            let response = egui::Frame::none()
                 .rounding(4.)
                 .stroke(Stroke::new(
                     1.,
@@ -88,18 +88,6 @@ impl<'a> Widget for EventCard<'a> {
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            if !is_phantom && self.access_level >= self.event.access_level {
-                                ui.menu_button("C", |ui| {
-                                    if ui.button("Edit").clicked() {
-                                        self.signals.push(AppSignal::ChangeEvent(*event_id));
-                                        ui.close_menu();
-                                    }
-                                    if ui.button("Delete").clicked() {
-                                        self.state.user_state.events.delete(*event_id);
-                                        ui.close_menu();
-                                    }
-                                });
-                            }
                             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                 ui.add(egui::Label::new(name).wrap(true));
                             });
@@ -152,7 +140,22 @@ impl<'a> Widget for EventCard<'a> {
                         }
                     })
                 })
-                .response
+                .response;
+
+            if !is_phantom && self.access_level >= self.event.access_level {
+                response.context_menu(|ui| {
+                    if ui.button("Edit").clicked() {
+                        self.signals.push(AppSignal::ChangeEvent(*event_id));
+                        ui.close_menu();
+                    }
+                    if ui.button("Delete").clicked() {
+                        self.state.user_state.events.delete(*event_id);
+                        ui.close_menu();
+                    }
+                });
+            }
+
+            response
         })
         .response
     }

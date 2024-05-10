@@ -1,20 +1,27 @@
-pub struct GridLayoutInfo {
-    pub num_of_columns: u32,
-    pub column_width: f32,
+pub fn get_width_from_columns(ui: &egui::Ui, num_of_columns: u32) -> f32 {
+    divide_from_sections(
+        ui.available_width(),
+        ui.spacing().item_spacing.x,
+        num_of_columns,
+    )
 }
 
-impl GridLayoutInfo {
-    pub fn from_columns(ui: &egui::Ui, num_of_columns: u32) -> Self {
-        Self {
-            num_of_columns,
-            column_width: (ui.available_width()
-                - ui.spacing().item_spacing.x * (num_of_columns - 1) as f32)
-                / num_of_columns as f32,
-        }
-    }
+pub fn get_height_from_rows(ui: &egui::Ui, num_of_rows: u32) -> f32 {
+    divide_from_sections(
+        ui.available_height(),
+        ui.spacing().item_spacing.y,
+        num_of_rows,
+    )
+}
 
-    pub fn from_desired_width(ui: &egui::Ui, desired_width: f32) -> Self {
-        let num_of_columns = (ui.available_width() / desired_width).round() as u32;
-        Self::from_columns(ui, num_of_columns)
-    }
+pub fn get_columns_from_width(ui: &egui::Ui, width: f32) -> u32 {
+    divide_from_size(ui.available_width(), width)
+}
+
+pub fn divide_from_sections(available: f32, spacing: f32, sections: u32) -> f32 {
+    (available - spacing * (sections - 1) as f32) / sections as f32
+}
+
+pub fn divide_from_size(available: f32, desired: f32) -> u32 {
+    (available / desired).round() as u32
 }

@@ -9,7 +9,7 @@ use crate::{
     ui::{
         event_card::EventCard,
         event_template_card::EventTemplateCard,
-        layout_info::GridLayoutInfo,
+        layout_info::*,
         schedule_card::ScheduleCard,
         table_view::{TableView, TableViewActions},
         utils::UiUtils,
@@ -20,7 +20,7 @@ use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
     utils::User,
 };
-use chrono::{Days, Months, NaiveDate};
+use chrono::{Datelike, Days, Months, NaiveDate};
 use egui::{Align, Layout, RichText, Sense};
 
 use num_traits::FromPrimitive;
@@ -32,15 +32,15 @@ impl CalendarApp {
 
     pub fn configure_styles(ctx: &egui::Context) {
         /*
-            Default:
-            {
-                Small: FontId { size: 9.0, family: Proportional }, 
-                Body: FontId { size: 12.5, family: Proportional },
-                Monospace: FontId { size: 12.0, family: Monospace },
-                Button: FontId { size: 12.5, family: Proportional },
-                Heading: FontId { size: 18.0, family: Proportional }
-            }
-         */
+           Default:
+           {
+               Small: FontId { size: 9.0, family: Proportional },
+               Body: FontId { size: 12.5, family: Proportional },
+               Monospace: FontId { size: 12.0, family: Monospace },
+               Button: FontId { size: 12.5, family: Proportional },
+               Heading: FontId { size: 18.0, family: Proportional }
+           }
+        */
 
         let mut style = (*ctx.style()).clone();
         style.text_styles = [
@@ -121,7 +121,7 @@ impl CalendarApp {
     fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.selectable_header("Events", view.is_events(), || {
-                self.set_view(EventsView::Days(chrono::Local::now().naive_local().date()));
+                self.set_view(EventsView::Days);
             });
             ui.selectable_header("Schedules", view.is_schedules(), || {
                 self.set_view(CalendarView::Schedules);
@@ -171,83 +171,91 @@ impl CalendarApp {
 
     fn events_view_picker(&mut self, ui: &mut egui::Ui, view: EventsView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            let today = chrono::Local::now().naive_local().date();
-
-            let view_chooser_response = ui.horizontal(|ui| {
-                ui.selectable_header("Month", view.is_month(), || {
-                    self.set_view(EventsView::Month(today))
-                });
-                ui.selectable_header("Week", view.is_week(), || {
-                    self.set_view(EventsView::Week(today))
-                });
-                ui.selectable_header("Day", view.is_day(), || {
-                    self.set_view(EventsView::Day(today))
-                });
-                ui.selectable_header("Events", view.is_days(), || {
-                    self.set_view(EventsView::Days(today))
-                });
-            }).response;
+            let view_chooser_response = ui
+                .horizontal(|ui| {
+                    ui.selectable_header("Month", view.is_month(), || {
+                        self.set_view(EventsView::Month)
+                    });
+                    ui.selectable_header("Week", view.is_week(), || {
+                        self.set_view(EventsView::Week)
+                    });
+                    ui.selectable_header("Day", view.is_day(), || self.set_view(EventsView::Day));
+                    ui.selectable_header("Events", view.is_days(), || {
+                        self.set_view(EventsView::Days)
+                    });
+                })
+                .response;
             let height = view_chooser_response.rect.height();
 
             ui.add_space(16.);
-            ui.allocate_ui_with_layout(egui::Vec2::new(f32::INFINITY, height), Layout::left_to_right(Align::Center), |ui| {
-                match view {
-                    EventsView::Month(date) => {
+            ui.allocate_ui_with_layout(
+                egui::Vec2::new(f32::INFINITY, height),
+                Layout::left_to_right(Align::Center),
+                |ui| match view {
+                    EventsView::Month => {
                         if ui.small_button("<").clicked() {
-                            self.set_view(EventsView::Month(
-                                date.checked_sub_months(Months::new(1)).unwrap(),
-                            ));
+                            self.selected_date = self
+                                .selected_date
+                                .checked_sub_months(Months::new(1))
+                                .unwrap();
                         }
-                        ui.label(date.format("%B %Y").to_string());
                         if ui.small_button(">").clicked() {
-                            self.set_view(EventsView::Month(
-                                date.checked_add_months(Months::new(1)).unwrap(),
-                            ));
+                            self.selected_date = self
+                                .selected_date
+                                .checked_add_months(Months::new(1))
+                                .unwrap();
+                        }
+                        ui.label(self.selected_date.format("%B %Y").to_string());
+                        if ui.button("Today").clicked() {
+                            self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
-                    EventsView::Week(date) => {
+                    EventsView::Week => {
                         if ui.small_button("<").clicked() {
-                            self.set_view(EventsView::Week(
-                                date.checked_sub_days(Days::new(7)).unwrap(),
-                            ));
+                            self.selected_date =
+                                self.selected_date.checked_sub_days(Days::new(7)).unwrap();
                         }
+                        if ui.small_button(">").clicked() {
+                            self.selected_date =
+                                self.selected_date.checked_add_days(Days::new(7)).unwrap();
+                        }
+                        let week = self.selected_date.week(chrono::Weekday::Mon);
                         ui.label(format!(
                             "{} - {} {}",
-                            date.format("%B %d"),
-                            date.checked_add_days(Days::new(7)).unwrap().format("%B %d"),
-                            date.format("%Y"),
+                            week.first_day().format("%B %d"),
+                            week.first_day().checked_add_days(Days::new(7)).unwrap().format("%B %d"),
+                            week.first_day().format("%Y"),
                         ));
-                        if ui.small_button(">").clicked() {
-                            self.set_view(EventsView::Week(
-                                date.checked_add_days(Days::new(7)).unwrap(),
-                            ));
+                        if ui.button("Today").clicked() {
+                            self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
-                    EventsView::Day(date) => {
+                    EventsView::Day => {
                         if ui.small_button("<").clicked() {
-                            self.set_view(EventsView::Day(
-                                date.checked_sub_days(Days::new(1)).unwrap(),
-                            ));
+                            self.selected_date =
+                                self.selected_date.checked_sub_days(Days::new(1)).unwrap();
                         }
-                        ui.label(date.format("%x").to_string());
                         if ui.small_button(">").clicked() {
-                            self.set_view(EventsView::Day(
-                                date.checked_add_days(Days::new(1)).unwrap(),
-                            ));
+                            self.selected_date =
+                                self.selected_date.checked_add_days(Days::new(1)).unwrap();
+                        }
+                        ui.label(self.selected_date.format("%x").to_string());
+                        if ui.button("Today").clicked() {
+                            self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
-                    EventsView::Days(_) => {}
-                }
-            })
+                    EventsView::Days => {}
+                },
+            )
         });
     }
 
     fn month_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+        let month = date.month();
         let first_day = get_first_month_day_date(&date);
-        let last_day = get_last_month_day_date(&date);
         let first_monday = get_monday(&first_day);
 
-        let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
+        let column_width = get_width_from_columns(ui, 7);
 
         let get_weekday_name = if column_width < 120. {
             weekday_human_name_short
@@ -255,7 +263,7 @@ impl CalendarApp {
             weekday_human_name
         };
 
-        let signals = vec![];
+        let mut signals = vec![];
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
@@ -267,25 +275,34 @@ impl CalendarApp {
                 });
             });
         });
+        let level = self.state.get_access_level().level;
         egui::ScrollArea::vertical().show(ui, |ui| {
             egui::Grid::new("month")
                 .num_columns(7)
                 .min_col_width(column_width)
                 .max_col_width(column_width)
                 .show(ui, |ui| {
-                    (0..5).for_each(|week| {
+                    (0..6).for_each(|week| {
                         let monday = first_monday + chrono::Days::new(7 * week);
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
-                            let events = self.state.get_prepared_events_for_date(date).len();
+                            self.state.prepare_date(date);
+                            let events = self.state.get_events_for_date(date);
                             ui.vertical(|ui| {
-                                ui.label(date.to_string());
-                                if first_day <= date && date <= last_day {
-                                    ui.label(events.to_string());
-                                } else {
-                                    ui.label("");
-                                }
+                                ui.label(
+                                    date.format(if date.month() == month { "%e" } else { "%e %b" })
+                                        .to_string(),
+                                );
+                                events.iter().for_each(|event| {
+                                    EventCard::new(
+                                        &self.state,
+                                        &mut signals,
+                                        egui::Vec2::new(column_width, 200.),
+                                        event,
+                                        level,
+                                    );
+                                });
                             });
                         });
                         ui.end_row();
@@ -298,7 +315,7 @@ impl CalendarApp {
     fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let monday = get_monday(&date);
-            let GridLayoutInfo { column_width, .. } = GridLayoutInfo::from_columns(ui, 7);
+            let column_width = get_width_from_columns(ui, 7);
 
             let get_weekday_name = if column_width < 120. {
                 weekday_human_name_short
@@ -345,10 +362,8 @@ impl CalendarApp {
 
     fn day_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo {
-                num_of_columns,
-                column_width,
-            } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let column_width = 200.;
+            let num_of_columns = get_columns_from_width(ui, column_width);
 
             let mut signals = vec![];
 
@@ -388,23 +403,21 @@ impl CalendarApp {
 
     fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo {
-                num_of_columns,
-                column_width,
-            } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let column_width = 200.;
+            let num_of_columns = get_columns_from_width(ui, column_width);
 
             let mut signals = vec![];
 
-            (-1i64..4).for_each(|day| {
+            (-1i64..7).for_each(|day| {
                 let date = date
                     .checked_add_signed(chrono::Duration::try_days(day).unwrap())
                     .unwrap();
 
                 let header_text = match day {
-                    -1 => date.format("Yesterday (%A %Y-%m-%d)").to_string(),
-                    0 => date.format("Today (%A %Y-%m-%d)").to_string(),
-                    1 => date.format("Tomorrow (%A %Y-%m-%d)").to_string(),
-                    _ => date.format("%A %Y-%m-%d").to_string(),
+                    -1 => date.format("Yesterday (%A %d-%m)").to_string(),
+                    0 => date.format("Today (%A %d-%m)").to_string(),
+                    1 => date.format("Tomorrow (%A %d-%m)").to_string(),
+                    _ => date.format("%A %d-%m").to_string(),
                 };
 
                 egui::CollapsingHeader::new(RichText::new(header_text).heading())
@@ -448,10 +461,8 @@ impl CalendarApp {
 
     fn schedules_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo {
-                num_of_columns,
-                column_width,
-            } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let column_width = 200.;
+            let num_of_columns = get_columns_from_width(ui, column_width);
 
             let mut signals = vec![];
 
@@ -493,10 +504,8 @@ impl CalendarApp {
 
     fn event_templates_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let GridLayoutInfo {
-                num_of_columns,
-                column_width,
-            } = GridLayoutInfo::from_desired_width(ui, 200.);
+            let column_width = 200.;
+            let num_of_columns = get_columns_from_width(ui, column_width);
 
             let mut signals = vec![];
 
@@ -546,10 +555,18 @@ impl CalendarApp {
                     CalendarView::Events(events_view) => {
                         self.calendar_events_view(ui, events_view);
                         match events_view {
-                            EventsView::Month(date) => self.calendar_events_month_view(ui, date),
-                            EventsView::Week(date) => self.calendar_events_week_view(ui, date),
-                            EventsView::Day(date) => self.calendar_events_day_view(ui, date),
-                            EventsView::Days(date) => self.calendar_events_days_view(ui, date),
+                            EventsView::Month => {
+                                self.calendar_events_month_view(ui, self.selected_date)
+                            }
+                            EventsView::Week => {
+                                self.calendar_events_week_view(ui, self.selected_date)
+                            }
+                            EventsView::Day => {
+                                self.calendar_events_day_view(ui, self.selected_date)
+                            }
+                            EventsView::Days => {
+                                self.calendar_events_days_view(ui, self.selected_date)
+                            }
                         }
                     }
                     CalendarView::Schedules => {
