@@ -14,7 +14,7 @@ use calendar_lib::api::{
         types::{NewSchedule, Schedule, UpdateSchedule},
     },
     users,
-    utils::{LoadByIdBadRequestResponse, TableId, User},
+    utils::*,
 };
 
 use crate::db::aliases::UserUtils;
@@ -137,11 +137,11 @@ impl TableItemUpdate for Event {
         }
     }
 
-    fn push_bad_from_update(state: &mut State, id: TableId) {
+    fn push_bad_from_update(state: &mut State, id: TableId, response: UpdateBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.events.default_push_bad_from_update(id);
+            state.user_state.events.default_push_bad_from_update(id, response);
         }
     }
 }
@@ -157,11 +157,11 @@ impl TableItemDelete for Event {
         }
     }
 
-    fn push_bad_from_delete(state: &mut State, id: TableId) {
+    fn push_bad_from_delete(state: &mut State, id: TableId, response: DeleteBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.events.default_push_bad_from_delete(id);
+            state.user_state.events.default_push_bad_from_delete(id, response);
         }
     }
 }
@@ -257,14 +257,14 @@ impl TableItemUpdate for EventTemplate {
         }
     }
 
-    fn push_bad_from_update(state: &mut State, id: TableId) {
+    fn push_bad_from_update(state: &mut State, id: TableId, response: UpdateBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
             state
                 .user_state
                 .event_templates
-                .default_push_bad_from_update(id);
+                .default_push_bad_from_update(id, response);
         }
     }
 }
@@ -283,14 +283,14 @@ impl TableItemDelete for EventTemplate {
         }
     }
 
-    fn push_bad_from_delete(state: &mut State, id: TableId) {
+    fn push_bad_from_delete(state: &mut State, id: TableId, response: DeleteBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
             state
                 .user_state
                 .event_templates
-                .default_push_bad_from_delete(id);
+                .default_push_bad_from_delete(id, response);
         }
     }
 }
@@ -374,11 +374,11 @@ impl TableItemUpdate for Schedule {
         }
     }
 
-    fn push_bad_from_update(state: &mut State, id: TableId) {
+    fn push_bad_from_update(state: &mut State, id: TableId, response: UpdateBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.schedules.default_push_bad_from_update(id);
+            state.user_state.schedules.default_push_bad_from_update(id, response);
         }
     }
 }
@@ -394,11 +394,11 @@ impl TableItemDelete for Schedule {
         }
     }
 
-    fn push_bad_from_delete(state: &mut State, id: TableId) {
+    fn push_bad_from_delete(state: &mut State, id: TableId, response: DeleteBadRequestResponse) {
         if state.me.is_admin() {
             println!("{}: Admin mode parser is not implemented!", line!());
         } else {
-            state.user_state.schedules.default_push_bad_from_delete(id);
+            state.user_state.schedules.default_push_bad_from_delete(id, response);
         }
     }
 }

@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use calendar_lib::api::utils::{EmptyResponse, LoadByIdBadRequestResponse};
+use calendar_lib::api::utils::*;
 
-use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem, TableId};
+use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem};
 
 use super::{
     main_state::State,
@@ -49,7 +49,7 @@ where
     const UPDATE_PATH: &'static str;
 
     fn push_from_update(state: &mut State, id: TableId);
-    fn push_bad_from_update(state: &mut State, id: TableId);
+    fn push_bad_from_update(state: &mut State, id: TableId, response: UpdateBadRequestResponse);
 }
 pub trait TableItemDelete
 where
@@ -58,7 +58,7 @@ where
     const DELETE_PATH: &'static str;
 
     fn push_from_delete(state: &mut State, id: TableId);
-    fn push_bad_from_delete(state: &mut State, id: TableId);
+    fn push_bad_from_delete(state: &mut State, id: TableId, response: DeleteBadRequestResponse);
 }
 
 #[derive(Clone, Copy)]
@@ -150,6 +150,7 @@ impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     type Query = ();
     type Body = T::UpdItem;
     type Response = EmptyResponse;
+    type BadResponse = UpdateBadRequestResponse;
     type Info = TableId;
 }
 #[allow(unused_variables)]
@@ -158,8 +159,8 @@ impl<T: TableItemUpdate> StateRequestType for TableUpdateRequest<T> {
         T::push_from_update(state, info);
     }
 
-    fn push_bad_to_state(_response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_update(state, info);
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        T::push_bad_from_update(state, info, response);
     }
 }
 
@@ -170,6 +171,7 @@ impl<T: TableItemDelete> RequestType for TableDeleteRequest<T> {
     const METHOD: reqwest::Method = reqwest::Method::DELETE;
     type Query = TableId;
     type Response = EmptyResponse;
+    type BadResponse = DeleteBadRequestResponse;
     type Info = TableId;
 }
 #[allow(unused_variables)]
@@ -179,6 +181,6 @@ impl<T: TableItemDelete> StateRequestType for TableDeleteRequest<T> {
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_delete(state, info);
+        T::push_bad_from_delete(state, info, response);
     }
 }

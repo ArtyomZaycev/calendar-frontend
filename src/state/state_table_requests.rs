@@ -1,4 +1,4 @@
-use calendar_lib::api::utils::{LoadByIdBadRequestResponse, TableId};
+use calendar_lib::api::utils::*;
 
 use crate::tables::DbTableItem;
 
@@ -48,7 +48,7 @@ impl<T: DbTableItem> StateTable<T> {
     {
         self.load_by_id(id);
     }
-    pub(super) fn default_push_bad_from_update(&mut self, id: TableId)
+    pub(super) fn default_push_bad_from_update(&mut self, id: TableId, response: UpdateBadRequestResponse)
     where
         T: TableItemLoadById,
     {
@@ -58,7 +58,7 @@ impl<T: DbTableItem> StateTable<T> {
     pub(super) fn default_push_from_delete(&mut self, id: TableId) {
         self.get_table_mut().remove_one(id);
     }
-    pub(super) fn default_push_bad_from_delete(&mut self, id: TableId)
+    pub(super) fn default_push_bad_from_delete(&mut self, id: TableId, response: DeleteBadRequestResponse)
     where
         T: TableItemLoadById,
     {
