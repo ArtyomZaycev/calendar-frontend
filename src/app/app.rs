@@ -118,4 +118,12 @@ impl CalendarApp {
     pub fn get_selected_user_permissions(&self) -> SharedPermissions {
         self.state.get_user_permissions(self.selected_user_id)
     }
+
+    pub fn get_selected_access_level(&self) -> i32 {
+        self.get_selected_user_permissions().access_level
+    }
+
+    pub fn prepare_date(&mut self, date: NaiveDate) {
+        self.state.prepare_date(self.selected_user_id, self.get_selected_user_permissions().access_level, date);
+    }
 }

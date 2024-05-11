@@ -181,7 +181,7 @@ impl CalendarApp {
                 });
             });
         });
-        let level = self.state.get_access_level().level;
+        let level = self.get_selected_access_level();
         egui::ScrollArea::vertical().show(ui, |ui| {
             egui::Grid::new("month")
                 .num_columns(7)
@@ -193,7 +193,7 @@ impl CalendarApp {
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
-                            self.state.prepare_date(self.selected_user_id, date);
+                            self.prepare_date(date);
                             let events = self.state.get_events_for_date(date);
                             ui.vertical(|ui| {
                                 ui.label(
@@ -243,8 +243,8 @@ impl CalendarApp {
                         ui.vertical_centered(|ui| ui.heading(weekday_name));
                         ui.add_space(4.);
 
-                        let level = self.state.get_access_level().level;
-                        self.state.prepare_date(self.selected_user_id, date);
+                        let level = self.get_selected_access_level();
+                        self.prepare_date(date);
                         self.state
                             .get_events_for_date(date)
                             .iter()
@@ -275,8 +275,8 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
-            let level = self.state.get_access_level().level;
-            self.state.prepare_date(self.selected_user_id, date);
+            let level = self.get_selected_access_level();
+            self.prepare_date(date);
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
@@ -332,8 +332,8 @@ impl CalendarApp {
                 egui::CollapsingHeader::new(RichText::new(header_text).heading())
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
-                        let level = self.state.get_access_level().level;
-                        self.state.prepare_date(self.selected_user_id, date);
+                        let level = self.get_selected_access_level();
+                        self.prepare_date(date);
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state
@@ -376,7 +376,7 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
-            let level = self.state.get_access_level().level;
+            let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.get_selected_user_state()
@@ -418,7 +418,7 @@ impl CalendarApp {
 
             let mut signals = vec![];
 
-            let level = self.state.get_access_level().level;
+            let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.get_selected_user_state()

@@ -136,7 +136,7 @@ impl PopupContent for ScheduleInput {
         }
 
         if self.access_level == -1 {
-            self.access_level = app.state.get_access_level().level;
+            self.access_level = app.get_selected_access_level();
         }
     }
 

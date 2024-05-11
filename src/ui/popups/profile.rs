@@ -52,7 +52,7 @@ impl PopupContent for Profile {
 
                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                     ui.label("Access level: ");
-                    let mut level = app.state.get_access_level().level;
+                    let mut level = app.get_selected_access_level();
                     ui.add(AccessLevelPicker::new(
                         "profile_access_level_picker",
                         &mut level,
@@ -61,7 +61,7 @@ impl PopupContent for Profile {
                             .get_table()
                             .get(),
                     ));
-                    if app.state.get_access_level().level != level {
+                    if app.get_selected_access_level() != level {
                         StateUpdater::get().push_executor(Box::new(move |state: &mut State| {
                             state.change_access_level(level);
                         }));

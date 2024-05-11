@@ -205,7 +205,7 @@ impl State {
         self.events_per_day.clear();
     }
 
-    pub(super) fn generate_phantom_events(&self, user_id: TableId, date: NaiveDate) -> Vec<Event> {
+    pub(super) fn generate_phantom_events(&self, user_id: TableId, access_level: i32, date: NaiveDate) -> Vec<Event> {
         let user_state = self.get_user_state(user_id);
 
         let event_exists = |plan_id: i32| {
@@ -217,13 +217,12 @@ impl State {
                 .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
-        let level = self.get_access_level().level;
         user_state
             .schedules
             .get_table()
             .get()
             .iter()
-            .filter(move |s| s.access_level <= level)
+            .filter(move |s| s.access_level <= access_level)
             .flat_map(|schedule| {
                 match user_state
                     .event_templates
@@ -258,14 +257,13 @@ impl State {
             .collect()
     }
 
-    pub fn prepare_date(&mut self, user_id: TableId, date: NaiveDate) {
+    pub fn prepare_date(&mut self, user_id: TableId, access_level: i32, date: NaiveDate) {
         if self.events_per_day_user_id != user_id {
             self.events_per_day_user_id = user_id;
             self.events_per_day.clear();
         }
 
         if !self.events_per_day.contains_key(&date) {
-            let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
                 self.get_user_state(user_id)
                     .events
@@ -274,7 +272,7 @@ impl State {
                     .iter()
                     .filter(|e| e.start.date() == date)
                     .filter_map(move |e| {
-                        if e.access_level <= level {
+                        if e.access_level <= access_level {
                             Some(e.clone())
                         } else {
                             match e.visibility {
@@ -292,7 +290,7 @@ impl State {
                             }
                         }
                     })
-                    .chain(self.generate_phantom_events(user_id, date))
+                    .chain(self.generate_phantom_events(user_id, access_level, date))
                     .sorted_by_key(|v| v.start)
                     .collect()
             });
