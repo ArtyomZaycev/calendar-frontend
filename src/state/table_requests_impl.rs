@@ -42,7 +42,7 @@ impl TableItemLoadById for Event {
     const LOAD_BY_ID_PATH: &'static str = events::load::PATH;
 
     fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_from_load_by_id(id, item);
     }
 
@@ -51,7 +51,7 @@ impl TableItemLoadById for Event {
         id: TableId,
         response: LoadByIdBadRequestResponse,
     ) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_bad_from_load_by_id(id, response);
     }
 }
@@ -60,12 +60,12 @@ impl TableItemLoadAll for Event {
     const LOAD_ALL_PATH: &'static str = events::load_array::PATH;
 
     fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_from_load_all(items);
     }
 
     fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_bad_from_load_all();
     }
 }
@@ -75,12 +75,12 @@ impl TableItemInsert for Event {
     const INSERT_PATH: &'static str = events::insert::PATH;
 
     fn push_from_insert(state: &mut State, user_id: TableId) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_from_insert();
     }
 
     fn push_bad_from_insert(state: &mut State, user_id: TableId) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_bad_from_insert();
     }
 }
@@ -90,12 +90,12 @@ impl TableItemUpdate for Event {
     const UPDATE_PATH: &'static str = events::update::PATH;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_from_update(id);
     }
 
     fn push_bad_from_update(state: &mut State, user_id: TableId, id: TableId, response: UpdateBadRequestResponse) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_bad_from_update(id, response);
     }
 }
@@ -104,12 +104,12 @@ impl TableItemDelete for Event {
     const DELETE_PATH: &'static str = events::delete::PATH;
 
     fn push_from_delete(state: &mut State, user_id: TableId, id: TableId) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_from_delete(id);
     }
 
     fn push_bad_from_delete(state: &mut State, user_id: TableId, id: TableId, response: DeleteBadRequestResponse) {
-        state.clear_events();
+        state.clear_events(user_id);
         state.get_user_state(user_id).events.default_push_bad_from_delete(id, response);
     }
 }

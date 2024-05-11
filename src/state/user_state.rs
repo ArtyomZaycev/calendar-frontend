@@ -10,14 +10,14 @@ use calendar_lib::api::{
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
 
-use crate::tables::{DbTable, DbTableItem};
+use crate::tables::DbTable;
 
 use super::{
     request::RequestIdentifier, state_table::StateTable, table_requests::TableInsertRequest,
 };
 
 pub struct UserState {
-    user_id: TableId,
+    pub(super) user_id: TableId,
     pub access_levels: StateTable<AccessLevel>,
     pub events: StateTable<Event>,
     pub event_templates: StateTable<EventTemplate>,

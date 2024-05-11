@@ -131,7 +131,7 @@ impl State {
 
 impl UserState {
     pub fn load_state(&self) -> RequestIdentifier<LoadStateRequest> {
-        State::make_request(None, |connector| {
+        State::make_request(self.user_id, |connector| {
             connector
                 .make_request::<LoadStateRequest>()
                 .query(&user_state::load::Args { user_id: None })
@@ -164,7 +164,7 @@ impl AdminState {
     }
 
     pub fn load_user_state(&self, user_id: TableId) -> RequestIdentifier<LoadStateRequest> {
-        State::make_request(Some(user_id), |connector| {
+        State::make_request(user_id, |connector| {
             connector
                 .make_request::<LoadStateRequest>()
                 .query(&user_state::load::Args {

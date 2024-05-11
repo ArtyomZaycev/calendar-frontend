@@ -185,7 +185,7 @@ impl CalendarApp {
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
-                            self.state.prepare_date(date);
+                            self.state.prepare_date(self.state.get_me().id, date);
                             let events = self.state.get_events_for_date(date);
                             ui.vertical(|ui| {
                                 ui.label(
@@ -235,7 +235,7 @@ impl CalendarApp {
                         ui.add_space(4.);
 
                         let level = self.state.get_access_level().level;
-                        self.state.prepare_date(date);
+                        self.state.prepare_date(self.state.get_me().id, date);
                         self.state
                             .get_events_for_date(date)
                             .iter()
@@ -266,7 +266,7 @@ impl CalendarApp {
             let mut signals = vec![];
 
             let level = self.state.get_access_level().level;
-            self.state.prepare_date(date);
+            self.state.prepare_date(self.state.get_me().id, date);
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
@@ -322,7 +322,7 @@ impl CalendarApp {
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
                         let level = self.state.get_access_level().level;
-                        self.state.prepare_date(date);
+                        self.state.prepare_date(self.state.get_me().id, date);
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state

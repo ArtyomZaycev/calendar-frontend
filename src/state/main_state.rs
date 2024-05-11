@@ -1,7 +1,7 @@
 use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
-    auth::types::AccessLevel, events::types::Event, events::types::EventVisibility, utils::User,
+    auth::types::AccessLevel, events::types::{Event, EventVisibility}, utils::{TableId, User},
 };
 
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
@@ -31,6 +31,7 @@ pub struct State {
 
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
+    pub(super) events_per_day_user_id: TableId,
 }
 
 impl State {
@@ -44,6 +45,7 @@ impl State {
             admin_state: AdminState::new(),
 
             events_per_day: HashMap::new(),
+            events_per_day_user_id: -1,
         }
     }
 
@@ -54,7 +56,7 @@ impl State {
 
     pub fn change_access_level(&mut self, new_access_level: i32) {
         self.current_access_level = new_access_level;
-        self.clear_events();
+        self.clear_events(-1);
     }
 
     pub fn get_access_level(&self) -> AccessLevel {
@@ -151,11 +153,17 @@ impl State {
 }
 
 impl State {
-    pub fn clear_events_for_day(&mut self, date: NaiveDate) {
-        self.events_per_day.remove(&date);
+    pub fn clear_events_for_day(&mut self, user_id: TableId, date: NaiveDate) {
+        if self.events_per_day_user_id == user_id {
+            self.events_per_day.remove(&date);
+        }
     }
-    pub fn clear_events(&mut self) {
-        self.events_per_day.clear();
+    pub fn clear_events(&mut self, user_id: TableId) {
+        println!("{:?}", self.me);
+        println!("{}, {}", self.events_per_day_user_id, user_id);
+        if self.events_per_day_user_id == user_id {
+            self.events_per_day.clear();
+        }
     }
 
     pub(super) fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
@@ -210,7 +218,12 @@ impl State {
             .collect()
     }
 
-    pub fn prepare_date(&mut self, date: NaiveDate) {
+    pub fn prepare_date(&mut self, user_id: TableId, date: NaiveDate) {
+        if self.events_per_day_user_id != user_id {
+            self.events_per_day_user_id = user_id;
+            self.events_per_day.clear();
+        }
+
         if !self.events_per_day.contains_key(&date) {
             let level = self.get_access_level().level;
             self.events_per_day.insert(date, {

@@ -1,6 +1,6 @@
 use calendar_lib::api::{auth::*, user_state};
 
-use crate::tables::TableId;
+use crate::{db::aliases::UserUtils, tables::TableId};
 
 use super::{
     db_connector::DbConnectorData,
@@ -98,6 +98,7 @@ impl StateRequestType for LoginByKeyRequest {
             .access_levels
             .get_table_mut()
             .replace_all(vec![response.access_level]);
+        state.user_state.set_user_id(state.me.id);
 
         state.load_state();
     }
@@ -158,38 +159,36 @@ impl RequestType for LoadStateRequest {
     type Response = user_state::load::Response;
     type BadResponse = user_state::load::BadRequestResponse;
 
-    /// None for loading own state, Some(user_id) for admin request
-    type Info = Option<TableId>;
+    /// user_id
+    type Info = TableId;
 }
 #[allow(unused_variables)]
 impl StateRequestType for LoadStateRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        match info {
-            Some(user_id) => {
-                state
-                    .admin_state
-                    .users_data
-                    .insert(user_id, UserState::from_response(user_id, response));
-            }
-            None => {
-                state.user_state.replace_data(response);
-                state.clear_events();
-            }
+        let user_id = info;
+        if state.me.is_admin() {
+            state
+                .admin_state
+                .users_data
+                .insert(user_id, UserState::from_response(user_id, response));
+        } else {
+            state.user_state.replace_data(response);
+            state.clear_events(user_id);
         }
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        match info {
-            Some(user_id) => match response {
+        let user_id = info;
+        if state.me.is_admin() {
+            match response {
                 user_state::load::BadRequestResponse::UserNotFound => {
                     state.admin_state.users.get_table_mut().remove_one(user_id);
                     state.admin_state.users_data.remove(&user_id);
                 }
-            },
-            None => {
-                println!("Failed loading state");
-                state.clear_events();
             }
+        } else {
+            println!("Failed loading state");
+            state.clear_events(user_id);
         }
     }
 }
