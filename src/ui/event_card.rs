@@ -1,9 +1,9 @@
 use super::signal::AppSignal;
-use crate::{db::aliases::Event, state::State};
+use crate::{app::CalendarApp, db::aliases::Event};
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {
-    state: &'a State,
+    app: &'a CalendarApp,
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     event: &'a Event,
@@ -16,14 +16,14 @@ pub struct EventCard<'a> {
 
 impl<'a> EventCard<'a> {
     pub fn new(
-        state: &'a State,
+        app: &'a CalendarApp,
         signals: &'a mut Vec<AppSignal>,
         desired_size: Vec2,
         event: &'a Event,
         access_level: i32,
     ) -> Self {
         Self {
-            state,
+            app,
             signals,
             desired_size,
             event,
@@ -131,8 +131,8 @@ impl<'a> Widget for EventCard<'a> {
                                 ui.add_space(4.);
                                 ui.vertical_centered(|ui| {
                                     if ui.button("Accept").clicked() {
-                                        self.state
-                                            .user_state
+                                        self.app
+                                            .get_selected_user_state()
                                             .accept_scheduled_event(*plan_id, start.date());
                                     }
                                 });
@@ -149,7 +149,7 @@ impl<'a> Widget for EventCard<'a> {
                         ui.close_menu();
                     }
                     if ui.button("Delete").clicked() {
-                        self.state.user_state.events.delete(*event_id);
+                        self.app.get_selected_user_state().events.delete(*event_id);
                         ui.close_menu();
                     }
                 });

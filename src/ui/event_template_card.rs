@@ -1,9 +1,9 @@
 use super::signal::AppSignal;
-use crate::{db::aliases::EventTemplate, state::State};
+use crate::{app::CalendarApp, db::aliases::EventTemplate};
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventTemplateCard<'a> {
-    state: &'a State,
+    app: &'a CalendarApp,
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     template: &'a EventTemplate,
@@ -12,13 +12,13 @@ pub struct EventTemplateCard<'a> {
 
 impl<'a> EventTemplateCard<'a> {
     pub fn new(
-        state: &'a State,
+        app: &'a CalendarApp,
         signals: &'a mut Vec<AppSignal>,
         desired_size: Vec2,
         template: &'a EventTemplate,
     ) -> Self {
         Self {
-            state,
+            app,
             signals,
             desired_size,
             template,
@@ -59,7 +59,10 @@ impl<'a> Widget for EventTemplateCard<'a> {
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {
-                                    self.state.user_state.event_templates.delete(*template_id);
+                                    self.app
+                                        .get_selected_user_state()
+                                        .event_templates
+                                        .delete(*template_id);
                                     ui.close_menu();
                                 }
                             });

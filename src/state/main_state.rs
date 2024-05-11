@@ -1,7 +1,10 @@
 use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
-    auth::types::AccessLevel, events::types::{Event, EventVisibility}, sharing::SharedPermissions, utils::{TableId, User}
+    auth::types::AccessLevel,
+    events::types::{Event, EventVisibility},
+    sharing::SharedPermissions,
+    utils::{TableId, User},
 };
 
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
@@ -95,21 +98,23 @@ impl State {
         &self.me
     }
 
-    pub fn get_user_state(&self, user_id: i32) -> Option<&UserState> {
+    /// Can return user state instead of requested
+    pub fn get_user_state(&self, user_id: i32) -> &UserState {
+        self.try_get_user_state(user_id).unwrap_or(&self.user_state)
+    }
+
+    pub fn try_get_user_state(&self, user_id: i32) -> Option<&UserState> {
         if self.me.is_admin() {
-            self.admin_state
-                .users_data.get(&user_id)
+            self.admin_state.users_data.get(&user_id)
         } else {
             if user_id == self.me.id {
                 Some(&self.user_state)
             } else {
-                self.shared_states.iter().find_map(|state| (state.user.id == user_id).then_some(&state.state))
+                self.shared_states
+                    .iter()
+                    .find_map(|state| (state.user.id == user_id).then_some(&state.state))
             }
         }
-    }
-    
-    pub fn get_user_state_fallback(&self, user_id: i32) -> &UserState {
-        self.get_user_state(user_id).unwrap_or(&self.user_state)
     }
 
     pub fn get_user_state_mut(&mut self, user_id: i32) -> &mut UserState {
@@ -125,7 +130,10 @@ impl State {
             if user_id == self.me.id {
                 &mut self.user_state
             } else {
-                self.shared_states.iter_mut().find_map(|state| (state.user.id == user_id).then_some(&mut state.state)).unwrap()
+                self.shared_states
+                    .iter_mut()
+                    .find_map(|state| (state.user.id == user_id).then_some(&mut state.state))
+                    .unwrap()
             }
         }
     }
@@ -137,7 +145,10 @@ impl State {
             if user_id == self.me.id {
                 SharedPermissions::FULL
             } else {
-                self.shared_states.iter_mut().find_map(|state| (state.user.id == user_id).then_some(state.permissions)).unwrap()
+                self.shared_states
+                    .iter_mut()
+                    .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
+                    .unwrap()
             }
         }
     }
@@ -200,13 +211,15 @@ impl State {
     }
 
     pub(super) fn generate_phantom_events(&self, user_id: TableId, date: NaiveDate) -> Vec<Event> {
-        let user_state = self.get_user_state_fallback(user_id);
+        let user_state = self.get_user_state(user_id);
 
         let event_exists = |plan_id: i32| {
-            user_state.events.get_table()
-                    .get()
-                    .iter()
-                    .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
+            user_state
+                .events
+                .get_table()
+                .get()
+                .iter()
+                .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
         let level = self.get_access_level().level;
@@ -259,7 +272,7 @@ impl State {
         if !self.events_per_day.contains_key(&date) {
             let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
-                self.get_user_state_fallback(user_id)
+                self.get_user_state(user_id)
                     .events
                     .get_table()
                     .get()

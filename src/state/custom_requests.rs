@@ -4,7 +4,7 @@ use crate::{db::aliases::UserUtils, tables::TableId};
 
 use super::{
     db_connector::DbConnectorData,
-    main_state::{State, UserState},
+    main_state::State,
     request::{RequestType, StateRequestType},
 };
 

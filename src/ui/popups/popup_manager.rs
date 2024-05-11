@@ -1,9 +1,11 @@
+use std::sync::{Mutex, MutexGuard};
+
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
 };
 use itertools::Itertools;
 
-use crate::{state::State, ui::signal::AppSignal};
+use crate::{app::CalendarApp, ui::signal::AppSignal};
 
 use super::{
     event_input::EventInput,
@@ -21,16 +23,25 @@ pub struct PopupManager {
 }
 
 impl PopupManager {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self { popups: vec![] }
+    }
+
+    pub fn get() -> MutexGuard<'static, Self> {
+        use std::sync::OnceLock;
+
+        static DATA: OnceLock<Mutex<PopupManager>> = OnceLock::new();
+        DATA.get_or_init(|| Mutex::new(PopupManager::new()))
+            .lock()
+            .unwrap()
     }
 
     pub fn clear(&mut self) {
         self.popups.clear();
     }
 
-    pub fn show(&mut self, state: &State, ctx: &egui::Context) {
-        self.popups.iter_mut().for_each(|p| p.show(state, ctx))
+    pub fn show(&mut self, app: &CalendarApp, ctx: &egui::Context) {
+        self.popups.iter_mut().for_each(|p| p.show(app, ctx))
     }
 
     pub fn get_signals(&mut self) -> Vec<AppSignal> {

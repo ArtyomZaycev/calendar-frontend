@@ -1,9 +1,9 @@
 use super::popup_content::PopupContent;
 use crate::{
+    app::CalendarApp,
     state::{
         request::RequestIdentifier,
         table_requests::{TableInsertRequest, TableUpdateRequest},
-        State,
     },
     tables::DbTable,
     ui::{
@@ -81,9 +81,9 @@ impl EventInput {
 }
 
 impl PopupContent for EventInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut super::popup_content::ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.update_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -91,7 +91,7 @@ impl PopupContent for EventInput {
             }
         }
         if let Some(identifier) = self.insert_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -100,7 +100,7 @@ impl PopupContent for EventInput {
         }
 
         if self.access_level == -1 {
-            self.access_level = state.get_access_level().level;
+            self.access_level = app.state.get_access_level().level;
         }
     }
 
@@ -114,7 +114,7 @@ impl PopupContent for EventInput {
 
     fn show_content(
         &mut self,
-        state: &State,
+        app: &CalendarApp,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -127,7 +127,10 @@ impl PopupContent for EventInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.user_state.access_levels.get_table().get(),
+                    app.get_selected_user_state()
+                        .access_levels
+                        .get_table()
+                        .get(),
                 ));
             });
             ui.add(
@@ -155,7 +158,7 @@ impl PopupContent for EventInput {
 
     fn show_buttons(
         &mut self,
-        state: &State,
+        app: &CalendarApp,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -164,25 +167,26 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                self.update_request = Some(state.user_state.events.update(UpdateEvent {
-                    id,
-                    name: USome(self.name.clone()),
-                    description: USome(
-                        (!self.description.is_empty()).then_some(self.description.clone()),
-                    ),
-                    start: USome(NaiveDateTime::new(self.date, self.start)),
-                    end: USome(NaiveDateTime::new(self.date, self.end)),
-                    access_level: USome(self.access_level),
-                    visibility: USome(self.visibility),
-                    plan_id: UNone,
-                }));
+                self.update_request =
+                    Some(app.get_selected_user_state().events.update(UpdateEvent {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        start: USome(NaiveDateTime::new(self.date, self.start)),
+                        end: USome(NaiveDateTime::new(self.date, self.end)),
+                        access_level: USome(self.access_level),
+                        visibility: USome(self.visibility),
+                        plan_id: UNone,
+                    }));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                self.insert_request = Some(state.user_state.events.insert(NewEvent {
+                self.insert_request = Some(app.get_selected_user_state().events.insert(NewEvent {
                     user_id: self.user_id,
                     name: self.name.clone(),
                     description: (!self.description.is_empty()).then_some(self.description.clone()),

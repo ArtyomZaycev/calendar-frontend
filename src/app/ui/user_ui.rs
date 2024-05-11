@@ -3,7 +3,7 @@ use crate::{
     tables::DbTable,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::*,
-        schedule_card::ScheduleCard, utils::UiUtils,
+        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
     },
     utils::*,
 };
@@ -29,35 +29,34 @@ impl CalendarApp {
                 CalendarView::Events(_) => {
                     if ui
                         .add_enabled(
-                            !self.popup_manager.is_open_new_event(),
+                            !PopupManager::get().is_open_new_event(),
                             egui::Button::new("Add Event"),
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_event(self.state.get_me().id);
+                        PopupManager::get().open_new_event(self.state.get_me().id);
                     }
                 }
                 CalendarView::Schedules => {
                     if ui
                         .add_enabled(
-                            !self.popup_manager.is_open_new_schedule(),
+                            !PopupManager::get().is_open_new_schedule(),
                             egui::Button::new("Add Schedule"),
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_new_schedule(self.state.get_me().id);
+                        PopupManager::get().open_new_schedule(self.state.get_me().id);
                     }
                 }
                 CalendarView::EventTemplates => {
                     if ui
                         .add_enabled(
-                            !self.popup_manager.is_open_new_event_template(),
+                            !PopupManager::get().is_open_new_event_template(),
                             egui::Button::new("Add Template"),
                         )
                         .clicked()
                     {
-                        self.popup_manager
-                            .open_new_event_template(self.state.get_me().id);
+                        PopupManager::get().open_new_event_template(self.state.get_me().id);
                     }
                 }
             });
@@ -194,7 +193,7 @@ impl CalendarApp {
                                 );
                                 events.iter().for_each(|event| {
                                     EventCard::new(
-                                        &self.state,
+                                        &self,
                                         &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         event,
@@ -242,7 +241,7 @@ impl CalendarApp {
                             .for_each(|event| {
                                 ui.add(
                                     EventCard::new(
-                                        &self.state,
+                                        &self,
                                         &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
@@ -285,7 +284,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         events.into_iter().for_each(|event| {
                             ui.add(EventCard::new(
-                                &self.state,
+                                &self,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
@@ -341,7 +340,7 @@ impl CalendarApp {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events.into_iter().for_each(|event| {
                                         ui.add(EventCard::new(
-                                            &self.state,
+                                            &self,
                                             &mut signals,
                                             egui::Vec2::new(column_width, 200.),
                                             &event,
@@ -386,7 +385,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         schedules.into_iter().for_each(|schedule| {
                             ui.add(ScheduleCard::new(
-                                &self.state,
+                                &self,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &schedule,
@@ -428,7 +427,7 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         templates.into_iter().for_each(|template| {
                             ui.add(EventTemplateCard::new(
-                                &self.state,
+                                &self,
                                 &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &template,

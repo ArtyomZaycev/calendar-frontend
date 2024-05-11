@@ -2,7 +2,8 @@ use calendar_lib::api::auth::register;
 
 use super::popup_content::PopupContent;
 use crate::{
-    state::{custom_requests::RegisterRequest, request::RequestIdentifier, State},
+    app::CalendarApp,
+    state::{custom_requests::RegisterRequest, request::RequestIdentifier},
     utils::{is_password_strong_enough, is_valid_email},
 };
 
@@ -34,9 +35,9 @@ impl SignUp {
 }
 
 impl PopupContent for SignUp {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut super::popup_content::ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
-            if let Some(response_info) = state.get_response(identifier) {
+            if let Some(response_info) = app.state.get_response(identifier) {
                 self.request = None;
                 match response_info {
                     Ok(_) => info.close(),
@@ -54,7 +55,7 @@ impl PopupContent for SignUp {
 
     fn show_content(
         &mut self,
-        _state: &State,
+        app: &CalendarApp,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -96,7 +97,7 @@ impl PopupContent for SignUp {
 
     fn show_buttons(
         &mut self,
-        state: &State,
+        app: &CalendarApp,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {
@@ -104,8 +105,11 @@ impl PopupContent for SignUp {
             .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
             .clicked()
         {
-            self.request =
-                Some(state.register(self.name.clone(), self.email.clone(), self.password.clone()));
+            self.request = Some(app.state.register(
+                self.name.clone(),
+                self.email.clone(),
+                self.password.clone(),
+            ));
         }
         if ui.button("Cancel").clicked() {
             info.close();

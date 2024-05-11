@@ -11,9 +11,8 @@ use crate::{
 
 pub struct CalendarApp {
     pub(super) local_storage: AppLocalStorage,
-    pub(super) state: State,
+    pub state: State,
     pub(super) view: AppView,
-    pub(super) popup_manager: PopupManager,
 
     pub selected_user_id: TableId,
     pub selected_date: NaiveDate,
@@ -38,7 +37,6 @@ impl CalendarApp {
             local_storage,
             state,
             view: EventsView::Days.into(),
-            popup_manager: PopupManager::new(),
 
             selected_user_id: -1,
             selected_date: chrono::Local::now().naive_local().date(),
@@ -49,7 +47,7 @@ impl CalendarApp {
 impl CalendarApp {
     pub(super) fn logout(&mut self) {
         self.local_storage.clear_jwt();
-        self.popup_manager.clear();
+        PopupManager::get().clear();
         self.view = EventsView::Days.into();
         self.state.logout();
     }
@@ -59,45 +57,44 @@ impl CalendarApp {
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self
                     .state
-                    .get_user_state_fallback(self.selected_user_id)
+                    .get_user_state(self.selected_user_id)
                     .events
                     .get_table()
                     .get()
                     .iter()
                     .find(|event| event.id == event_id)
                 {
-                    self.popup_manager.open_update_event(&event.clone());
+                    PopupManager::get().open_update_event(&event.clone());
                 }
             }
             AppSignal::ChangeEventTemplate(template_id) => {
                 if let Some(template) = self
                     .state
-                    .get_user_state_fallback(self.selected_user_id)
+                    .get_user_state(self.selected_user_id)
                     .event_templates
                     .get_table()
                     .get()
                     .iter()
                     .find(|template| template.id == template_id)
                 {
-                    self.popup_manager
-                        .open_update_event_template(&template.clone());
+                    PopupManager::get().open_update_event_template(&template.clone());
                 }
             }
             AppSignal::ChangeSchedule(schedule_id) => {
                 if let Some(schedule) = self
                     .state
-                    .get_user_state_fallback(self.selected_user_id)
+                    .get_user_state(self.selected_user_id)
                     .schedules
                     .get_table()
                     .get()
                     .iter()
                     .find(|schedule| schedule.id == schedule_id)
                 {
-                    self.popup_manager.open_update_schedule(&schedule.clone());
+                    PopupManager::get().open_update_schedule(&schedule.clone());
                 }
             }
             AppSignal::AddPassword => {
-                self.popup_manager.open_new_password();
+                PopupManager::get().open_new_password();
             }
         }
     }
@@ -109,6 +106,6 @@ impl CalendarApp {
     }
 
     pub fn get_selected_user_state(&self) -> &UserState {
-        self.state.get_user_state_fallback(self.selected_user_id)
+        self.state.get_user_state(self.selected_user_id)
     }
 }

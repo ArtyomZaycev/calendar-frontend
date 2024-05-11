@@ -6,7 +6,9 @@ use super::{
     main_state::State,
     request::{RequestIdentifier, RequestType},
     table_requests::{
-        StateRequestInfo, TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert, TableItemLoadAll, TableItemLoadById, TableItemUpdate, TableLoadAllRequest, TableLoadByIdRequest, TableUpdateRequest
+        StateRequestInfo, TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert,
+        TableItemLoadAll, TableItemLoadById, TableItemUpdate, TableLoadAllRequest,
+        TableLoadByIdRequest, TableUpdateRequest,
     },
 };
 
@@ -17,7 +19,10 @@ pub struct StateTable<T: DbTableItem> {
 
 impl<T: DbTableItem> StateTable<T> {
     pub(super) fn new() -> Self {
-        Self { user_id: -1, data: Table::new() }
+        Self {
+            user_id: -1,
+            data: Table::new(),
+        }
     }
 
     pub(super) fn from_vec(items: Vec<T>) -> Self {

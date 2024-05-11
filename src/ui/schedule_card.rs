@@ -1,9 +1,9 @@
 use super::signal::AppSignal;
-use crate::{db::aliases::Schedule, state::State};
+use crate::{app::CalendarApp, db::aliases::Schedule};
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct ScheduleCard<'a> {
-    state: &'a State,
+    app: &'a CalendarApp,
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     schedule: &'a Schedule,
@@ -11,13 +11,13 @@ pub struct ScheduleCard<'a> {
 
 impl<'a> ScheduleCard<'a> {
     pub fn new(
-        state: &'a State,
+        app: &'a CalendarApp,
         signals: &'a mut Vec<AppSignal>,
         desired_size: Vec2,
         schedule: &'a Schedule,
     ) -> Self {
         Self {
-            state,
+            app,
             signals,
             desired_size,
             schedule,
@@ -47,7 +47,10 @@ impl<'a> Widget for ScheduleCard<'a> {
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {
-                                    self.state.user_state.schedules.delete(*schedule_id);
+                                    self.app
+                                        .get_selected_user_state()
+                                        .schedules
+                                        .delete(*schedule_id);
                                     ui.close_menu();
                                 }
                             });

@@ -4,7 +4,10 @@ use super::super::{
 };
 use crate::{
     tables::{DbTable, DbTableGetById},
-    ui::table_view::{TableView, TableViewActions},
+    ui::{
+        popups::popup_manager::PopupManager,
+        table_view::{TableView, TableViewActions},
+    },
 };
 use calendar_lib::api::{
     event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
@@ -124,12 +127,12 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !self.popup_manager.is_open_new_event(),
+                !PopupManager::get().is_open_new_event(),
                 egui::Button::new("Add Event"),
             )
             .clicked()
         {
-            self.popup_manager.open_new_event(user_id);
+            PopupManager::get().open_new_event(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions = table
@@ -162,12 +165,12 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !self.popup_manager.is_open_new_event_template(),
+                !PopupManager::get().is_open_new_event_template(),
                 egui::Button::new("Add Template"),
             )
             .clicked()
         {
-            self.popup_manager.open_new_event_template(user_id);
+            PopupManager::get().open_new_event_template(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions = table
@@ -200,12 +203,12 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !self.popup_manager.is_open_new_schedule(),
+                !PopupManager::get().is_open_new_schedule(),
                 egui::Button::new("Add Schedule"),
             )
             .clicked()
         {
-            self.popup_manager.open_new_schedule(user_id);
+            PopupManager::get().open_new_schedule(user_id);
         }
         if let Some(user_state) = self.state.admin_state.users_data.get(&user_id) {
             let actions: crate::ui::table_view::TableViewResponse = table

@@ -1,5 +1,5 @@
-use std::{marker::PhantomData, fmt::Debug};
 use calendar_lib::api::utils::*;
+use std::{fmt::Debug, marker::PhantomData};
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem};
 
@@ -9,17 +9,29 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
-pub struct StateRequestInfo<T> where T: 'static + Clone + Debug + Send {
+pub struct StateRequestInfo<T>
+where
+    T: 'static + Clone + Debug + Send,
+{
     pub user_id: TableId,
     pub info: T,
 }
 
-impl<T> StateRequestInfo<T> where T: 'static + Clone + Debug + Send {
+impl<T> StateRequestInfo<T>
+where
+    T: 'static + Clone + Debug + Send,
+{
     pub fn new(user_id: TableId, info: T) -> Self {
-        Self { user_id, info, }
+        Self { user_id, info }
     }
-    pub fn new_default(user_id: TableId) -> Self where T: Default {
-        Self { user_id, info: T::default(), }
+    pub fn new_default(user_id: TableId) -> Self
+    where
+        T: Default,
+    {
+        Self {
+            user_id,
+            info: T::default(),
+        }
     }
 }
 
@@ -64,7 +76,12 @@ where
     const UPDATE_PATH: &'static str;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId);
-    fn push_bad_from_update(state: &mut State, user_id: TableId, id: TableId, response: UpdateBadRequestResponse);
+    fn push_bad_from_update(
+        state: &mut State,
+        user_id: TableId,
+        id: TableId,
+        response: UpdateBadRequestResponse,
+    );
 }
 pub trait TableItemDelete
 where
@@ -73,7 +90,12 @@ where
     const DELETE_PATH: &'static str;
 
     fn push_from_delete(state: &mut State, user_id: TableId, id: TableId);
-    fn push_bad_from_delete(state: &mut State, user_id: TableId, id: TableId, response: DeleteBadRequestResponse);
+    fn push_bad_from_delete(
+        state: &mut State,
+        user_id: TableId,
+        id: TableId,
+        response: DeleteBadRequestResponse,
+    );
 }
 
 #[derive(Clone, Copy)]

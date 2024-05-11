@@ -8,7 +8,7 @@ use super::{
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
-use crate::{state::State, ui::signal::AppSignal};
+use crate::{app::CalendarApp, ui::signal::AppSignal};
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, Vec2};
 
@@ -27,7 +27,7 @@ pub enum PopupType {
 }
 
 impl PopupContent for PopupType {
-    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
+    fn init_frame(&mut self, state: &CalendarApp, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.init_frame(state, info),
             PopupType::Login(w) => w.init_frame(state, info),
@@ -57,7 +57,7 @@ impl PopupContent for PopupType {
         }
     }
 
-    fn show_title(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_title(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_title(state, ui, info),
             PopupType::Login(w) => w.show_title(state, ui, info),
@@ -72,7 +72,7 @@ impl PopupContent for PopupType {
         }
     }
 
-    fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_content(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_content(state, ui, info),
             PopupType::Login(w) => w.show_content(state, ui, info),
@@ -87,7 +87,7 @@ impl PopupContent for PopupType {
         }
     }
 
-    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_buttons(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_buttons(state, ui, info),
             PopupType::Login(w) => w.show_buttons(state, ui, info),
@@ -118,7 +118,7 @@ pub struct Popup {
 }
 
 impl Popup {
-    pub fn show(&mut self, state: &State, ctx: &egui::Context) {
+    pub fn show(&mut self, app: &CalendarApp, ctx: &egui::Context) {
         let mut info = ContentInfo::new();
         egui::Window::new("")
             .id(self.id)
@@ -127,14 +127,14 @@ impl Popup {
             .resizable(false)
             .default_size(Vec2::new(320., 0.))
             .show(ctx, |ui| {
-                self.t.init_frame(state, &mut info);
-                self.t.show_title(state, ui, &mut info);
-                self.t.show_content(state, ui, &mut info);
+                self.t.init_frame(app, &mut info);
+                self.t.show_title(app, ui, &mut info);
+                self.t.show_content(app, ui, &mut info);
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    self.t.show_buttons(state, ui, &mut info);
+                    self.t.show_buttons(app, ui, &mut info);
                     if let Some(error) = info.get_error() {
                         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                            self.t.show_error(state, ui, &error);
+                            self.t.show_error(app, ui, &error);
                         });
                     }
                 });

@@ -3,7 +3,9 @@ use super::super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::aliases::UserUtils, state::custom_requests::LoginRequest, ui::table_view::TableView,
+    db::aliases::UserUtils,
+    state::custom_requests::LoginRequest,
+    ui::{popups::popup_manager::PopupManager, table_view::TableView},
 };
 use chrono::NaiveDate;
 use egui::{Align, Layout, Sense};
@@ -17,11 +19,11 @@ impl CalendarApp {
                 // RTL
                 if let Some(me) = self.state.try_get_me() {
                     let profile = egui::Label::new(&me.name);
-                    if self.popup_manager.is_open_profile() {
+                    if PopupManager::get().is_open_profile() {
                         ui.add(profile);
                     } else {
                         if ui.add(profile.sense(Sense::click())).clicked() {
-                            self.popup_manager.open_profile();
+                            PopupManager::get().open_profile();
                         }
                     }
                     if ui.button("Logout").clicked() {
@@ -30,21 +32,21 @@ impl CalendarApp {
                 } else {
                     if ui
                         .add_enabled(
-                            !self.popup_manager.is_open_login(),
+                            !PopupManager::get().is_open_login(),
                             egui::Button::new("Login"),
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_login();
+                        PopupManager::get().open_login();
                     }
                     if ui
                         .add_enabled(
-                            !self.popup_manager.is_open_sign_up(),
+                            !PopupManager::get().is_open_sign_up(),
                             egui::Button::new("Sign Up"),
                         )
                         .clicked()
                     {
-                        self.popup_manager.open_sign_up();
+                        PopupManager::get().open_sign_up();
                     }
                 }
 
@@ -163,10 +165,10 @@ impl eframe::App for CalendarApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.popup_manager.show(&self.state, ctx);
-            let signals = self.popup_manager.get_signals();
+            PopupManager::get().show(&self, ctx);
+            let signals = PopupManager::get().get_signals();
             self.parse_signals(signals);
-            self.popup_manager.update();
+            PopupManager::get().update();
 
             self.top_panel(ui);
             ui.separator();
