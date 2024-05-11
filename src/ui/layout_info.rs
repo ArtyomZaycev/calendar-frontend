@@ -23,5 +23,5 @@ pub fn divide_from_sections(available: f32, spacing: f32, sections: u32) -> f32 
 }
 
 pub fn divide_from_size(available: f32, desired: f32) -> u32 {
-    (available / desired).round() as u32
+    (available / desired).floor() as u32
 }

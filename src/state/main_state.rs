@@ -138,17 +138,18 @@ impl State {
         }
     }
 
-    pub fn get_user_permissions(&mut self, user_id: i32) -> SharedPermissions {
+    pub fn get_user_permissions(&self, user_id: i32) -> SharedPermissions {
         if self.me.is_admin() {
             SharedPermissions::FULL
         } else {
             if user_id == self.me.id {
                 SharedPermissions::FULL
             } else {
+                println!("get_user_permissions uid = {user_id}");
                 self.shared_states
-                    .iter_mut()
+                    .iter()
                     .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
-                    .unwrap()
+                    .unwrap_or(SharedPermissions::NONE)
             }
         }
     }

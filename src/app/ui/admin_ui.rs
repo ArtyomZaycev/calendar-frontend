@@ -1,5 +1,5 @@
 use super::super::{
-    utils::{AdminPanelUserDataView, AdminPanelView},
+    view::{AdminPanelUserDataView, AdminPanelView},
     CalendarApp,
 };
 use crate::{

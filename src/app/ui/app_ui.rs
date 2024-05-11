@@ -1,5 +1,5 @@
 use super::super::{
-    utils::{AdminPanelUserDataView, AdminPanelView, AppView},
+    view::{AdminPanelUserDataView, AdminPanelView, AppView},
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
@@ -71,7 +71,7 @@ impl CalendarApp {
     }
     
     fn burger_menu_expanded(&mut self, ui: &mut egui::Ui) {
-        let width = 200.;
+        let width = 160.;
         egui::SidePanel::left("burger_menu")
             .resizable(false)
             .show_separator_line(true)
@@ -215,6 +215,12 @@ impl CalendarApp {
 
 impl eframe::App for CalendarApp {
     fn update(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        if self.state.get_me().id != -1 {
+            if self.selected_user_id == -1 {
+                self.selected_user_id = self.state.get_me().id;
+            }
+        }
+
         // Admins have different view
         if self.state.get_me().is_admin() && self.view.is_calendar() {
             self.view = AppView::AdminPanel(AdminPanelView::Users {

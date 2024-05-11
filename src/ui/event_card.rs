@@ -1,12 +1,14 @@
 use super::signal::AppSignal;
 use crate::{app::CalendarApp, db::aliases::Event};
-use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
+use calendar_lib::api::sharing::SharedTablePermission;
+use egui::{Align, Button, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {
     app: &'a CalendarApp,
     signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     event: &'a Event,
+    permission: SharedTablePermission,
     access_level: i32,
 
     show_description: bool,
@@ -21,6 +23,7 @@ impl<'a> EventCard<'a> {
         desired_size: Vec2,
         event: &'a Event,
         access_level: i32,
+        permission: SharedTablePermission,
     ) -> Self {
         Self {
             app,
@@ -28,6 +31,7 @@ impl<'a> EventCard<'a> {
             desired_size,
             event,
             access_level,
+            permission,
             show_description: true,
             show_date: true,
             show_time: true,
@@ -142,15 +146,19 @@ impl<'a> Widget for EventCard<'a> {
                 })
                 .response;
 
-            if !is_phantom && self.access_level >= self.event.access_level {
+            if !is_phantom && (self.permission.edit || self.permission.delete) && self.access_level >= self.event.access_level {
                 response.context_menu(|ui| {
-                    if ui.button("Edit").clicked() {
-                        self.signals.push(AppSignal::ChangeEvent(*event_id));
-                        ui.close_menu();
+                    if self.permission.edit {
+                        if ui.button("Edit").clicked() {
+                            self.signals.push(AppSignal::ChangeEvent(*event_id));
+                            ui.close_menu();
+                        }
                     }
-                    if ui.button("Delete").clicked() {
-                        self.app.get_selected_user_state().events.delete(*event_id);
-                        ui.close_menu();
+                    if self.permission.delete {
+                        if ui.button("Delete").clicked() {
+                            self.app.get_selected_user_state().events.delete(*event_id);
+                            ui.close_menu();
+                        }
                     }
                 });
             }

@@ -14,51 +14,58 @@ use num_traits::FromPrimitive;
 
 impl CalendarApp {
     pub(super) fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
+        let permissions = self.get_selected_user_permissions();
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let height = ui.horizontal(|ui| {
-                ui.selectable_header("Events", view.is_events(), || {
+                ui.enabled_selectable_header("Events", permissions.events.view, view.is_events(), || {
                     self.set_view(EventsView::Days);
                 });
-                ui.selectable_header("Schedules", view.is_schedules(), || {
+                ui.enabled_selectable_header("Schedules", permissions.schedules.view, view.is_schedules(), || {
                     self.set_view(CalendarView::Schedules);
                 });
-                ui.selectable_header("Templates", view.is_event_templates(), || {
+                ui.enabled_selectable_header("Templates", permissions.event_templates.view, view.is_event_templates(), || {
                     self.set_view(CalendarView::EventTemplates);
                 });
             }).response.rect.height();
 
             ui.allocate_ui_with_layout(egui::Vec2::new(ui.available_width(), height), Layout::right_to_left(Align::Center), |ui| match view {
                 CalendarView::Events(_) => {
-                    if ui
-                        .add_enabled(
-                            !PopupManager::get().is_open_new_event(),
-                            egui::Button::new("Create Event"),
-                        )
-                        .clicked()
-                    {
-                        PopupManager::get().open_new_event(self.state.get_me().id);
+                    if permissions.events.create {
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_new_event(),
+                                egui::Button::new("Create Event"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_new_event(self.state.get_me().id);
+                        }
                     }
                 }
                 CalendarView::Schedules => {
-                    if ui
-                        .add_enabled(
-                            !PopupManager::get().is_open_new_schedule(),
-                            egui::Button::new("Create Schedule"),
-                        )
-                        .clicked()
-                    {
-                        PopupManager::get().open_new_schedule(self.state.get_me().id);
+                    if permissions.schedules.create {
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_new_schedule(),
+                                egui::Button::new("Create Schedule"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_new_schedule(self.state.get_me().id);
+                        }
                     }
                 }
                 CalendarView::EventTemplates => {
-                    if ui
-                        .add_enabled(
-                            !PopupManager::get().is_open_new_event_template(),
-                            egui::Button::new("Create Template"),
-                        )
-                        .clicked()
-                    {
-                        PopupManager::get().open_new_event_template(self.state.get_me().id);
+                    if permissions.event_templates.create {
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_new_event_template(),
+                                egui::Button::new("Create Template"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_new_event_template(self.state.get_me().id);
+                        }
                     }
                 }
             });
@@ -200,6 +207,7 @@ impl CalendarApp {
                                         egui::Vec2::new(column_width, 200.),
                                         event,
                                         level,
+                                        self.get_selected_user_permissions().events
                                     );
                                 });
                             });
@@ -248,6 +256,7 @@ impl CalendarApp {
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
                                         level,
+                                        self.get_selected_user_permissions().events
                                     )
                                     .hide_date(),
                                 );
@@ -291,6 +300,7 @@ impl CalendarApp {
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
                                 level,
+                                self.get_selected_user_permissions().events
                             ));
                         });
                     });
@@ -347,6 +357,7 @@ impl CalendarApp {
                                             egui::Vec2::new(column_width, 200.),
                                             &event,
                                             level,
+                                            self.get_selected_user_permissions().events
                                         ));
                                     });
                                 });

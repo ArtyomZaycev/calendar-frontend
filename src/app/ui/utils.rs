@@ -1,4 +1,4 @@
-use super::super::{utils::AppView, CalendarApp};
+use super::super::{view::AppView, CalendarApp};
 
 impl CalendarApp {
     pub(super) fn set_view(&mut self, view: impl Into<AppView>) {
