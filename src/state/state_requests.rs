@@ -71,7 +71,7 @@ impl State {
     }
 
     pub fn logout(&mut self) -> RequestIdentifier<LogoutRequest> {
-        self.user_state = UserState::new();
+        self.user_state = UserState::new(-1);
         self.admin_state = AdminState::new();
         self.me = User::default();
         State::make_request((), |connector| {

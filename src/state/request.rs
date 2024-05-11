@@ -22,7 +22,7 @@ where
     type BadResponse: 'static + DeserializeOwned = ();
 
     /// e.g. update request item.id
-    type Info: 'static + Clone + Debug + Send = ();
+    type Info: 'static + Clone + Debug + Send;
 }
 
 pub trait StateRequestType

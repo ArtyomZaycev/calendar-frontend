@@ -1,5 +1,4 @@
-use std::marker::PhantomData;
-
+use std::{marker::PhantomData, fmt::Debug};
 use calendar_lib::api::utils::*;
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem};
@@ -9,15 +8,31 @@ use super::{
     request::{RequestType, StateRequestType},
 };
 
+#[derive(Debug, Clone)]
+pub struct StateRequestInfo<T> where T: 'static + Clone + Debug + Send {
+    pub user_id: TableId,
+    pub info: T,
+}
+
+impl<T> StateRequestInfo<T> where T: 'static + Clone + Debug + Send {
+    pub fn new(user_id: TableId, info: T) -> Self {
+        Self { user_id, info, }
+    }
+    pub fn new_default(user_id: TableId) -> Self where T: Default {
+        Self { user_id, info: T::default(), }
+    }
+}
+
 pub trait TableItemLoadById
 where
     Self: DbTableItem,
 {
     const LOAD_BY_ID_PATH: &'static str;
 
-    fn push_from_load_by_id(state: &mut State, id: TableId, item: Self);
+    fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self);
     fn push_bad_from_load_by_id(
         state: &mut State,
+        user_id: TableId,
         id: TableId,
         response: LoadByIdBadRequestResponse,
     );
@@ -28,8 +43,8 @@ where
 {
     const LOAD_ALL_PATH: &'static str;
 
-    fn push_from_load_all(state: &mut State, items: Vec<Self>);
-    fn push_bad_from_load_all(state: &mut State);
+    fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>);
+    fn push_bad_from_load_all(state: &mut State, user_id: TableId);
 }
 pub trait TableItemInsert
 where
@@ -38,8 +53,8 @@ where
     type NewItem: DbTableNewItem;
     const INSERT_PATH: &'static str;
 
-    fn push_from_insert(state: &mut State);
-    fn push_bad_from_insert(state: &mut State);
+    fn push_from_insert(state: &mut State, user_id: TableId);
+    fn push_bad_from_insert(state: &mut State, user_id: TableId);
 }
 pub trait TableItemUpdate
 where
@@ -48,8 +63,8 @@ where
     type UpdItem: DbTableUpdateItem;
     const UPDATE_PATH: &'static str;
 
-    fn push_from_update(state: &mut State, id: TableId);
-    fn push_bad_from_update(state: &mut State, id: TableId, response: UpdateBadRequestResponse);
+    fn push_from_update(state: &mut State, user_id: TableId, id: TableId);
+    fn push_bad_from_update(state: &mut State, user_id: TableId, id: TableId, response: UpdateBadRequestResponse);
 }
 pub trait TableItemDelete
 where
@@ -57,8 +72,8 @@ where
 {
     const DELETE_PATH: &'static str;
 
-    fn push_from_delete(state: &mut State, id: TableId);
-    fn push_bad_from_delete(state: &mut State, id: TableId, response: DeleteBadRequestResponse);
+    fn push_from_delete(state: &mut State, user_id: TableId, id: TableId);
+    fn push_bad_from_delete(state: &mut State, user_id: TableId, id: TableId, response: DeleteBadRequestResponse);
 }
 
 #[derive(Clone, Copy)]
@@ -89,16 +104,16 @@ impl<T: TableItemLoadById> RequestType for TableLoadByIdRequest<T> {
     type Query = TableId;
     type Response = T;
     type BadResponse = LoadByIdBadRequestResponse;
-    type Info = TableId;
+    type Info = StateRequestInfo<TableId>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemLoadById> StateRequestType for TableLoadByIdRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_load_by_id(state, info, response);
+        T::push_from_load_by_id(state, info.user_id, info.info, response);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_load_by_id(state, info, response);
+        T::push_bad_from_load_by_id(state, info.user_id, info.info, response);
     }
 }
 
@@ -108,16 +123,16 @@ impl<T: TableItemLoadAll> RequestType for TableLoadAllRequest<T> {
     const METHOD: reqwest::Method = reqwest::Method::GET;
     type Query = ();
     type Response = Vec<T>;
-    type Info = ();
+    type Info = StateRequestInfo<()>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemLoadAll> StateRequestType for TableLoadAllRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_load_all(state, response);
+        T::push_from_load_all(state, info.user_id, response);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_load_all(state);
+        T::push_bad_from_load_all(state, info.user_id);
     }
 }
 
@@ -129,16 +144,16 @@ impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     type Query = ();
     type Body = T::NewItem;
     type Response = EmptyResponse;
-    type Info = ();
+    type Info = StateRequestInfo<()>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemInsert> StateRequestType for TableInsertRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_insert(state);
+        T::push_from_insert(state, info.user_id);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_insert(state);
+        T::push_bad_from_insert(state, info.user_id);
     }
 }
 
@@ -151,16 +166,16 @@ impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     type Body = T::UpdItem;
     type Response = EmptyResponse;
     type BadResponse = UpdateBadRequestResponse;
-    type Info = TableId;
+    type Info = StateRequestInfo<TableId>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemUpdate> StateRequestType for TableUpdateRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_update(state, info);
+        T::push_from_update(state, info.user_id, info.info);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_update(state, info, response);
+        T::push_bad_from_update(state, info.user_id, info.info, response);
     }
 }
 
@@ -172,15 +187,15 @@ impl<T: TableItemDelete> RequestType for TableDeleteRequest<T> {
     type Query = TableId;
     type Response = EmptyResponse;
     type BadResponse = DeleteBadRequestResponse;
-    type Info = TableId;
+    type Info = StateRequestInfo<TableId>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemDelete> StateRequestType for TableDeleteRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_delete(state, info)
+        T::push_from_delete(state, info.user_id, info.info)
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_delete(state, info, response);
+        T::push_bad_from_delete(state, info.user_id, info.info, response);
     }
 }

@@ -39,7 +39,7 @@ impl State {
             db_connector: DbConnector::new(),
             me: User::default(),
             current_access_level: -1,
-            user_state: UserState::new(),
+            user_state: UserState::new(-1),
             shared_states: Vec::new(),
             admin_state: AdminState::new(),
 
@@ -100,7 +100,7 @@ impl State {
                 .entry(user_id)
                 .or_insert_with(|| {
                     println!("Admin mode: New user state created: {user_id}");
-                    UserState::new()
+                    UserState::new(user_id)
                 })
         } else {
             &mut self.user_state

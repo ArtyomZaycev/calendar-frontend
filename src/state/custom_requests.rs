@@ -4,7 +4,7 @@ use crate::tables::TableId;
 
 use super::{
     db_connector::DbConnectorData,
-    main_state::State,
+    main_state::{State, UserState},
     request::{RequestType, StateRequestType},
 };
 
@@ -66,6 +66,7 @@ impl StateRequestType for LoginRequest {
             .access_levels
             .get_table_mut()
             .replace_all(vec![response.access_level]);
+        state.user_state.set_user_id(state.me.id);
 
         state.load_state();
     }
@@ -168,7 +169,7 @@ impl StateRequestType for LoadStateRequest {
                 state
                     .admin_state
                     .users_data
-                    .insert(user_id, response.into());
+                    .insert(user_id, UserState::from_response(user_id, response));
             }
             None => {
                 state.user_state.replace_data(response);
