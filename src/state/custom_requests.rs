@@ -166,15 +166,8 @@ impl RequestType for LoadStateRequest {
 impl StateRequestType for LoadStateRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let user_id = info;
-        if state.me.is_admin() {
-            state
-                .admin_state
-                .users_data
-                .insert(user_id, UserState::from_response(user_id, response));
-        } else {
-            state.user_state.replace_data(response);
-            state.clear_events(user_id);
-        }
+        state.get_user_state_mut(user_id).replace_data(response);
+        state.clear_events(user_id);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {

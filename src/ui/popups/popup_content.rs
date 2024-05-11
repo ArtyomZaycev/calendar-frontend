@@ -64,7 +64,7 @@ pub trait PopupContent {
 
     /// RTL
     #[allow(unused_variables)]
-    fn show_buttons(&mut self, _state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {}
+    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {}
 
     #[allow(unused_variables)]
     fn show_error(&mut self, state: &State, ui: &mut egui::Ui, error: &str) {

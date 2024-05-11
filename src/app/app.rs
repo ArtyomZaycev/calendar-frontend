@@ -1,9 +1,10 @@
+use calendar_lib::api::utils::TableId;
 use chrono::NaiveDate;
 
 use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
-    state::State,
+    state::{main_state::UserState, State},
     tables::DbTable,
     ui::{popups::popup_manager::PopupManager, signal::AppSignal},
 };
@@ -14,6 +15,7 @@ pub struct CalendarApp {
     pub(super) view: AppView,
     pub(super) popup_manager: PopupManager,
 
+    pub selected_user_id: TableId,
     pub selected_date: NaiveDate,
 }
 
@@ -37,6 +39,8 @@ impl CalendarApp {
             state,
             view: EventsView::Days.into(),
             popup_manager: PopupManager::new(),
+
+            selected_user_id: -1,
             selected_date: chrono::Local::now().naive_local().date(),
         }
     }
@@ -55,7 +59,7 @@ impl CalendarApp {
             AppSignal::ChangeEvent(event_id) => {
                 if let Some(event) = self
                     .state
-                    .user_state
+                    .get_user_state_fallback(self.selected_user_id)
                     .events
                     .get_table()
                     .get()
@@ -68,7 +72,7 @@ impl CalendarApp {
             AppSignal::ChangeEventTemplate(template_id) => {
                 if let Some(template) = self
                     .state
-                    .user_state
+                    .get_user_state_fallback(self.selected_user_id)
                     .event_templates
                     .get_table()
                     .get()
@@ -82,7 +86,7 @@ impl CalendarApp {
             AppSignal::ChangeSchedule(schedule_id) => {
                 if let Some(schedule) = self
                     .state
-                    .user_state
+                    .get_user_state_fallback(self.selected_user_id)
                     .schedules
                     .get_table()
                     .get()
@@ -102,5 +106,9 @@ impl CalendarApp {
         signals
             .into_iter()
             .for_each(|signal| self.parse_signal(signal));
+    }
+
+    pub fn get_selected_user_state(&self) -> &UserState {
+        self.state.get_user_state_fallback(self.selected_user_id)
     }
 }
