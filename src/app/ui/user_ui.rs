@@ -15,22 +15,24 @@ use num_traits::FromPrimitive;
 impl CalendarApp {
     pub(super) fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            ui.selectable_header("Events", view.is_events(), || {
-                self.set_view(EventsView::Days);
-            });
-            ui.selectable_header("Schedules", view.is_schedules(), || {
-                self.set_view(CalendarView::Schedules);
-            });
-            ui.selectable_header("Templates", view.is_event_templates(), || {
-                self.set_view(CalendarView::EventTemplates);
-            });
+            let height = ui.horizontal(|ui| {
+                ui.selectable_header("Events", view.is_events(), || {
+                    self.set_view(EventsView::Days);
+                });
+                ui.selectable_header("Schedules", view.is_schedules(), || {
+                    self.set_view(CalendarView::Schedules);
+                });
+                ui.selectable_header("Templates", view.is_event_templates(), || {
+                    self.set_view(CalendarView::EventTemplates);
+                });
+            }).response.rect.height();
 
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| match view {
+            ui.allocate_ui_with_layout(egui::Vec2::new(ui.available_width(), height), Layout::right_to_left(Align::Center), |ui| match view {
                 CalendarView::Events(_) => {
                     if ui
                         .add_enabled(
                             !PopupManager::get().is_open_new_event(),
-                            egui::Button::new("Add Event"),
+                            egui::Button::new("Create Event"),
                         )
                         .clicked()
                     {
@@ -41,7 +43,7 @@ impl CalendarApp {
                     if ui
                         .add_enabled(
                             !PopupManager::get().is_open_new_schedule(),
-                            egui::Button::new("Add Schedule"),
+                            egui::Button::new("Create Schedule"),
                         )
                         .clicked()
                     {
@@ -52,7 +54,7 @@ impl CalendarApp {
                     if ui
                         .add_enabled(
                             !PopupManager::get().is_open_new_event_template(),
-                            egui::Button::new("Add Template"),
+                            egui::Button::new("Create Template"),
                         )
                         .clicked()
                     {

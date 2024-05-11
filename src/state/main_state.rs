@@ -198,16 +198,10 @@ impl State {
 
 impl State {
     pub fn clear_events_for_day(&mut self, user_id: TableId, date: NaiveDate) {
-        if self.events_per_day_user_id == user_id {
-            self.events_per_day.remove(&date);
-        }
+        self.events_per_day.remove(&date);
     }
     pub fn clear_events(&mut self, user_id: TableId) {
-        println!("{:?}", self.me);
-        println!("{}, {}", self.events_per_day_user_id, user_id);
-        if self.events_per_day_user_id == user_id {
-            self.events_per_day.clear();
-        }
+        self.events_per_day.clear();
     }
 
     pub(super) fn generate_phantom_events(&self, user_id: TableId, date: NaiveDate) -> Vec<Event> {

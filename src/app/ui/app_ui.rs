@@ -8,15 +8,17 @@ use crate::{
     ui::{popups::popup_manager::PopupManager, table_view::TableView},
 };
 use chrono::NaiveDate;
-use egui::{Align, Layout, Sense};
+use egui::{Align, CollapsingHeader, Label, Layout, Sense};
 
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            ui.heading("Calendar");
+            let height = ui.heading("Calendar").rect.height();
 
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+            ui.allocate_ui_with_layout(egui::Vec2::new(ui.available_width(), height), Layout::right_to_left(Align::Center), |ui| {
                 // RTL
+                ui.add_space(8.);
+
                 if let Some(me) = self.state.try_get_me() {
                     let profile = egui::Label::new(&me.name);
                     if PopupManager::get().is_open_profile() {
@@ -25,9 +27,6 @@ impl CalendarApp {
                         if ui.add(profile.sense(Sense::click())).clicked() {
                             PopupManager::get().open_profile();
                         }
-                    }
-                    if ui.button("Logout").clicked() {
-                        self.logout();
                     }
                 } else {
                     if ui
@@ -55,6 +54,65 @@ impl CalendarApp {
                 }
             });
         });
+    }
+
+    fn burger_menu_collapsed(&mut self, ui: &mut egui::Ui) {
+        egui::SidePanel::left("burger_menu")
+            .resizable(false)
+            .show_separator_line(true)
+            .exact_width(8.)
+            .show_inside(ui, |ui| {
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    if ui.add(Label::new("►").sense(Sense::click())).clicked() {
+                        self.burger_menu_expanded = true;
+                    }
+                });
+            });
+    }
+    
+    fn burger_menu_expanded(&mut self, ui: &mut egui::Ui) {
+        let width = 200.;
+        egui::SidePanel::left("burger_menu")
+            .resizable(false)
+            .show_separator_line(true)
+            .exact_width(width)
+            .show_inside(ui, |ui| {
+                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                    if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
+                        self.burger_menu_expanded = false;
+                    }
+
+                    ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                        if ui.add(Label::new("YOUR CALENDAR").sense(Sense::click())).clicked() {
+                            self.selected_user_id = self.state.get_me().id;
+                        }
+                        ui.separator();
+
+                        if !self.state.shared_states.is_empty() {
+                            CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
+                                self.state.shared_states.iter().for_each(|shared_state| {
+                                    if ui.add(Label::new(&shared_state.user.name).sense(Sense::click())).clicked() {
+                                        self.selected_user_id = shared_state.user.id;
+                                    }
+                                })
+                            });
+                            ui.separator();
+                        }
+                        
+                        if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
+                            self.logout();
+                        }
+                    });
+                });
+            });
+    }
+
+    fn burger_menu(&mut self, ui: &mut egui::Ui) {
+        if self.burger_menu_expanded {
+            self.burger_menu_expanded(ui);
+        } else {
+            self.burger_menu_collapsed(ui);
+        }
     }
 }
 
@@ -173,12 +231,16 @@ impl eframe::App for CalendarApp {
             self.top_panel(ui);
             ui.separator();
 
-            // CALENDAR
-            if self.state.try_get_me().is_some() {
-                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    self.view_dispatcher(ui);
-                });
-            }
+            ui.horizontal_top(|ui| {
+                if self.state.try_get_me().is_some() {
+                    self.burger_menu(ui);
+                    ui.add_space(ui.ctx().style().spacing.item_spacing.x);
+
+                    ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                        self.view_dispatcher(ui);
+                    });
+                }
+            });
         });
 
         self.state.update();

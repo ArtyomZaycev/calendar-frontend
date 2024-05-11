@@ -14,6 +14,7 @@ pub struct CalendarApp {
     pub state: State,
     pub(super) view: AppView,
 
+    pub burger_menu_expanded: bool,
     pub selected_user_id: TableId,
     pub selected_date: NaiveDate,
 }
@@ -38,6 +39,7 @@ impl CalendarApp {
             state,
             view: EventsView::Days.into(),
 
+            burger_menu_expanded: true,
             selected_user_id: -1,
             selected_date: chrono::Local::now().naive_local().date(),
         }
@@ -50,6 +52,10 @@ impl CalendarApp {
         PopupManager::get().clear();
         self.view = EventsView::Days.into();
         self.state.logout();
+
+        self.burger_menu_expanded = true;
+        self.selected_user_id = -1;
+        self.selected_date = chrono::Local::now().naive_local().date();
     }
 
     pub(super) fn parse_signal(&mut self, signal: AppSignal) {
