@@ -5,7 +5,6 @@ use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
     state::{main_state::UserState, State},
-    tables::DbTable,
     ui::popups::popup_manager::PopupManager,
 };
 

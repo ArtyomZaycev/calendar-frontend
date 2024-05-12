@@ -166,10 +166,7 @@ impl State {
 }
 
 impl State {
-    pub fn clear_events_for_day(&mut self, user_id: TableId, date: NaiveDate) {
-        self.events_per_day.remove(&date);
-    }
-    pub fn clear_events(&mut self, user_id: TableId) {
+    pub fn clear_events(&mut self, _user_id: TableId) {
         self.events_per_day.clear();
     }
 

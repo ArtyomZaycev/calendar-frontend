@@ -25,13 +25,6 @@ impl<T: DbTableItem> StateTable<T> {
         }
     }
 
-    pub(super) fn from_vec(items: Vec<T>) -> Self {
-        Self {
-            user_id: -1,
-            data: Table::from_vec(items),
-        }
-    }
-
     pub(super) fn set_user_id(&mut self, user_id: TableId) {
         self.user_id = user_id;
     }

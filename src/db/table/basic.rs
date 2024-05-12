@@ -7,6 +7,7 @@ pub trait DbTable<T: DbTableItem, Container = Vec<T>> {
 
 pub trait DbTableGetById<T: DbTableItem, Container = Vec<T>> {
     fn get_by_id(&self, id: TableId) -> Option<&T>;
+    #[allow(dead_code)]
     fn get_by_id_mut(&mut self, id: TableId) -> Option<&mut T>;
 }
 

@@ -52,7 +52,7 @@ impl PopupContent for Login {
 
     fn show_content(
         &mut self,
-        app: &CalendarApp,
+        _app: &CalendarApp,
         ui: &mut egui::Ui,
         info: &mut super::popup_content::ContentInfo,
     ) {

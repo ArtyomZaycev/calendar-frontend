@@ -97,17 +97,6 @@ impl UserState {
     }
 }
 
-impl UserState {
-    pub fn from_response(user_id: TableId, response: user_state::load::Response) -> Self {
-        Self {
-            user_id,
-            access_levels: StateTable::from_vec(response.access_levels),
-            events: StateTable::from_vec(response.events),
-            schedules: StateTable::from_vec(response.schedules),
-            event_templates: StateTable::from_vec(response.event_templates),
-        }
-    }
-}
 /*
 pub trait GetUserStateTable<T: DbTableItem> {
     fn get_table(&self) -> &StateTable<T>;

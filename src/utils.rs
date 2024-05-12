@@ -1,5 +1,5 @@
 use calendar_lib::api::{auth::types::AccessLevel, events::types::EventVisibility};
-use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
+use chrono::{Datelike, NaiveDate, Weekday};
 use email_address::EmailAddress;
 use itertools::Itertools;
 use std::future::Future;
@@ -32,13 +32,6 @@ pub fn is_password_strong_enough(password: &str) -> bool {
 
 pub fn get_first_month_day_date(date: &NaiveDate) -> NaiveDate {
     date.checked_sub_days(chrono::Days::new(date.day0() as u64))
-        .unwrap()
-}
-pub fn get_last_month_day_date(date: &NaiveDate) -> NaiveDate {
-    get_first_month_day_date(date)
-        .checked_add_months(Months::new(1))
-        .unwrap()
-        .checked_sub_days(Days::new(1))
         .unwrap()
 }
 pub fn get_monday(date: &NaiveDate) -> NaiveDate {
