@@ -2,7 +2,7 @@ use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
     events::types::{Event, EventVisibility},
-    sharing::SharedPermissions,
+    sharing::GrantedPermissions,
     utils::{TableId, User},
 };
 
@@ -10,11 +10,11 @@ use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 
 use crate::{
-    db::{aliases::UserUtils, db_connector::DbConnector, request::RequestIdentifier},
+    db::{aliases::UserUtils, db_connector::{DbConnector, DbConnectorData}, request::RequestIdentifier},
     tables::DbTable,
 };
 
-use super::{request::RequestType, shared_state::SharedUserState, state_updater::StateUpdater};
+use super::{request::RequestType, shared_state::GrantedUserState, state_updater::StateUpdater};
 
 pub use super::{admin_state::AdminState, user_state::UserState};
 
@@ -24,7 +24,7 @@ pub struct State {
     pub(super) me: User,
 
     pub user_state: UserState,
-    pub shared_states: Vec<SharedUserState>,
+    pub shared_states: Vec<GrantedUserState>,
     pub admin_state: AdminState,
 
     /// Has both server and phantom events
@@ -103,18 +103,18 @@ impl State {
         }
     }
 
-    pub fn get_user_permissions(&self, user_id: i32) -> SharedPermissions {
+    pub fn get_user_permissions(&self, user_id: i32) -> GrantedPermissions {
         if self.me.is_admin() {
-            SharedPermissions::FULL
+            GrantedPermissions::FULL
         } else {
             if user_id == self.me.id {
-                SharedPermissions::FULL
+                GrantedPermissions::FULL
             } else {
                 println!("get_user_permissions uid = {user_id}");
                 self.shared_states
                     .iter()
                     .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
-                    .unwrap_or(SharedPermissions::NONE)
+                    .unwrap_or(GrantedPermissions::NONE)
             }
         }
     }
@@ -259,5 +259,14 @@ impl State {
 
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
+    }
+}
+
+impl State {
+    pub(super) fn on_logged_in(&mut self, user: User, jwt: String) {
+        DbConnectorData::get().push_jwt(jwt);
+        self.me = user;
+        self.user_state.set_user_id(self.me.id);
+        self.load_state();
     }
 }

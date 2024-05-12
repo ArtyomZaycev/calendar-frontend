@@ -1,4 +1,4 @@
-use calendar_lib::api::{sharing::SharedPermissions, utils::TableId};
+use calendar_lib::api::{sharing::GrantedPermissions, utils::TableId};
 use chrono::NaiveDate;
 
 use super::{AppView, EventsView};
@@ -61,7 +61,7 @@ impl CalendarApp {
         self.state.get_user_state(self.selected_user_id)
     }
 
-    pub fn get_selected_user_permissions(&self) -> SharedPermissions {
+    pub fn get_selected_user_permissions(&self) -> GrantedPermissions {
         self.state.get_user_permissions(self.selected_user_id)
     }
 

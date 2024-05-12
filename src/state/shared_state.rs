@@ -1,9 +1,9 @@
-use calendar_lib::api::{sharing::SharedPermissions, utils::User};
+use calendar_lib::api::{sharing::GrantedPermissions, utils::User};
 
 use super::main_state::UserState;
 
-pub struct SharedUserState {
+pub struct GrantedUserState {
     pub user: User, // no roles
     pub state: UserState,
-    pub permissions: SharedPermissions,
+    pub permissions: GrantedPermissions,
 }

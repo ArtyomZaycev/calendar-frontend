@@ -57,11 +57,7 @@ impl RequestType for LoginRequest {
 #[allow(unused_variables)]
 impl StateRequestType for LoginRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        DbConnectorData::get().push_jwt(response.jwt);
-        state.me = response.user;
-        state.user_state.set_user_id(state.me.id);
-
-        state.load_state();
+        state.on_logged_in(response.user, response.jwt);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
@@ -83,11 +79,7 @@ impl RequestType for LoginByKeyRequest {
 #[allow(unused_variables)]
 impl StateRequestType for LoginByKeyRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        DbConnectorData::get().push_jwt(response.jwt);
-        state.me = response.user;
-        state.user_state.set_user_id(state.me.id);
-
-        state.load_state();
+        state.on_logged_in(response.user, response.jwt);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
