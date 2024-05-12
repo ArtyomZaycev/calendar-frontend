@@ -2,13 +2,12 @@ use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
-    new_password_input::NewPasswordInput,
     popup_content::{ContentInfo, PopupContent},
     profile::Profile,
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
-use crate::{app::CalendarApp, ui::signal::AppSignal};
+use crate::app::CalendarApp;
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, Vec2};
 
@@ -23,7 +22,6 @@ pub enum PopupType {
     UpdateEventTemplate(EventTemplateInput),
     NewSchedule(ScheduleInput),
     UpdateSchedule(ScheduleInput),
-    NewPassword(NewPasswordInput),
 }
 
 impl PopupContent for PopupType {
@@ -38,7 +36,6 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.init_frame(state, info),
             PopupType::NewSchedule(w) => w.init_frame(state, info),
             PopupType::UpdateSchedule(w) => w.init_frame(state, info),
-            PopupType::NewPassword(w) => w.init_frame(state, info),
         }
     }
 
@@ -53,7 +50,6 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.get_title(),
             PopupType::NewSchedule(w) => w.get_title(),
             PopupType::UpdateSchedule(w) => w.get_title(),
-            PopupType::NewPassword(w) => w.get_title(),
         }
     }
 
@@ -68,7 +64,6 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_title(state, ui, info),
             PopupType::NewSchedule(w) => w.show_title(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_title(state, ui, info),
-            PopupType::NewPassword(w) => w.show_title(state, ui, info),
         }
     }
 
@@ -83,7 +78,6 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_content(state, ui, info),
             PopupType::NewSchedule(w) => w.show_content(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_content(state, ui, info),
-            PopupType::NewPassword(w) => w.show_content(state, ui, info),
         }
     }
 
@@ -98,7 +92,6 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_buttons(state, ui, info),
             PopupType::NewSchedule(w) => w.show_buttons(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_buttons(state, ui, info),
-            PopupType::NewPassword(w) => w.show_buttons(state, ui, info),
         }
     }
 }
@@ -112,8 +105,6 @@ impl PopupType {
 pub struct Popup {
     id: egui::Id,
     t: PopupType,
-
-    signals: Vec<AppSignal>,
     is_closed: bool,
 }
 
@@ -139,9 +130,8 @@ impl Popup {
                     }
                 });
             });
-        let (signals, is_closed) = info.take();
+        let is_closed = info.take();
         self.is_closed = is_closed;
-        self.signals = signals;
     }
 }
 
@@ -151,7 +141,6 @@ impl Popup {
         Self {
             id: egui::Id::new(rand::random::<i64>()),
             t: popup,
-            signals: vec![],
             is_closed: false,
         }
     }
@@ -169,8 +158,5 @@ impl Popup {
 
     pub fn is_closed(&self) -> bool {
         self.is_closed
-    }
-    pub fn get_signals(&mut self) -> Vec<AppSignal> {
-        self.signals.drain(..).collect()
     }
 }

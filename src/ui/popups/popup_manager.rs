@@ -5,13 +5,12 @@ use calendar_lib::api::{
 };
 use itertools::Itertools;
 
-use crate::{app::CalendarApp, ui::signal::AppSignal};
+use crate::app::CalendarApp;
 
 use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
-    new_password_input::NewPasswordInput,
     popup::{Popup, PopupType},
     profile::Profile,
     schedule_input::ScheduleInput,
@@ -42,13 +41,6 @@ impl PopupManager {
 
     pub fn show(&mut self, app: &CalendarApp, ctx: &egui::Context) {
         self.popups.iter_mut().for_each(|p| p.show(app, ctx))
-    }
-
-    pub fn get_signals(&mut self) -> Vec<AppSignal> {
-        self.popups
-            .iter_mut()
-            .flat_map(|p| p.get_signals())
-            .collect()
     }
 
     pub fn update(&mut self) {
@@ -100,9 +92,6 @@ impl PopupManager {
     pub fn get_update_schedule<'a>(&'a mut self) -> Option<&'a mut Popup> {
         self.get_popup(|t| t.is_update_schedule())
     }
-    pub fn get_new_password<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_new_password())
-    }
 }
 
 #[allow(dead_code)]
@@ -137,9 +126,6 @@ impl PopupManager {
     }
     pub fn is_open_update_schedule<'a>(&'a mut self) -> bool {
         self.is_open(|t| t.is_update_schedule())
-    }
-    pub fn is_open_new_password<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_new_password())
     }
 }
 
@@ -198,9 +184,5 @@ impl PopupManager {
             ))
             .popup(),
         );
-    }
-    pub fn open_new_password(&mut self) {
-        self.popups
-            .push(PopupType::NewPassword(NewPasswordInput::new()).popup());
     }
 }

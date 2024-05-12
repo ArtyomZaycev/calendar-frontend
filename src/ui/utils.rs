@@ -51,7 +51,12 @@ impl UiUtils for Ui {
         is_selected: bool,
         on_clicked: F,
     ) -> Response {
-        self.enabled_selectable_rich_text(RichText::new(text).heading(), is_enabled, is_selected, on_clicked)
+        self.enabled_selectable_rich_text(
+            RichText::new(text).heading(),
+            is_enabled,
+            is_selected,
+            on_clicked,
+        )
     }
 
     fn selectable_header<F: FnOnce()>(

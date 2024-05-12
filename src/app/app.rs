@@ -6,7 +6,7 @@ use crate::{
     app_local_storage::AppLocalStorage,
     state::{main_state::UserState, State},
     tables::DbTable,
-    ui::{popups::popup_manager::PopupManager, signal::AppSignal},
+    ui::popups::popup_manager::PopupManager,
 };
 
 pub struct CalendarApp {
@@ -58,59 +58,6 @@ impl CalendarApp {
         self.selected_date = chrono::Local::now().naive_local().date();
     }
 
-    pub(super) fn parse_signal(&mut self, signal: AppSignal) {
-        match signal {
-            AppSignal::ChangeEvent(event_id) => {
-                if let Some(event) = self
-                    .state
-                    .get_user_state(self.selected_user_id)
-                    .events
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|event| event.id == event_id)
-                {
-                    PopupManager::get().open_update_event(&event.clone());
-                }
-            }
-            AppSignal::ChangeEventTemplate(template_id) => {
-                if let Some(template) = self
-                    .state
-                    .get_user_state(self.selected_user_id)
-                    .event_templates
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|template| template.id == template_id)
-                {
-                    PopupManager::get().open_update_event_template(&template.clone());
-                }
-            }
-            AppSignal::ChangeSchedule(schedule_id) => {
-                if let Some(schedule) = self
-                    .state
-                    .get_user_state(self.selected_user_id)
-                    .schedules
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|schedule| schedule.id == schedule_id)
-                {
-                    PopupManager::get().open_update_schedule(&schedule.clone());
-                }
-            }
-            AppSignal::AddPassword => {
-                PopupManager::get().open_new_password();
-            }
-        }
-    }
-
-    pub(super) fn parse_signals(&mut self, signals: Vec<AppSignal>) {
-        signals
-            .into_iter()
-            .for_each(|signal| self.parse_signal(signal));
-    }
-
     pub fn get_selected_user_state(&self) -> &UserState {
         self.state.get_user_state(self.selected_user_id)
     }
@@ -124,6 +71,10 @@ impl CalendarApp {
     }
 
     pub fn prepare_date(&mut self, date: NaiveDate) {
-        self.state.prepare_date(self.selected_user_id, self.get_selected_user_permissions().access_level, date);
+        self.state.prepare_date(
+            self.selected_user_id,
+            self.get_selected_user_permissions().access_level,
+            date,
+        );
     }
 }

@@ -60,12 +60,6 @@ impl StateRequestType for LoginRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
-        state.current_access_level = response.access_level.level;
-        state
-            .user_state
-            .access_levels
-            .get_table_mut()
-            .replace_all(vec![response.access_level]);
         state.user_state.set_user_id(state.me.id);
 
         state.load_state();
@@ -92,12 +86,6 @@ impl StateRequestType for LoginByKeyRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         DbConnectorData::get().push_jwt(response.jwt);
         state.me = response.user;
-        state.current_access_level = response.access_level.level;
-        state
-            .user_state
-            .access_levels
-            .get_table_mut()
-            .replace_all(vec![response.access_level]);
         state.user_state.set_user_id(state.me.id);
 
         state.load_state();
@@ -125,7 +113,7 @@ impl StateRequestType for RegisterRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
-
+/*
 #[derive(Clone, Copy)]
 pub struct NewPasswordRequest {}
 impl RequestType for NewPasswordRequest {
@@ -147,7 +135,7 @@ impl StateRequestType for NewPasswordRequest {
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
-
+ */
 #[derive(Clone, Copy)]
 pub struct LoadStateRequest {}
 impl RequestType for LoadStateRequest {

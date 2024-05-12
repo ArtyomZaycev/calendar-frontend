@@ -1,11 +1,10 @@
-use super::signal::AppSignal;
+use super::popups::popup_manager::PopupManager;
 use crate::{app::CalendarApp, db::aliases::Event};
 use calendar_lib::api::sharing::SharedTablePermission;
-use egui::{Align, Button, Color32, Layout, Stroke, Vec2, Widget};
+use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {
     app: &'a CalendarApp,
-    signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
     event: &'a Event,
     permission: SharedTablePermission,
@@ -19,7 +18,6 @@ pub struct EventCard<'a> {
 impl<'a> EventCard<'a> {
     pub fn new(
         app: &'a CalendarApp,
-        signals: &'a mut Vec<AppSignal>,
         desired_size: Vec2,
         event: &'a Event,
         access_level: i32,
@@ -27,7 +25,6 @@ impl<'a> EventCard<'a> {
     ) -> Self {
         Self {
             app,
-            signals,
             desired_size,
             event,
             access_level,
@@ -146,11 +143,14 @@ impl<'a> Widget for EventCard<'a> {
                 })
                 .response;
 
-            if !is_phantom && (self.permission.edit || self.permission.delete) && self.access_level >= self.event.access_level {
+            if !is_phantom
+                && (self.permission.edit || self.permission.delete)
+                && self.access_level >= self.event.access_level
+            {
                 response.context_menu(|ui| {
                     if self.permission.edit {
                         if ui.button("Edit").clicked() {
-                            self.signals.push(AppSignal::ChangeEvent(*event_id));
+                            PopupManager::get().open_update_event(&self.event);
                             ui.close_menu();
                         }
                     }

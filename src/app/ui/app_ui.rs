@@ -15,44 +15,48 @@ impl CalendarApp {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let height = ui.heading("Calendar").rect.height();
 
-            ui.allocate_ui_with_layout(egui::Vec2::new(ui.available_width(), height), Layout::right_to_left(Align::Center), |ui| {
-                // RTL
-                ui.add_space(8.);
+            ui.allocate_ui_with_layout(
+                egui::Vec2::new(ui.available_width(), height),
+                Layout::right_to_left(Align::Center),
+                |ui| {
+                    // RTL
+                    ui.add_space(8.);
 
-                if let Some(me) = self.state.try_get_me() {
-                    let profile = egui::Label::new(&me.name);
-                    if PopupManager::get().is_open_profile() {
-                        ui.add(profile);
+                    if let Some(me) = self.state.try_get_me() {
+                        let profile = egui::Label::new(&me.name);
+                        if PopupManager::get().is_open_profile() {
+                            ui.add(profile);
+                        } else {
+                            if ui.add(profile.sense(Sense::click())).clicked() {
+                                PopupManager::get().open_profile();
+                            }
+                        }
                     } else {
-                        if ui.add(profile.sense(Sense::click())).clicked() {
-                            PopupManager::get().open_profile();
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_login(),
+                                egui::Button::new("Login"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_login();
+                        }
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_sign_up(),
+                                egui::Button::new("Sign Up"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_sign_up();
                         }
                     }
-                } else {
-                    if ui
-                        .add_enabled(
-                            !PopupManager::get().is_open_login(),
-                            egui::Button::new("Login"),
-                        )
-                        .clicked()
-                    {
-                        PopupManager::get().open_login();
-                    }
-                    if ui
-                        .add_enabled(
-                            !PopupManager::get().is_open_sign_up(),
-                            egui::Button::new("Sign Up"),
-                        )
-                        .clicked()
-                    {
-                        PopupManager::get().open_sign_up();
-                    }
-                }
 
-                if self.state.any_pending_requests() {
-                    ui.spinner();
-                }
-            });
+                    if self.state.any_pending_requests() {
+                        ui.spinner();
+                    }
+                },
+            );
         });
     }
 
@@ -69,7 +73,7 @@ impl CalendarApp {
                 });
             });
     }
-    
+
     fn burger_menu_expanded(&mut self, ui: &mut egui::Ui) {
         let width = 160.;
         egui::SidePanel::left("burger_menu")
@@ -83,7 +87,10 @@ impl CalendarApp {
                     }
 
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                        if ui.add(Label::new("YOUR CALENDAR").sense(Sense::click())).clicked() {
+                        if ui
+                            .add(Label::new("YOUR CALENDAR").sense(Sense::click()))
+                            .clicked()
+                        {
                             self.selected_user_id = self.state.get_me().id;
                         }
                         ui.separator();
@@ -91,14 +98,20 @@ impl CalendarApp {
                         if !self.state.shared_states.is_empty() {
                             CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
                                 self.state.shared_states.iter().for_each(|shared_state| {
-                                    if ui.add(Label::new(&shared_state.user.name).sense(Sense::click())).clicked() {
+                                    if ui
+                                        .add(
+                                            Label::new(&shared_state.user.name)
+                                                .sense(Sense::click()),
+                                        )
+                                        .clicked()
+                                    {
                                         self.selected_user_id = shared_state.user.id;
                                     }
                                 })
                             });
                             ui.separator();
                         }
-                        
+
                         if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
                             self.logout();
                         }
@@ -230,8 +243,6 @@ impl eframe::App for CalendarApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             PopupManager::get().show(&self, ctx);
-            let signals = PopupManager::get().get_signals();
-            self.parse_signals(signals);
             PopupManager::get().update();
 
             self.top_panel(ui);

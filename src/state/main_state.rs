@@ -1,7 +1,6 @@
 use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
-    auth::types::AccessLevel,
     events::types::{Event, EventVisibility},
     sharing::SharedPermissions,
     utils::{TableId, User},
@@ -26,7 +25,6 @@ pub struct State {
     pub(super) db_connector: DbConnector,
 
     pub(super) me: User,
-    pub(super) current_access_level: i32,
 
     pub user_state: UserState,
     pub shared_states: Vec<SharedUserState>,
@@ -42,7 +40,6 @@ impl State {
         State {
             db_connector: DbConnector::new(),
             me: User::default(),
-            current_access_level: -1,
             user_state: UserState::new(-1),
             shared_states: Vec::new(),
             admin_state: AdminState::new(),
@@ -55,35 +52,6 @@ impl State {
     pub fn any_pending_requests(&self) -> bool {
         // This is not quite correct
         StateUpdater::get().any_checkers()
-    }
-
-    pub fn change_access_level(&mut self, new_access_level: i32) {
-        self.current_access_level = new_access_level;
-        self.clear_events(-1);
-    }
-
-    pub fn get_access_level(&self) -> AccessLevel {
-        let levels = self
-            .user_state
-            .access_levels
-            .get_table()
-            .get()
-            .iter()
-            .filter(|l| l.level == self.current_access_level)
-            .collect_vec();
-        if levels.len() == 0 {
-            self.user_state
-                .access_levels
-                .get_table()
-                .get()
-                .last()
-                .unwrap()
-                .clone()
-        } else if levels.len() == 1 {
-            levels[0].clone()
-        } else {
-            (*levels.iter().find(|v| v.edit_rights).unwrap_or(&levels[0])).clone()
-        }
     }
 
     pub fn try_get_me(&self) -> Option<&User> {
@@ -205,7 +173,12 @@ impl State {
         self.events_per_day.clear();
     }
 
-    pub(super) fn generate_phantom_events(&self, user_id: TableId, access_level: i32, date: NaiveDate) -> Vec<Event> {
+    pub(super) fn generate_phantom_events(
+        &self,
+        user_id: TableId,
+        access_level: i32,
+        date: NaiveDate,
+    ) -> Vec<Event> {
         let user_state = self.get_user_state(user_id);
 
         let event_exists = |plan_id: i32| {

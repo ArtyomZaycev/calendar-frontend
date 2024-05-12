@@ -16,59 +16,82 @@ impl CalendarApp {
     pub(super) fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
         let permissions = self.get_selected_user_permissions();
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            let height = ui.horizontal(|ui| {
-                ui.enabled_selectable_header("Events", permissions.events.view, view.is_events(), || {
-                    self.set_view(EventsView::Days);
-                });
-                ui.enabled_selectable_header("Schedules", permissions.schedules.view, view.is_schedules(), || {
-                    self.set_view(CalendarView::Schedules);
-                });
-                ui.enabled_selectable_header("Templates", permissions.event_templates.view, view.is_event_templates(), || {
-                    self.set_view(CalendarView::EventTemplates);
-                });
-            }).response.rect.height();
+            let height = ui
+                .horizontal(|ui| {
+                    ui.enabled_selectable_header(
+                        "Events",
+                        permissions.events.view,
+                        view.is_events(),
+                        || {
+                            self.set_view(EventsView::Days);
+                        },
+                    );
+                    ui.enabled_selectable_header(
+                        "Schedules",
+                        permissions.schedules.view,
+                        view.is_schedules(),
+                        || {
+                            self.set_view(CalendarView::Schedules);
+                        },
+                    );
+                    ui.enabled_selectable_header(
+                        "Templates",
+                        permissions.event_templates.view,
+                        view.is_event_templates(),
+                        || {
+                            self.set_view(CalendarView::EventTemplates);
+                        },
+                    );
+                })
+                .response
+                .rect
+                .height();
 
-            ui.allocate_ui_with_layout(egui::Vec2::new(ui.available_width(), height), Layout::right_to_left(Align::Center), |ui| match view {
-                CalendarView::Events(_) => {
-                    if permissions.events.create {
-                        if ui
-                            .add_enabled(
-                                !PopupManager::get().is_open_new_event(),
-                                egui::Button::new("Create Event"),
-                            )
-                            .clicked()
-                        {
-                            PopupManager::get().open_new_event(self.state.get_me().id);
+            ui.allocate_ui_with_layout(
+                egui::Vec2::new(ui.available_width(), height),
+                Layout::right_to_left(Align::Center),
+                |ui| match view {
+                    CalendarView::Events(_) => {
+                        if permissions.events.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_event(),
+                                    egui::Button::new("Create Event"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_event(self.state.get_me().id);
+                            }
                         }
                     }
-                }
-                CalendarView::Schedules => {
-                    if permissions.schedules.create {
-                        if ui
-                            .add_enabled(
-                                !PopupManager::get().is_open_new_schedule(),
-                                egui::Button::new("Create Schedule"),
-                            )
-                            .clicked()
-                        {
-                            PopupManager::get().open_new_schedule(self.state.get_me().id);
+                    CalendarView::Schedules => {
+                        if permissions.schedules.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_schedule(),
+                                    egui::Button::new("Create Schedule"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_schedule(self.state.get_me().id);
+                            }
                         }
                     }
-                }
-                CalendarView::EventTemplates => {
-                    if permissions.event_templates.create {
-                        if ui
-                            .add_enabled(
-                                !PopupManager::get().is_open_new_event_template(),
-                                egui::Button::new("Create Template"),
-                            )
-                            .clicked()
-                        {
-                            PopupManager::get().open_new_event_template(self.state.get_me().id);
+                    CalendarView::EventTemplates => {
+                        if permissions.event_templates.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_event_template(),
+                                    egui::Button::new("Create Template"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_event_template(self.state.get_me().id);
+                            }
                         }
                     }
-                }
-            });
+                },
+            );
         });
     }
 
@@ -169,7 +192,6 @@ impl CalendarApp {
             weekday_human_name
         };
 
-        let mut signals = vec![];
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
@@ -203,11 +225,10 @@ impl CalendarApp {
                                 events.iter().for_each(|event| {
                                     EventCard::new(
                                         &self,
-                                        &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         event,
                                         level,
-                                        self.get_selected_user_permissions().events
+                                        self.get_selected_user_permissions().events,
                                     );
                                 });
                             });
@@ -216,7 +237,6 @@ impl CalendarApp {
                     });
                 });
         });
-        self.parse_signals(signals);
     }
 
     pub(super) fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
@@ -231,7 +251,6 @@ impl CalendarApp {
             };
 
             ui.horizontal_top(|ui| {
-                let mut signals = vec![];
                 (0..7).for_each(|weekday| {
                     let date = monday + chrono::Days::new(weekday);
                     let weekday = chrono::Weekday::from_u64(weekday).unwrap();
@@ -252,18 +271,16 @@ impl CalendarApp {
                                 ui.add(
                                     EventCard::new(
                                         &self,
-                                        &mut signals,
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
                                         level,
-                                        self.get_selected_user_permissions().events
+                                        self.get_selected_user_permissions().events,
                                     )
                                     .hide_date(),
                                 );
                             });
                     });
                 });
-                self.parse_signals(signals);
             });
         });
     }
@@ -272,8 +289,6 @@ impl CalendarApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let column_width = 200.;
             let num_of_columns = get_columns_from_width(ui, column_width);
-
-            let mut signals = vec![];
 
             let level = self.get_selected_access_level();
             self.prepare_date(date);
@@ -296,17 +311,14 @@ impl CalendarApp {
                         events.into_iter().for_each(|event| {
                             ui.add(EventCard::new(
                                 &self,
-                                &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
                                 level,
-                                self.get_selected_user_permissions().events
+                                self.get_selected_user_permissions().events,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 
@@ -314,8 +326,6 @@ impl CalendarApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let column_width = 200.;
             let num_of_columns = get_columns_from_width(ui, column_width);
-
-            let mut signals = vec![];
 
             (-1i64..7).for_each(|day| {
                 let date = date
@@ -353,19 +363,16 @@ impl CalendarApp {
                                     events.into_iter().for_each(|event| {
                                         ui.add(EventCard::new(
                                             &self,
-                                            &mut signals,
                                             egui::Vec2::new(column_width, 200.),
                                             &event,
                                             level,
-                                            self.get_selected_user_permissions().events
+                                            self.get_selected_user_permissions().events,
                                         ));
                                     });
                                 });
                             });
                     });
             });
-
-            self.parse_signals(signals);
         });
     }
 
@@ -373,8 +380,6 @@ impl CalendarApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let column_width = 200.;
             let num_of_columns = get_columns_from_width(ui, column_width);
-
-            let mut signals = vec![];
 
             let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
@@ -399,15 +404,12 @@ impl CalendarApp {
                         schedules.into_iter().for_each(|schedule| {
                             ui.add(ScheduleCard::new(
                                 &self,
-                                &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &schedule,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 
@@ -415,8 +417,6 @@ impl CalendarApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             let column_width = 200.;
             let num_of_columns = get_columns_from_width(ui, column_width);
-
-            let mut signals = vec![];
 
             let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
@@ -441,15 +441,12 @@ impl CalendarApp {
                         templates.into_iter().for_each(|template| {
                             ui.add(EventTemplateCard::new(
                                 &self,
-                                &mut signals,
                                 egui::Vec2::new(column_width, 200.),
                                 &template,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 }

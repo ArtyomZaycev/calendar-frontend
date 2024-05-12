@@ -3,7 +3,7 @@ use crate::{
     app::CalendarApp,
     state::{state_updater::StateUpdater, State},
     tables::DbTable,
-    ui::{access_level_picker::AccessLevelPicker, signal::AppSignal},
+    ui::access_level_picker::AccessLevelPicker,
 };
 use egui::{Align, Layout, Vec2};
 
@@ -35,38 +35,22 @@ impl PopupContent for Profile {
                 ui.label("Email: ");
                 ui.label(&app.state.get_me().email);
             });
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                if app
-                    .get_selected_user_state()
-                    .access_levels
-                    .get_table()
-                    .get()
-                    .iter()
-                    .any(|access_level| access_level.is_full())
-                {
-                    // TODO: Somehow prevent opening multiple
-                    if ui.add_enabled(true, egui::Button::new("add")).clicked() {
-                        info.signal(AppSignal::AddPassword);
-                    }
+            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                ui.label("Access level: ");
+                let mut level = app.get_selected_access_level();
+                ui.add(AccessLevelPicker::new(
+                    "profile_access_level_picker",
+                    &mut level,
+                    app.get_selected_user_state()
+                        .access_levels
+                        .get_table()
+                        .get(),
+                ));
+                if app.get_selected_access_level() != level {
+                    StateUpdater::get().push_executor(Box::new(move |state: &mut State| {
+                        //state.change_access_level(level);
+                    }));
                 }
-
-                ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                    ui.label("Access level: ");
-                    let mut level = app.get_selected_access_level();
-                    ui.add(AccessLevelPicker::new(
-                        "profile_access_level_picker",
-                        &mut level,
-                        app.get_selected_user_state()
-                            .access_levels
-                            .get_table()
-                            .get(),
-                    ));
-                    if app.get_selected_access_level() != level {
-                        StateUpdater::get().push_executor(Box::new(move |state: &mut State| {
-                            state.change_access_level(level);
-                        }));
-                    }
-                });
             });
         });
     }

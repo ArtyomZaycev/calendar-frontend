@@ -1,9 +1,8 @@
 use egui::{Align, Color32, Layout, RichText};
 
-use crate::{app::CalendarApp, ui::signal::AppSignal};
+use crate::app::CalendarApp;
 
 pub struct ContentInfo {
-    signals: Vec<AppSignal>,
     error: Option<String>,
     is_closed: bool,
 }
@@ -11,7 +10,6 @@ pub struct ContentInfo {
 impl ContentInfo {
     pub fn new() -> Self {
         Self {
-            signals: vec![],
             error: None,
             is_closed: false,
         }
@@ -30,16 +28,12 @@ impl ContentInfo {
         }
     }
 
-    pub fn signal(&mut self, signal: impl Into<AppSignal>) {
-        self.signals.push(signal.into());
-    }
-
     pub fn close(&mut self) {
         self.is_closed = true;
     }
 
-    pub fn take(self) -> (Vec<AppSignal>, bool) {
-        (self.signals, self.is_closed)
+    pub fn take(self) -> bool {
+        self.is_closed
     }
 }
 

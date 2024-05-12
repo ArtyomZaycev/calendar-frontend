@@ -1,27 +1,20 @@
-use super::signal::AppSignal;
+use super::popups::popup_manager::PopupManager;
 use crate::{app::CalendarApp, db::aliases::EventTemplate};
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventTemplateCard<'a> {
     app: &'a CalendarApp,
-    signals: &'a mut Vec<AppSignal>,
     desired_size: Vec2,
-    template: &'a EventTemplate,
+    event_template: &'a EventTemplate,
     show_description: bool,
 }
 
 impl<'a> EventTemplateCard<'a> {
-    pub fn new(
-        app: &'a CalendarApp,
-        signals: &'a mut Vec<AppSignal>,
-        desired_size: Vec2,
-        template: &'a EventTemplate,
-    ) -> Self {
+    pub fn new(app: &'a CalendarApp, desired_size: Vec2, template: &'a EventTemplate) -> Self {
         Self {
             app,
-            signals,
             desired_size,
-            template,
+            event_template: template,
             show_description: true,
         }
     }
@@ -43,7 +36,7 @@ impl<'a> Widget for EventTemplateCard<'a> {
                 name,
                 event_description,
                 ..
-            } = self.template;
+            } = self.event_template;
 
             egui::Frame::none()
                 .rounding(4.)
@@ -54,8 +47,8 @@ impl<'a> Widget for EventTemplateCard<'a> {
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             ui.menu_button("C", |ui| {
                                 if ui.button("Edit").clicked() {
-                                    self.signals
-                                        .push(AppSignal::ChangeEventTemplate(*template_id));
+                                    PopupManager::get()
+                                        .open_update_event_template(&self.event_template);
                                     ui.close_menu();
                                 }
                                 if ui.button("Delete").clicked() {

@@ -1,8 +1,4 @@
-use calendar_lib::api::{
-    auth::{types::NewPassword, *},
-    user_state,
-    utils::User,
-};
+use calendar_lib::api::{auth::*, user_state, utils::User};
 
 use crate::{db::aliases::UserUtils, tables::TableId};
 
@@ -135,25 +131,6 @@ impl UserState {
             connector
                 .make_request::<LoadStateRequest>()
                 .query(&user_state::load::Args { user_id: None })
-        })
-    }
-
-    pub fn insert_password(
-        &self,
-        user_id: i32,
-        access_level: i32,
-        viewer_password: Option<NewPassword>,
-        editor_password: Option<NewPassword>,
-    ) -> RequestIdentifier<NewPasswordRequest> {
-        State::make_request((), |connector| {
-            connector
-                .make_request::<NewPasswordRequest>()
-                .json(&new_password::Body {
-                    user_id,
-                    access_level,
-                    viewer_password,
-                    editor_password,
-                })
         })
     }
 }

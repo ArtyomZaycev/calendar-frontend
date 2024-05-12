@@ -5,7 +5,6 @@ pub mod event_visibility_picker;
 pub mod layout_info;
 pub mod popups;
 pub mod schedule_card;
-pub mod signal;
 pub mod table_view;
 pub mod tables;
 pub mod time_picker;
