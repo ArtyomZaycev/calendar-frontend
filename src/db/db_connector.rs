@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use crate::config::Config;
 
 use super::request::{RequestId, RequestIdAtomic, RequestType};
-use super::requests_holder::RequestData;
+use super::requests_holder::{RequestData, RequestsHolder};
 
 struct RequestResult<T> {
     id: RequestId,
@@ -74,14 +74,14 @@ impl DbConnectorData {
             .into()
     }
 
-    pub(super) fn make_request<T: RequestType>(&self) -> reqwest::RequestBuilder {
+    pub fn make_request<T: RequestType>(&self) -> reqwest::RequestBuilder {
         let method = T::METHOD;
         let op = T::URL;
         let authorize = T::IS_AUTHORIZED;
         self.make_request2(method, op, authorize)
     }
 
-    pub(super) fn make_request2(
+    pub fn make_request2(
         &self,
         method: reqwest::Method,
         op: &str,
@@ -100,7 +100,7 @@ impl DbConnectorData {
         }
     }
 
-    pub(super) fn push_jwt(&self, jwt: String) {
+    pub fn push_jwt(&self, jwt: String) {
         *self.jwt.write().unwrap() = Some(jwt);
     }
 }
@@ -165,9 +165,16 @@ impl DbConnector {
         request_id
     }
 
-    pub fn pull(&mut self) {
+    pub fn pull_responses(&mut self) {
         let mut pulled = self.reciever.try_iter().collect::<Vec<_>>();
         self.results.borrow_mut().append(&mut pulled);
+    }
+
+    pub fn send_requests(&mut self) {
+        let requests = RequestsHolder::get().take();
+        requests.into_iter().for_each(|request| {
+            self.request(request);
+        });
     }
 
     pub fn convert_response<T: DeserializeOwned + 'static, E: DeserializeOwned + 'static>(

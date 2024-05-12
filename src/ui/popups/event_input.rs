@@ -1,10 +1,8 @@
 use super::popup_content::PopupContent;
 use crate::{
     app::CalendarApp,
-    state::{
-        request::RequestIdentifier,
-        table_requests::{TableInsertRequest, TableUpdateRequest},
-    },
+    db::request::RequestIdentifier,
+    state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
     ui::{
         access_level_picker::AccessLevelPicker, event_visibility_picker::EventVisibilityPicker,

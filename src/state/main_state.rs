@@ -9,15 +9,12 @@ use calendar_lib::api::{
 use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 
-use crate::{db::aliases::UserUtils, tables::DbTable};
-
-use super::{
-    db_connector::DbConnector,
-    request::{RequestIdentifier, RequestType},
-    requests_holder::RequestsHolder,
-    shared_state::SharedUserState,
-    state_updater::StateUpdater,
+use crate::{
+    db::{aliases::UserUtils, db_connector::DbConnector, request::RequestIdentifier},
+    tables::DbTable,
 };
+
+use super::{request::RequestType, shared_state::SharedUserState, state_updater::StateUpdater};
 
 pub use super::{admin_state::AdminState, user_state::UserState};
 
@@ -151,17 +148,10 @@ impl State {
             .and_then(|r| r.ok())
     }
 
-    fn send_requests(&mut self) {
-        let requests = RequestsHolder::get().take();
-        requests.into_iter().for_each(|request| {
-            self.db_connector.request(request);
-        });
-    }
-
     pub fn update(&mut self) {
         StateUpdater::get().update(self);
-        self.db_connector.pull();
-        self.send_requests();
+        self.db_connector.pull_responses();
+        self.db_connector.send_requests();
     }
 }
 

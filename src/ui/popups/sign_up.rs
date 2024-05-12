@@ -3,7 +3,8 @@ use calendar_lib::api::auth::register;
 use super::popup_content::PopupContent;
 use crate::{
     app::CalendarApp,
-    state::{custom_requests::RegisterRequest, request::RequestIdentifier},
+    db::request::RequestIdentifier,
+    state::custom_requests::RegisterRequest,
     utils::{is_password_strong_enough, is_valid_email},
 };
 

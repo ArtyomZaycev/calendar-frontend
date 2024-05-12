@@ -1,29 +1,13 @@
-use std::{fmt::Debug, marker::PhantomData, sync::atomic::AtomicU16};
+use super::{
+    state_updater::{StateChecker, StateExecutor, StateUpdater},
+    State,
+};
 
-use serde::de::DeserializeOwned;
-
-use super::State;
-
-pub type RequestId = u16;
-pub type RequestIdAtomic = AtomicU16;
-
-// TODO: move to lib
-pub trait RequestType
-where
-    Self: 'static + Send,
-{
-    const URL: &'static str;
-    const IS_AUTHORIZED: bool;
-    const METHOD: reqwest::Method;
-
-    type Query;
-    type Body = ();
-    type Response: 'static + DeserializeOwned;
-    type BadResponse: 'static + DeserializeOwned = ();
-
-    /// e.g. update request item.id
-    type Info: 'static + Clone + Debug + Send;
-}
+pub use crate::db::request::RequestType;
+use crate::db::{
+    db_connector::DbConnectorData,
+    request::{make_request_custom, RequestIdentifier},
+};
 
 pub trait StateRequestType
 where
@@ -34,19 +18,39 @@ where
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State);
 }
 
-#[derive(Clone)]
-pub struct RequestIdentifier<T: RequestType> {
-    pub(super) id: RequestId,
-    pub info: T::Info,
-    _data: PhantomData<T>,
-}
+pub fn make_state_request<T, F>(info: T::Info, make_request: F) -> RequestIdentifier<T>
+where
+    T: StateRequestType,
+    F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,
+{
+    let rinfo = info.clone();
+    let make_checker = |request_id| {
+        let checker: StateChecker = Box::new(move |state| {
+            if state.db_connector.is_request_completed(request_id) {
+                state
+                    .db_connector
+                    .convert_response::<T::Response, T::BadResponse>(request_id);
 
-impl<T: RequestType> RequestIdentifier<T> {
-    pub(super) fn new(request_id: RequestId, info: T::Info) -> Self {
-        Self {
-            id: request_id,
-            info,
-            _data: PhantomData::default(),
-        }
-    }
+                let info = info.clone();
+                let identifier: RequestIdentifier<T> =
+                    RequestIdentifier::new(request_id, info.clone());
+                let executor: StateExecutor = Box::new(move |state: &mut State| {
+                    let response = state.take_response(&identifier);
+                    if let Some(response) = response {
+                        match response {
+                            Ok(response) => T::push_to_state(*response, info, state),
+                            Err(response) => T::push_bad_to_state(*response, info, state),
+                        }
+                    }
+                });
+                Some(executor)
+            } else {
+                None
+            }
+        });
+        checker
+    };
+    let identifier = make_request_custom(rinfo, make_request);
+    StateUpdater::get().push_checker(make_checker(identifier.id));
+    identifier
 }

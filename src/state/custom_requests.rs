@@ -1,12 +1,11 @@
 use calendar_lib::api::{auth::*, user_state};
 
-use crate::{db::aliases::UserUtils, tables::TableId};
-
-use super::{
-    db_connector::DbConnectorData,
-    main_state::State,
-    request::{RequestType, StateRequestType},
+use crate::{
+    db::{aliases::UserUtils, db_connector::DbConnectorData},
+    tables::TableId,
 };
+
+use super::{main_state::State, request::*};
 
 /* TODO:
     admin requests:

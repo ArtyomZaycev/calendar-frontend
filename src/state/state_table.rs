@@ -1,10 +1,12 @@
 use calendar_lib::api::utils::{DeleteByIdQuery, LoadByIdQuery};
 
-use crate::tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId};
+use crate::{
+    db::request::RequestIdentifier,
+    tables::{table::Table, DbTableItem, DbTableUpdateItem, TableId},
+};
 
 use super::{
-    main_state::State,
-    request::{RequestIdentifier, RequestType},
+    request::{make_state_request, RequestType},
     table_requests::{
         StateRequestInfo, TableDeleteRequest, TableInsertRequest, TableItemDelete, TableItemInsert,
         TableItemLoadAll, TableItemLoadById, TableItemUpdate, TableLoadAllRequest,
@@ -41,7 +43,7 @@ impl<T: DbTableItem> StateTable<T> {
 
 impl<T: TableItemLoadById> StateTable<T> {
     pub fn load_by_id(&self, id: TableId) -> RequestIdentifier<TableLoadByIdRequest<T>> {
-        State::make_request(StateRequestInfo::new(self.user_id, id), |connector| {
+        make_state_request(StateRequestInfo::new(self.user_id, id), |connector| {
             connector
                 .make_request::<TableLoadByIdRequest<T>>()
                 .query(&LoadByIdQuery { id })
@@ -51,7 +53,7 @@ impl<T: TableItemLoadById> StateTable<T> {
 
 impl<T: TableItemLoadAll> StateTable<T> {
     pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
-        State::make_request(StateRequestInfo::new_default(self.user_id), |connector| {
+        make_state_request(StateRequestInfo::new_default(self.user_id), |connector| {
             connector.make_request::<TableLoadAllRequest<T>>()
         })
     }
@@ -62,7 +64,7 @@ impl<T: TableItemInsert> StateTable<T> {
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableInsertRequest<T>> {
-        State::make_request(StateRequestInfo::new_default(self.user_id), |connector| {
+        make_state_request(StateRequestInfo::new_default(self.user_id), |connector| {
             connector
                 .make_request::<TableInsertRequest<T>>()
                 .json(&item)
@@ -76,7 +78,7 @@ impl<T: TableItemUpdate> StateTable<T> {
         item: <TableUpdateRequest<T> as RequestType>::Body,
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
         let item_id = item.get_id();
-        State::make_request(StateRequestInfo::new(self.user_id, item_id), |connector| {
+        make_state_request(StateRequestInfo::new(self.user_id, item_id), |connector| {
             connector
                 .make_request::<TableUpdateRequest<T>>()
                 .json(&item)
@@ -86,7 +88,7 @@ impl<T: TableItemUpdate> StateTable<T> {
 
 impl<T: TableItemDelete> StateTable<T> {
     pub fn delete(&self, id: TableId) -> RequestIdentifier<TableDeleteRequest<T>> {
-        State::make_request(StateRequestInfo::new(self.user_id, id), |connector| {
+        make_state_request(StateRequestInfo::new(self.user_id, id), |connector| {
             connector
                 .make_request::<TableDeleteRequest<T>>()
                 .query(&DeleteByIdQuery { id })
