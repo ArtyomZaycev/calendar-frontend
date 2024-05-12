@@ -113,29 +113,7 @@ impl StateRequestType for RegisterRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {}
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
 }
-/*
-#[derive(Clone, Copy)]
-pub struct NewPasswordRequest {}
-impl RequestType for NewPasswordRequest {
-    const URL: &'static str = new_password::PATH;
-    const IS_AUTHORIZED: bool = false;
-    const METHOD: reqwest::Method = new_password::METHOD;
 
-    type Query = new_password::Args;
-    type Body = new_password::Body;
-    type Response = new_password::Response;
-
-    type Info = ();
-}
-#[allow(unused_variables)]
-impl StateRequestType for NewPasswordRequest {
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        state.user_state.access_levels.load_all();
-    }
-
-    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
-}
- */
 #[derive(Clone, Copy)]
 pub struct LoadStateRequest {}
 impl RequestType for LoadStateRequest {
