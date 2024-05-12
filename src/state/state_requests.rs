@@ -76,7 +76,7 @@ impl UserState {
         make_state_request(self.user_id, |connector| {
             connector
                 .make_request::<LoadStateRequest>()
-                .query(&user_state::load::Args { user_id: None })
+                .query(&user_state::load::Args { user_id: self.user_id })
         })
     }
 }
@@ -91,7 +91,7 @@ impl AdminState {
             connector
                 .make_request::<LoadStateRequest>()
                 .query(&user_state::load::Args {
-                    user_id: Some(user_id),
+                    user_id,
                 })
         })
     }
