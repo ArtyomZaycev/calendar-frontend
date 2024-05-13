@@ -1,11 +1,8 @@
-use calendar_lib::api::{auth::*, user_state};
+use calendar_lib::api::{auth::*, sharing, user_state};
 
-use crate::{
-    db::{aliases::UserUtils, db_connector::DbConnectorData},
-    tables::TableId,
-};
+use crate::{db::aliases::UserUtils, tables::TableId};
 
-use super::{main_state::State, request::*};
+use super::{main_state::State, request::*, shared_state::GrantedUserState};
 
 /* TODO:
     admin requests:
@@ -140,5 +137,53 @@ impl StateRequestType for LoadStateRequest {
             println!("Failed loading state");
             state.clear_events(user_id);
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct LoadGrantedPermissionsRequest {}
+impl RequestType for LoadGrantedPermissionsRequest {
+    const URL: &'static str = sharing::load_granted_permissions::PATH;
+    const IS_AUTHORIZED: bool = true;
+    const METHOD: reqwest::Method = sharing::load_granted_permissions::METHOD;
+
+    type Query = sharing::load_granted_permissions::Args;
+    type Response = sharing::load_granted_permissions::Response;
+
+    /// user_id
+    type Info = TableId;
+}
+#[allow(unused_variables)]
+impl StateRequestType for LoadGrantedPermissionsRequest {
+    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
+        let user_id = info;
+
+        if user_id == state.me.id {
+            state.granted_states = response
+                .iter()
+                .cloned()
+                .map(|(user, permission)| {
+                    let granted = GrantedUserState::new(user, permission.permissions);
+                    granted.state.load_state();
+                    granted
+                })
+                .collect();
+        }
+
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_from_load_all(
+                response
+                    .into_iter()
+                    .map(|(_, permission)| permission)
+                    .collect(),
+            );
+    }
+
+    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        let user_id = info;
+        state.granted_states.clear();
+        state.get_user_state_mut(user_id).granted_permissions.default_push_bad_from_load_all();
     }
 }

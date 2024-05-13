@@ -95,9 +95,9 @@ impl CalendarApp {
                         }
                         ui.separator();
 
-                        if !self.state.shared_states.is_empty() {
+                        if !self.state.granted_states.is_empty() {
                             CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
-                                self.state.shared_states.iter().for_each(|shared_state| {
+                                self.state.granted_states.iter().for_each(|shared_state| {
                                     if ui
                                         .add(
                                             Label::new(&shared_state.user.name)

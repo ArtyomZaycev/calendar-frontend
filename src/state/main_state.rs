@@ -2,7 +2,7 @@ use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
     events::types::{Event, EventVisibility},
-    sharing::GrantedPermissions,
+    sharing::Permissions,
     utils::{TableId, User},
 };
 
@@ -10,7 +10,11 @@ use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 
 use crate::{
-    db::{aliases::UserUtils, db_connector::{DbConnector, DbConnectorData}, request::RequestIdentifier},
+    db::{
+        aliases::UserUtils,
+        db_connector::{DbConnector, DbConnectorData},
+        request::RequestIdentifier,
+    },
     tables::DbTable,
 };
 
@@ -24,7 +28,7 @@ pub struct State {
     pub(super) me: User,
 
     pub user_state: UserState,
-    pub shared_states: Vec<GrantedUserState>,
+    pub granted_states: Vec<GrantedUserState>,
     pub admin_state: AdminState,
 
     /// Has both server and phantom events
@@ -38,7 +42,7 @@ impl State {
             db_connector: DbConnector::new(),
             me: User::default(),
             user_state: UserState::new(-1),
-            shared_states: Vec::new(),
+            granted_states: Vec::new(),
             admin_state: AdminState::new(),
 
             events_per_day: HashMap::new(),
@@ -75,7 +79,7 @@ impl State {
             if user_id == self.me.id {
                 Some(&self.user_state)
             } else {
-                self.shared_states
+                self.granted_states
                     .iter()
                     .find_map(|state| (state.user.id == user_id).then_some(&state.state))
             }
@@ -95,7 +99,7 @@ impl State {
             if user_id == self.me.id {
                 &mut self.user_state
             } else {
-                self.shared_states
+                self.granted_states
                     .iter_mut()
                     .find_map(|state| (state.user.id == user_id).then_some(&mut state.state))
                     .unwrap()
@@ -103,18 +107,18 @@ impl State {
         }
     }
 
-    pub fn get_user_permissions(&self, user_id: i32) -> GrantedPermissions {
+    pub fn get_user_permissions(&self, user_id: i32) -> Permissions {
         if self.me.is_admin() {
-            GrantedPermissions::FULL
+            Permissions::FULL
         } else {
             if user_id == self.me.id {
-                GrantedPermissions::FULL
+                Permissions::FULL
             } else {
                 println!("get_user_permissions uid = {user_id}");
-                self.shared_states
+                self.granted_states
                     .iter()
                     .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
-                    .unwrap_or(GrantedPermissions::NONE)
+                    .unwrap_or(Permissions::NONE)
             }
         }
     }

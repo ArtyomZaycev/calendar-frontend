@@ -1,4 +1,4 @@
-use calendar_lib::api::{auth::*, user_state, utils::User};
+use calendar_lib::api::{auth::*, sharing::load_granted_permissions, user_state, utils::User};
 
 use crate::{
     db::{aliases::UserUtils, request::RequestIdentifier},
@@ -69,6 +69,14 @@ impl State {
             self.admin_state.load_state();
         }
     }
+
+    pub fn load_granted_permissions(&self) -> RequestIdentifier<LoadGrantedPermissionsRequest> {
+        make_state_request(self.me.id, |connector| {
+            connector
+                .make_request::<LoadGrantedPermissionsRequest>()
+                .query(&self.me.id)
+        })
+    }
 }
 
 impl UserState {
@@ -76,7 +84,9 @@ impl UserState {
         make_state_request(self.user_id, |connector| {
             connector
                 .make_request::<LoadStateRequest>()
-                .query(&user_state::load::Args { user_id: self.user_id })
+                .query(&user_state::load::Args {
+                    user_id: self.user_id,
+                })
         })
     }
 }
@@ -90,9 +100,7 @@ impl AdminState {
         make_state_request(user_id, |connector| {
             connector
                 .make_request::<LoadStateRequest>()
-                .query(&user_state::load::Args {
-                    user_id,
-                })
+                .query(&user_state::load::Args { user_id })
         })
     }
 }

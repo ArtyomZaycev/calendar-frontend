@@ -1,13 +1,13 @@
 use super::popups::popup_manager::PopupManager;
 use crate::{app::CalendarApp, db::aliases::Event};
-use calendar_lib::api::sharing::GrantedTablePermission;
+use calendar_lib::api::sharing::TablePermissions;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {
     app: &'a CalendarApp,
     desired_size: Vec2,
     event: &'a Event,
-    permission: GrantedTablePermission,
+    permission: TablePermissions,
     access_level: i32,
 
     show_description: bool,
@@ -21,7 +21,7 @@ impl<'a> EventCard<'a> {
         desired_size: Vec2,
         event: &'a Event,
         access_level: i32,
-        permission: GrantedTablePermission,
+        permission: TablePermissions,
     ) -> Self {
         Self {
             app,

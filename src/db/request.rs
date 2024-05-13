@@ -45,10 +45,7 @@ impl<T: RequestType> RequestIdentifier<T> {
     }
 }
 
-pub fn make_request_custom<T, F>(
-    info: T::Info,
-    make_request: F,
-) -> RequestIdentifier<T>
+pub fn make_request_custom<T, F>(info: T::Info, make_request: F) -> RequestIdentifier<T>
 where
     T: RequestType,
     F: FnOnce(&DbConnectorData) -> reqwest::RequestBuilder,

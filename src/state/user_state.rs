@@ -1,9 +1,9 @@
 use calendar_lib::api::{
     auth::types::AccessLevel,
     event_templates::types::EventTemplate,
-    events::types::Event,
-    events::types::{EventVisibility, NewEvent},
+    events::types::{Event, EventVisibility, NewEvent},
     schedules::types::Schedule,
+    sharing::{GrantedPermission, Permissions},
     user_state,
     utils::TableId,
 };
@@ -20,6 +20,7 @@ pub struct UserState {
     pub events: StateTable<Event>,
     pub event_templates: StateTable<EventTemplate>,
     pub schedules: StateTable<Schedule>,
+    pub granted_permissions: StateTable<GrantedPermission>,
 }
 
 impl UserState {
@@ -30,6 +31,7 @@ impl UserState {
             events: StateTable::new(),
             schedules: StateTable::new(),
             event_templates: StateTable::new(),
+            granted_permissions: StateTable::new(),
         };
         state.set_user_id(user_id);
         state
@@ -41,6 +43,7 @@ impl UserState {
         self.events.set_user_id(user_id);
         self.event_templates.set_user_id(user_id);
         self.schedules.set_user_id(user_id);
+        self.granted_permissions.set_user_id(user_id);
     }
 
     pub fn replace_data(&mut self, data: user_state::load::Response) {
@@ -94,49 +97,3 @@ impl UserState {
             })
     }
 }
-
-/*
-pub trait GetUserStateTable<T: DbTableItem> {
-    fn get_table(&self) -> &StateTable<T>;
-    fn get_table_mut(&mut self) -> &mut StateTable<T>;
-}
-
-impl GetUserStateTable<AccessLevel> for UserState {
-    fn get_table(&self) -> &StateTable<AccessLevel> {
-        &self.access_levels
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<AccessLevel> {
-        &mut self.access_levels
-    }
-}
-
-impl GetUserStateTable<Event> for UserState {
-    fn get_table(&self) -> &StateTable<Event> {
-        &self.events
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<Event> {
-        &mut self.events
-    }
-}
-
-impl GetUserStateTable<EventTemplate> for UserState {
-    fn get_table(&self) -> &StateTable<EventTemplate> {
-        &self.event_templates
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<EventTemplate> {
-        &mut self.event_templates
-    }
-}
-
-impl GetUserStateTable<Schedule> for UserState {
-    fn get_table(&self) -> &StateTable<Schedule> {
-        &self.schedules
-    }
-
-    fn get_table_mut(&mut self) -> &mut StateTable<Schedule> {
-        &mut self.schedules
-    }
-} */
