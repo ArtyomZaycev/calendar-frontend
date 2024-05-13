@@ -143,7 +143,7 @@ impl<T: TableItemLoadAll> RequestType for TableLoadAllRequest<T> {
     const URL: &'static str = T::LOAD_ALL_PATH;
     const IS_AUTHORIZED: bool = true;
     const METHOD: reqwest::Method = reqwest::Method::GET;
-    type Query = ();
+    type Query = LoadArrayQuery;
     type Response = Vec<T>;
     type Info = StateRequestInfo<()>;
 }

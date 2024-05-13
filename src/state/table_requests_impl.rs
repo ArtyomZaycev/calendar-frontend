@@ -8,6 +8,7 @@ use calendar_lib::api::{
         self,
         types::{Event, NewEvent, UpdateEvent},
     },
+    permissions::{self, types::GrantedPermission},
     roles::{self, types::Role},
     schedules::{
         self,
@@ -391,15 +392,20 @@ impl TableItemLoadAll for Role {
     }
 }
 
-#[allow(unused_variables)]
 impl TableItemLoadAll for User {
     const LOAD_ALL_PATH: &'static str = users::load_array::PATH;
 
     fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
         if state.me.is_admin() {
-            state.admin_state.users.default_push_from_load_all(items);
+            state
+                .admin_state
+                .users
+                .default_push_from_load_all(items.clone());
         } else {
-            println!("How did you get here? O.o");
+            state
+                .get_user_state_mut(user_id)
+                .users
+                .default_push_from_load_all(items);
         }
     }
 
@@ -407,7 +413,29 @@ impl TableItemLoadAll for User {
         if state.me.is_admin() {
             state.admin_state.users.default_push_bad_from_load_all();
         } else {
-            println!("How did you get here? O.o");
+            state
+                .get_user_state_mut(user_id)
+                .users
+                .default_push_bad_from_load_all();
         }
+    }
+}
+
+impl TableItemLoadAll for GrantedPermission {
+    const LOAD_ALL_PATH: &'static str = permissions::load_array::PATH;
+
+    fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_from_load_all(items);
+        state.populate_granted_user_states(user_id);
+    }
+
+    fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_bad_from_load_all();
     }
 }

@@ -2,7 +2,7 @@ use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
     events::types::{Event, EventVisibility},
-    sharing::Permissions,
+    permissions::types::Permissions,
     utils::{TableId, User},
 };
 
@@ -272,5 +272,46 @@ impl State {
         self.me = user;
         self.user_state.set_user_id(self.me.id);
         self.load_state();
+    }
+
+    pub(super) fn populate_granted_user_states(&mut self, user_id: TableId) {
+        let new_given_permissions = self
+            .get_user_state(user_id)
+            .granted_permissions
+            .get_table()
+            .get()
+            .iter()
+            .filter(|gp| gp.receiver_user_id == user_id)
+            .filter(|gp| {
+                !self
+                    .granted_states
+                    .iter()
+                    .any(|gs| gs.user.id == gp.giver_user_id)
+            })
+            .collect_vec();
+        self.granted_states.append(
+            &mut new_given_permissions
+                .into_iter()
+                .map(|gp| {
+                    GrantedUserState::new(
+                        User {
+                            id: gp.giver_user_id,
+                            ..User::default()
+                        },
+                        gp.permissions,
+                    )
+                })
+                .collect(),
+        );
+        self.populate_granted_user_states_users(user_id);
+    }
+
+    pub(super) fn populate_granted_user_states_users(&mut self, user_id: TableId) {
+        let users = self.get_user_state(user_id).users.get_table().get().clone();
+        self.granted_states.iter_mut().for_each(|gs| {
+            if let Some(user) = users.iter().find(|u| u.id == gs.user.id) {
+                gs.user = user.clone();
+            }
+        })
     }
 }

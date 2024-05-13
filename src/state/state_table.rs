@@ -1,4 +1,4 @@
-use calendar_lib::api::utils::{DeleteByIdQuery, LoadByIdQuery};
+use calendar_lib::api::utils::{DeleteByIdQuery, LoadArrayQuery, LoadByIdQuery};
 
 use crate::{
     db::request::RequestIdentifier,
@@ -54,7 +54,11 @@ impl<T: TableItemLoadById> StateTable<T> {
 impl<T: TableItemLoadAll> StateTable<T> {
     pub fn load_all(&self) -> RequestIdentifier<TableLoadAllRequest<T>> {
         make_state_request(StateRequestInfo::new_default(self.user_id), |connector| {
-            connector.make_request::<TableLoadAllRequest<T>>()
+            connector
+                .make_request::<TableLoadAllRequest<T>>()
+                .query(&LoadArrayQuery {
+                    user_id: self.user_id,
+                })
         })
     }
 }

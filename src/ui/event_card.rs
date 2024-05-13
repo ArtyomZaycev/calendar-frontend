@@ -1,6 +1,6 @@
 use super::popups::popup_manager::PopupManager;
 use crate::{app::CalendarApp, db::aliases::Event};
-use calendar_lib::api::sharing::TablePermissions;
+use calendar_lib::api::permissions::types::TablePermissions;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {

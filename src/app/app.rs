@@ -1,4 +1,4 @@
-use calendar_lib::api::{sharing::Permissions, utils::TableId};
+use calendar_lib::api::{permissions::types::Permissions, utils::TableId};
 use chrono::NaiveDate;
 
 use super::{AppView, EventsView};

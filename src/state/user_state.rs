@@ -2,10 +2,10 @@ use calendar_lib::api::{
     auth::types::AccessLevel,
     event_templates::types::EventTemplate,
     events::types::{Event, EventVisibility, NewEvent},
+    permissions::types::GrantedPermission,
     schedules::types::Schedule,
-    sharing::{GrantedPermission, Permissions},
     user_state,
-    utils::TableId,
+    utils::{TableId, User},
 };
 
 use chrono::{Duration, NaiveDate, NaiveDateTime};
@@ -16,6 +16,8 @@ use super::{state_table::StateTable, table_requests::TableInsertRequest};
 
 pub struct UserState {
     pub(super) user_id: TableId,
+
+    pub users: StateTable<User>,
     pub access_levels: StateTable<AccessLevel>,
     pub events: StateTable<Event>,
     pub event_templates: StateTable<EventTemplate>,
@@ -27,6 +29,7 @@ impl UserState {
     pub(super) fn new(user_id: TableId) -> Self {
         let mut state = Self {
             user_id: -1,
+            users: StateTable::new(),
             access_levels: StateTable::new(),
             events: StateTable::new(),
             schedules: StateTable::new(),

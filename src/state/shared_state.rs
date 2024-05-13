@@ -1,4 +1,4 @@
-use calendar_lib::api::{sharing::Permissions, utils::User};
+use calendar_lib::api::{permissions::types::Permissions, utils::User};
 
 use super::main_state::UserState;
 
