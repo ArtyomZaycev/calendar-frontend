@@ -31,14 +31,36 @@ impl RequestResult<Bytes> {
         RequestResult::new(
             self.id,
             self.result.map(|(status, bytes)| {
-                let b: Box<dyn Any> = if status == StatusCode::OK {
-                    Box::new(serde_json::from_slice::<T>(&bytes).unwrap())
+                if status == StatusCode::OK {
+                    match serde_json::from_slice::<T>(&bytes) {
+                        Ok(result) => {
+                            let res: Box<dyn Any> = Box::new(result);
+                            (status, res)
+                        },
+                        Err(err) => {
+                            println!("Unknown type received with status 200. Modifying status to 418");
+                            let res: Box<dyn Any> = Box::new(err.to_string());
+                            (StatusCode::IM_A_TEAPOT, res)
+                        },
+                    }
                 } else if status == StatusCode::BAD_REQUEST {
-                    Box::new(serde_json::from_slice::<E>(&bytes).unwrap())
+                    match serde_json::from_slice::<E>(&bytes) {
+                        Ok(result) => {
+                            let res: Box<dyn Any> = Box::new(result);
+                            (status, res)
+                        },
+                        Err(err) => {
+                            println!("Unknown type received with status 400. Modifying status to 418");
+                            let res: Box<dyn Any> = Box::new(err.to_string());
+                            (StatusCode::IM_A_TEAPOT, res)
+                        },
+                    }
                 } else {
-                    Box::new(String::from_utf8_lossy(&bytes.to_vec()).to_string())
-                };
-                (status, b)
+                    let err = String::from_utf8_lossy(&bytes.to_vec()).to_string();
+                    println!("Unexpected response status code '{}': {}", status, err);
+                    let res: Box<dyn Any> = Box::new(err);
+                    (status, res)
+                }
             }),
         )
     }
