@@ -5,9 +5,7 @@ use crate::{
     state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
 };
-use calendar_lib::api::{
-    auth::types::AccessLevel, permissions::types::GrantedPermission, schedules::types::*,
-};
+use calendar_lib::api::{auth::types::AccessLevel, permissions::types::*, utils::*};
 use egui::Checkbox;
 use std::hash::Hash;
 
@@ -29,8 +27,8 @@ pub struct PermissionInput {
     pub sharing: bool,
     pub access_levels_edit: bool,
 
-    update_request: Option<RequestIdentifier<TableUpdateRequest<Schedule>>>,
-    insert_request: Option<RequestIdentifier<TableInsertRequest<Schedule>>>,
+    update_request: Option<RequestIdentifier<TableUpdateRequest<GrantedPermission>>>,
+    insert_request: Option<RequestIdentifier<TableInsertRequest<GrantedPermission>>>,
 }
 
 impl PermissionInput {
@@ -84,6 +82,40 @@ impl PermissionInput {
             insert_request: None,
         }
     }
+
+    fn make_permissions(&self) -> Permissions {
+        Permissions {
+            access_level: self.access_level,
+            access_levels: TablePermissions {
+                view: self.access_levels_edit,
+                edit: self.access_levels_edit,
+                create: self.access_levels_edit,
+                delete: self.access_levels_edit,
+            },
+            events: TablePermissions {
+                view: self.events_view || self.events_edit,
+                edit: self.events_edit,
+                create: self.events_edit,
+                delete: self.events_edit,
+            },
+            event_templates: TablePermissions {
+                view: self.event_templates_view
+                    || self.event_templates_edit
+                    || self.schedules_view
+                    || self.schedules_edit,
+                edit: self.event_templates_edit,
+                create: self.event_templates_edit,
+                delete: self.event_templates_edit,
+            },
+            schedules: TablePermissions {
+                view: self.schedules_view || self.schedules_edit,
+                edit: self.schedules_edit,
+                create: self.schedules_edit,
+                delete: self.schedules_edit,
+            },
+            allow_share: self.sharing,
+        }
+    }
 }
 
 impl PopupContent for PermissionInput {
@@ -114,7 +146,7 @@ impl PopupContent for PermissionInput {
         }
     }
 
-    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, _info: &mut ContentInfo) {
         let edit_mode = app
             .state
             .get_user_permissions(self.giver_user_id)
@@ -242,6 +274,39 @@ impl PopupContent for PermissionInput {
     }
 
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
+        if let Some(id) = self.id {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Update"))
+                .clicked()
+            {
+                self.update_request = Some(
+                    app.state
+                        .get_user_state(self.giver_user_id)
+                        .granted_permissions
+                        .update(UpdateGrantedPermission {
+                            id,
+                            receiver_email: USome(self.receiver_email.clone()),
+                            permissions: USome(self.make_permissions()),
+                        }),
+                );
+            }
+        } else {
+            if ui
+                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .clicked()
+            {
+                self.insert_request = Some(
+                    app.state
+                        .get_user_state(self.giver_user_id)
+                        .granted_permissions
+                        .insert(NewGrantedPermission {
+                            giver_user_id: self.giver_user_id,
+                            receiver_email: self.receiver_email.clone(),
+                            permissions: self.make_permissions(),
+                        }),
+                );
+            }
+        }
         if ui.button("Cancel").clicked() {
             info.close();
         }

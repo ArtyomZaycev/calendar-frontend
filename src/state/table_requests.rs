@@ -1,4 +1,5 @@
 use calendar_lib::api::utils::*;
+use serde::de::DeserializeOwned;
 use std::{fmt::Debug, marker::PhantomData};
 
 use crate::tables::{DbTableItem, DbTableNewItem, DbTableUpdateItem};
@@ -65,8 +66,10 @@ where
     type NewItem: DbTableNewItem;
     const INSERT_PATH: &'static str;
 
+    type BadResponse: 'static + DeserializeOwned = ();
+
     fn push_from_insert(state: &mut State, user_id: TableId);
-    fn push_bad_from_insert(state: &mut State, user_id: TableId);
+    fn push_bad_from_insert(state: &mut State, user_id: TableId, response: Self::BadResponse);
 }
 pub trait TableItemUpdate
 where
@@ -75,12 +78,14 @@ where
     type UpdItem: DbTableUpdateItem;
     const UPDATE_PATH: &'static str;
 
+    type BadResponse: 'static + DeserializeOwned = UpdateBadRequestResponse;
+
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId);
     fn push_bad_from_update(
         state: &mut State,
         user_id: TableId,
         id: TableId,
-        response: UpdateBadRequestResponse,
+        response: Self::BadResponse,
     );
 }
 pub trait TableItemDelete
@@ -158,7 +163,6 @@ impl<T: TableItemLoadAll> StateRequestType for TableLoadAllRequest<T> {
     }
 }
 
-#[allow(unused_variables)]
 impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     const URL: &'static str = T::INSERT_PATH;
     const IS_AUTHORIZED: bool = true;
@@ -166,6 +170,7 @@ impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     type Query = ();
     type Body = T::NewItem;
     type Response = EmptyResponse;
+    type BadResponse = T::BadResponse;
     type Info = StateRequestInfo<()>;
 }
 #[allow(unused_variables)]
@@ -175,7 +180,7 @@ impl<T: TableItemInsert> StateRequestType for TableInsertRequest<T> {
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_insert(state, info.user_id);
+        T::push_bad_from_insert(state, info.user_id, response);
     }
 }
 
@@ -187,7 +192,7 @@ impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     type Query = ();
     type Body = T::UpdItem;
     type Response = EmptyResponse;
-    type BadResponse = UpdateBadRequestResponse;
+    type BadResponse = T::BadResponse;
     type Info = StateRequestInfo<TableId>;
 }
 #[allow(unused_variables)]

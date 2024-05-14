@@ -8,7 +8,10 @@ use calendar_lib::api::{
         self,
         types::{Event, NewEvent, UpdateEvent},
     },
-    permissions::{self, types::GrantedPermission},
+    permissions::{
+        self,
+        types::{GrantedPermission, NewGrantedPermission, UpdateGrantedPermission},
+    },
     roles::{self, types::Role},
     schedules::{
         self,
@@ -102,7 +105,7 @@ impl TableItemInsert for Event {
             .default_push_from_insert();
     }
 
-    fn push_bad_from_insert(state: &mut State, user_id: TableId) {
+    fn push_bad_from_insert(state: &mut State, user_id: TableId, _: Self::BadResponse) {
         state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
@@ -214,7 +217,7 @@ impl TableItemInsert for EventTemplate {
             .default_push_from_insert();
     }
 
-    fn push_bad_from_insert(state: &mut State, user_id: TableId) {
+    fn push_bad_from_insert(state: &mut State, user_id: TableId, _: Self::BadResponse) {
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -321,7 +324,7 @@ impl TableItemInsert for Schedule {
             .default_push_from_insert();
     }
 
-    fn push_bad_from_insert(state: &mut State, user_id: TableId) {
+    fn push_bad_from_insert(state: &mut State, user_id: TableId, _: Self::BadResponse) {
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -437,5 +440,56 @@ impl TableItemLoadAll for GrantedPermission {
             .get_user_state_mut(user_id)
             .granted_permissions
             .default_push_bad_from_load_all();
+    }
+}
+
+#[allow(unused_variables)]
+impl TableItemInsert for GrantedPermission {
+    type NewItem = NewGrantedPermission;
+
+    const INSERT_PATH: &'static str = permissions::insert::PATH;
+
+    type BadResponse = permissions::insert::BadRequestResponse;
+
+    fn push_from_insert(state: &mut State, user_id: TableId) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_from_insert();
+    }
+
+    fn push_bad_from_insert(state: &mut State, user_id: TableId, response: Self::BadResponse) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_bad_from_insert();
+    }
+}
+
+#[allow(unused_variables)]
+impl TableItemUpdate for GrantedPermission {
+    type UpdItem = UpdateGrantedPermission;
+
+    const UPDATE_PATH: &'static str = permissions::update::PATH;
+
+    type BadResponse = permissions::update::BadRequestResponse;
+
+    fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .load_all();
+    }
+
+    fn push_bad_from_update(
+        state: &mut State,
+        user_id: TableId,
+        id: TableId,
+        response: Self::BadResponse,
+    ) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .load_all();
     }
 }
