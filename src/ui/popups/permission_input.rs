@@ -3,8 +3,11 @@ use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
     state::table_requests::{TableInsertRequest, TableUpdateRequest},
+    tables::DbTable,
 };
-use calendar_lib::api::{permissions::types::GrantedPermission, schedules::types::*};
+use calendar_lib::api::{
+    auth::types::AccessLevel, permissions::types::GrantedPermission, schedules::types::*,
+};
 use egui::Checkbox;
 use std::hash::Hash;
 
@@ -16,6 +19,7 @@ pub struct PermissionInput {
     pub receiver_user_id: i32,
     pub receiver_email: String,
 
+    pub access_level: i32,
     pub events_view: bool,
     pub events_edit: bool,
     pub event_templates_view: bool,
@@ -23,6 +27,7 @@ pub struct PermissionInput {
     pub schedules_view: bool,
     pub schedules_edit: bool,
     pub sharing: bool,
+    pub access_levels_edit: bool,
 
     update_request: Option<RequestIdentifier<TableUpdateRequest<Schedule>>>,
     insert_request: Option<RequestIdentifier<TableInsertRequest<Schedule>>>,
@@ -38,6 +43,7 @@ impl PermissionInput {
             receiver_email: String::default(),
             id: None,
 
+            access_level: AccessLevel::MAX_LEVEL,
             events_view: false,
             events_edit: false,
             event_templates_view: false,
@@ -45,6 +51,7 @@ impl PermissionInput {
             schedules_view: false,
             schedules_edit: false,
             sharing: false,
+            access_levels_edit: false,
 
             update_request: None,
             insert_request: None,
@@ -60,6 +67,7 @@ impl PermissionInput {
             receiver_email,
             id: Some(permissions.id),
 
+            access_level: permissions.permissions.access_level,
             events_view: permissions.permissions.events.view,
             events_edit: permissions.permissions.events.edit || permissions.permissions.events.view,
             event_templates_view: permissions.permissions.event_templates.view,
@@ -69,6 +77,8 @@ impl PermissionInput {
             schedules_edit: permissions.permissions.schedules.edit
                 || permissions.permissions.schedules.view,
             sharing: permissions.permissions.allow_share,
+            access_levels_edit: permissions.permissions.access_levels.view
+                || permissions.permissions.access_levels.edit,
 
             update_request: None,
             insert_request: None,
@@ -116,7 +126,27 @@ impl PopupContent for PermissionInput {
                         .desired_width(f32::INFINITY)
                         .hint_text("Email"),
                 );
+                ui.add_space(2.);
             }
+            let access_levels = app
+                .state
+                .get_user_state(self.giver_user_id)
+                .access_levels
+                .get_table()
+                .get();
+            let current_access_level = access_levels
+                .iter()
+                .find(|al| al.level == self.access_level)
+                .unwrap_or(access_levels.first().unwrap());
+            ui.add_enabled_ui(!self.access_levels_edit, |ui| {
+                egui::ComboBox::new(self.eid.with("access_level"), "Access Level")
+                    .selected_text(&current_access_level.name)
+                    .show_ui(ui, |ui| {
+                        access_levels.iter().for_each(|al| {
+                            ui.selectable_value(&mut self.access_level, al.level, &al.name);
+                        })
+                    });
+            });
 
             let mut full_permissions = self.events_view
                 && self.events_edit
@@ -124,7 +154,8 @@ impl PopupContent for PermissionInput {
                 && self.event_templates_edit
                 && self.schedules_view
                 && self.schedules_edit
-                && self.sharing;
+                && self.sharing
+                && self.access_levels_edit;
             if ui
                 .add_enabled(
                     edit_mode,
@@ -139,6 +170,7 @@ impl PopupContent for PermissionInput {
                 self.schedules_view = full_permissions;
                 self.schedules_edit = full_permissions;
                 self.sharing = full_permissions;
+                self.access_levels_edit = full_permissions;
             }
 
             ui.heading("Events");
@@ -199,6 +231,13 @@ impl PopupContent for PermissionInput {
                 edit_mode,
                 Checkbox::new(&mut self.sharing, "Manage Sharing"),
             );
+            ui.add_enabled(
+                edit_mode,
+                Checkbox::new(&mut self.access_levels_edit, "Edit Access Levels"),
+            );
+            if self.access_levels_edit {
+                self.access_level = AccessLevel::MAX_LEVEL;
+            }
         });
     }
 
