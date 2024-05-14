@@ -11,6 +11,7 @@ use crate::ui::table_view::TableView;
 pub(super) enum AppView {
     Calendar(CalendarView),
     AdminPanel(AdminPanelView),
+    ManageAccess { previous_view: CalendarView },
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, is_enum_variant)]

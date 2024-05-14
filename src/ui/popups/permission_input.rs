@@ -1,0 +1,210 @@
+use super::popup_content::{ContentInfo, PopupContent};
+use crate::{
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::table_requests::{TableInsertRequest, TableUpdateRequest},
+};
+use calendar_lib::api::{permissions::types::GrantedPermission, schedules::types::*};
+use egui::Checkbox;
+use std::hash::Hash;
+
+pub struct PermissionInput {
+    eid: egui::Id,
+    pub giver_user_id: i32,
+
+    pub id: Option<i32>,
+    pub receiver_user_id: i32,
+    pub receiver_email: String,
+
+    pub events_view: bool,
+    pub events_edit: bool,
+    pub event_templates_view: bool,
+    pub event_templates_edit: bool,
+    pub schedules_view: bool,
+    pub schedules_edit: bool,
+    pub sharing: bool,
+
+    update_request: Option<RequestIdentifier<TableUpdateRequest<Schedule>>>,
+    insert_request: Option<RequestIdentifier<TableInsertRequest<Schedule>>>,
+}
+
+impl PermissionInput {
+    pub fn new(eid: impl Hash, giver_user_id: i32) -> Self {
+        Self {
+            eid: egui::Id::new(eid),
+
+            giver_user_id: giver_user_id,
+            receiver_user_id: -1,
+            receiver_email: String::default(),
+            id: None,
+
+            events_view: false,
+            events_edit: false,
+            event_templates_view: false,
+            event_templates_edit: false,
+            schedules_view: false,
+            schedules_edit: false,
+            sharing: false,
+
+            update_request: None,
+            insert_request: None,
+        }
+    }
+
+    pub fn change(eid: impl Hash, permissions: &GrantedPermission, receiver_email: String) -> Self {
+        Self {
+            eid: egui::Id::new(eid),
+
+            giver_user_id: permissions.giver_user_id,
+            receiver_user_id: permissions.receiver_user_id,
+            receiver_email,
+            id: Some(permissions.id),
+
+            events_view: permissions.permissions.events.view,
+            events_edit: permissions.permissions.events.edit || permissions.permissions.events.view,
+            event_templates_view: permissions.permissions.event_templates.view,
+            event_templates_edit: permissions.permissions.event_templates.edit
+                || permissions.permissions.event_templates.view,
+            schedules_view: permissions.permissions.schedules.view,
+            schedules_edit: permissions.permissions.schedules.edit
+                || permissions.permissions.schedules.view,
+            sharing: permissions.permissions.allow_share,
+
+            update_request: None,
+            insert_request: None,
+        }
+    }
+}
+
+impl PopupContent for PermissionInput {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
+        if let Some(identifier) = self.update_request.as_ref() {
+            if let Some(response_info) = app.state.get_response(&identifier) {
+                self.update_request = None;
+                if !response_info.is_err() {
+                    info.close();
+                }
+            }
+        }
+        if let Some(identifier) = self.insert_request.as_ref() {
+            if let Some(response_info) = app.state.get_response(&identifier) {
+                self.insert_request = None;
+                if !response_info.is_err() {
+                    info.close();
+                }
+            }
+        }
+    }
+
+    fn get_title(&mut self) -> Option<String> {
+        if self.id.is_some() {
+            Some(format!("Change {} Permission", &self.receiver_email))
+        } else {
+            Some("New Permission".to_owned())
+        }
+    }
+
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
+        let edit_mode = app
+            .state
+            .get_user_permissions(self.giver_user_id)
+            .allow_share;
+        ui.vertical(|ui| {
+            if self.id.is_none() {
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.receiver_email)
+                        .desired_width(f32::INFINITY)
+                        .hint_text("Email"),
+                );
+            }
+
+            let mut full_permissions = self.events_view
+                && self.events_edit
+                && self.event_templates_view
+                && self.event_templates_edit
+                && self.schedules_view
+                && self.schedules_edit
+                && self.sharing;
+            if ui
+                .add_enabled(
+                    edit_mode,
+                    Checkbox::new(&mut full_permissions, "Full permissions"),
+                )
+                .clicked()
+            {
+                self.events_view = full_permissions;
+                self.events_edit = full_permissions;
+                self.event_templates_view = full_permissions;
+                self.event_templates_edit = full_permissions;
+                self.schedules_view = full_permissions;
+                self.schedules_edit = full_permissions;
+                self.sharing = full_permissions;
+            }
+
+            ui.heading("Events");
+            ui.separator();
+            ui.add_enabled(
+                edit_mode && !self.events_edit,
+                Checkbox::new(&mut self.events_view, "View Events"),
+            );
+            ui.add_enabled(
+                edit_mode,
+                Checkbox::new(&mut self.events_edit, "Create and edit Events"),
+            );
+            if self.events_edit {
+                self.events_view = true;
+            }
+
+            ui.heading("Event Templates");
+            ui.separator();
+            ui.add_enabled(
+                edit_mode
+                    && !self.event_templates_edit
+                    && !self.schedules_view
+                    && !self.schedules_edit,
+                Checkbox::new(&mut self.event_templates_view, "View Event Templates"),
+            );
+            ui.add_enabled(
+                edit_mode,
+                Checkbox::new(
+                    &mut self.event_templates_edit,
+                    "Create and edit Event Templates",
+                ),
+            );
+            if self.event_templates_edit {
+                self.event_templates_view = true;
+            }
+
+            ui.heading("Schedules");
+            ui.separator();
+            ui.add_enabled(
+                edit_mode && !self.schedules_edit,
+                Checkbox::new(&mut self.schedules_view, "View Schedules"),
+            );
+            ui.add_enabled(
+                edit_mode,
+                Checkbox::new(&mut self.schedules_edit, "Create and edit Schedules"),
+            );
+            if self.schedules_view {
+                self.event_templates_view = true;
+            }
+            if self.schedules_edit {
+                self.event_templates_view = true;
+                self.schedules_view = true;
+            }
+
+            ui.heading("Other");
+            ui.separator();
+            ui.add_enabled(
+                edit_mode,
+                Checkbox::new(&mut self.sharing, "Manage Sharing"),
+            );
+        });
+    }
+
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
+        if ui.button("Cancel").clicked() {
+            info.close();
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use calendar_lib::api::auth::login;
 
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
@@ -30,7 +30,7 @@ impl Login {
 }
 
 impl PopupContent for Login {
-    fn init_frame(&mut self, app: &CalendarApp, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
             if let Some(response_info) = app.state.get_response(identifier) {
                 match response_info {
@@ -51,12 +51,7 @@ impl PopupContent for Login {
         Some("Login".to_owned())
     }
 
-    fn show_content(
-        &mut self,
-        _app: &CalendarApp,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(
@@ -89,12 +84,7 @@ impl PopupContent for Login {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        app: &CalendarApp,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
             .add_enabled(!info.is_error(), egui::Button::new("Login"))
             .clicked()

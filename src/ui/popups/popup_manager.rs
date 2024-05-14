@@ -1,7 +1,8 @@
 use std::sync::{Mutex, MutexGuard};
 
 use calendar_lib::api::{
-    event_templates::types::EventTemplate, events::types::Event, schedules::types::Schedule,
+    event_templates::types::EventTemplate, events::types::Event,
+    permissions::types::GrantedPermission, schedules::types::Schedule, utils::TableId,
 };
 use itertools::Itertools;
 
@@ -11,6 +12,7 @@ use super::{
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
+    permission_input::PermissionInput,
     popup::{Popup, PopupType},
     profile::Profile,
     schedule_input::ScheduleInput,
@@ -181,6 +183,29 @@ impl PopupManager {
             PopupType::UpdateSchedule(ScheduleInput::change(
                 format!("update_schedule_popup_{}", schedule.id),
                 schedule,
+            ))
+            .popup(),
+        );
+    }
+    pub fn open_new_permission(&mut self, giver_user_id: TableId) {
+        self.popups.push(
+            PopupType::UpdatePermission(PermissionInput::new(
+                format!("new_permission_popup_{}", giver_user_id),
+                giver_user_id,
+            ))
+            .popup(),
+        );
+    }
+    pub fn open_update_permission(
+        &mut self,
+        permission: &GrantedPermission,
+        receiver_email: String,
+    ) {
+        self.popups.push(
+            PopupType::NewPermission(PermissionInput::change(
+                format!("update_permission_popup_{}", permission.id),
+                permission,
+                receiver_email,
             ))
             .popup(),
         );

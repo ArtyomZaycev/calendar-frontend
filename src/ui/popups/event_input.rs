@@ -1,4 +1,4 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
@@ -79,7 +79,7 @@ impl EventInput {
 }
 
 impl PopupContent for EventInput {
-    fn init_frame(&mut self, app: &CalendarApp, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
             if let Some(response_info) = app.state.get_response(&identifier) {
                 self.update_request = None;
@@ -110,12 +110,7 @@ impl PopupContent for EventInput {
         }
     }
 
-    fn show_content(
-        &mut self,
-        app: &CalendarApp,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
@@ -154,12 +149,7 @@ impl PopupContent for EventInput {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        app: &CalendarApp,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))

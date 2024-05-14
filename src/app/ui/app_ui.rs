@@ -92,6 +92,7 @@ impl CalendarApp {
                             .clicked()
                         {
                             self.selected_user_id = self.state.get_me().id;
+                            self.view = EventsView::Days.into();
                         }
                         ui.separator();
 
@@ -110,6 +111,19 @@ impl CalendarApp {
                                 })
                             });
                             ui.separator();
+                        }
+
+                        if ui
+                            .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
+                            .clicked()
+                        {
+                            let calendar_view = match self.view {
+                                AppView::Calendar(view) => view,
+                                _ => EventsView::Days.into(),
+                            };
+                            self.view = AppView::ManageAccess {
+                                previous_view: calendar_view,
+                            };
                         }
 
                         if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
@@ -185,6 +199,9 @@ impl CalendarApp {
                         }
                     }
                 }
+            }
+            AppView::ManageAccess { previous_view } => {
+                self.manage_access_view(ui, previous_view);
             }
         }
     }
