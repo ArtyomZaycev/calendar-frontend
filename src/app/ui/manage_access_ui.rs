@@ -48,7 +48,7 @@ impl CalendarApp {
                         .get_selected_user_state()
                         .users
                         .get_table()
-                        .get_by_id(gp.giver_user_id);
+                        .get_by_id(gp.receiver_user_id);
                     let user_email = match user {
                         Some(user) => &user.email,
                         None => "Unknown",

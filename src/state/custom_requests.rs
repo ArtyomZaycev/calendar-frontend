@@ -120,6 +120,7 @@ impl StateRequestType for LoadStateRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
         let user_id = info;
         state.get_user_state_mut(user_id).replace_data(response);
+        state.populate_granted_user_states(user_id);
         state.clear_events(user_id);
     }
 

@@ -50,6 +50,7 @@ impl UserState {
     }
 
     pub fn replace_data(&mut self, data: user_state::load::Response) {
+        self.users.get_table_mut().replace_all(data.users);
         self.access_levels
             .get_table_mut()
             .replace_all(data.access_levels);
@@ -58,6 +59,7 @@ impl UserState {
         self.event_templates
             .get_table_mut()
             .replace_all(data.event_templates);
+        self.granted_permissions.get_table_mut().replace_all(data.granted_permissions);
     }
 
     pub fn accept_scheduled_event(
