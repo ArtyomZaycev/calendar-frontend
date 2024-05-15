@@ -4,8 +4,13 @@ use crate::{
     db::request::RequestIdentifier,
     state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
+    utils::is_valid_email,
 };
-use calendar_lib::api::{auth::types::AccessLevel, permissions::types::*, utils::*};
+use calendar_lib::api::{
+    auth::types::AccessLevel,
+    permissions::{self, types::*},
+    utils::*,
+};
 use egui::Checkbox;
 use std::hash::Hash;
 
@@ -27,6 +32,7 @@ pub struct PermissionInput {
     pub sharing: bool,
     pub access_levels_edit: bool,
 
+    email_not_found: Option<String>,
     update_request: Option<RequestIdentifier<TableUpdateRequest<GrantedPermission>>>,
     insert_request: Option<RequestIdentifier<TableInsertRequest<GrantedPermission>>>,
 }
@@ -51,6 +57,7 @@ impl PermissionInput {
             sharing: false,
             access_levels_edit: false,
 
+            email_not_found: None,
             update_request: None,
             insert_request: None,
         }
@@ -75,6 +82,7 @@ impl PermissionInput {
             sharing: permissions.permissions.allow_share,
             access_levels_edit: permissions.permissions.access_levels.edit,
 
+            email_not_found: None,
             update_request: None,
             insert_request: None,
         }
@@ -119,18 +127,29 @@ impl PopupContent for PermissionInput {
     fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
             if let Some(response_info) = app.state.get_response(&identifier) {
-                self.update_request = None;
-                if !response_info.is_err() {
-                    info.close();
+                match response_info {
+                    Ok(_) => info.close(),
+                    Err(err) => match *err {
+                        permissions::update::BadRequestResponse::NotFound => {}
+                        permissions::update::BadRequestResponse::UserEmailNotFound => {
+                            self.email_not_found = Some(identifier.info.info.1.clone());
+                        }
+                    },
                 }
+                self.update_request = None;
             }
         }
         if let Some(identifier) = self.insert_request.as_ref() {
             if let Some(response_info) = app.state.get_response(&identifier) {
-                self.insert_request = None;
-                if !response_info.is_err() {
-                    info.close();
+                match response_info {
+                    Ok(_) => info.close(),
+                    Err(err) => match *err {
+                        permissions::insert::BadRequestResponse::UserEmailNotFound => {
+                            self.email_not_found = Some(identifier.info.info.clone());
+                        }
+                    },
                 }
+                self.insert_request = None;
             }
         }
     }
@@ -143,7 +162,7 @@ impl PopupContent for PermissionInput {
         }
     }
 
-    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, _info: &mut ContentInfo) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let edit_mode = app
             .state
             .get_user_permissions(self.giver_user_id)
@@ -157,6 +176,13 @@ impl PopupContent for PermissionInput {
                 );
                 ui.add_space(2.);
             }
+
+            info.error(
+                Some(&self.receiver_email) == self.email_not_found.as_ref(),
+                "User with this email does not exist",
+            );
+            info.error(!is_valid_email(&self.receiver_email), "Invalid Email");
+
             let access_levels = app
                 .state
                 .get_user_state(self.giver_user_id)
@@ -273,34 +299,46 @@ impl PopupContent for PermissionInput {
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Update"))
+                .add_enabled(
+                    self.update_request.is_none() && !info.is_error(),
+                    egui::Button::new("Update"),
+                )
                 .clicked()
             {
                 self.update_request = Some(
                     app.state
                         .get_user_state(self.giver_user_id)
                         .granted_permissions
-                        .update(UpdateGrantedPermission {
-                            id,
-                            receiver_email: USome(self.receiver_email.clone()),
-                            permissions: USome(self.make_permissions()),
-                        }),
+                        .update_with_info(
+                            UpdateGrantedPermission {
+                                id,
+                                receiver_email: USome(self.receiver_email.clone()),
+                                permissions: USome(self.make_permissions()),
+                            },
+                            self.receiver_email.clone(),
+                        ),
                 );
             }
         } else {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .add_enabled(
+                    self.insert_request.is_none() && !info.is_error(),
+                    egui::Button::new("Create"),
+                )
                 .clicked()
             {
                 self.insert_request = Some(
                     app.state
                         .get_user_state(self.giver_user_id)
                         .granted_permissions
-                        .insert(NewGrantedPermission {
-                            giver_user_id: self.giver_user_id,
-                            receiver_email: self.receiver_email.clone(),
-                            permissions: self.make_permissions(),
-                        }),
+                        .insert_with_info(
+                            NewGrantedPermission {
+                                giver_user_id: self.giver_user_id,
+                                receiver_email: self.receiver_email.clone(),
+                                permissions: self.make_permissions(),
+                            },
+                            self.receiver_email.clone(),
+                        ),
                 );
             }
         }

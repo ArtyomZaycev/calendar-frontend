@@ -477,6 +477,8 @@ impl TableItemInsert for GrantedPermission {
     const INSERT_PATH: &'static str = permissions::insert::PATH;
 
     type BadResponse = permissions::insert::BadRequestResponse;
+    // Email
+    type Info = String;
 
     fn push_from_insert(state: &mut State, user_id: TableId) {
         state
@@ -500,6 +502,8 @@ impl TableItemUpdate for GrantedPermission {
     const UPDATE_PATH: &'static str = permissions::update::PATH;
 
     type BadResponse = permissions::update::BadRequestResponse;
+    // Email
+    type Info = String;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
         state

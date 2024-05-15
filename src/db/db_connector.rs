@@ -36,24 +36,28 @@ impl RequestResult<Bytes> {
                         Ok(result) => {
                             let res: Box<dyn Any> = Box::new(result);
                             (status, res)
-                        },
+                        }
                         Err(err) => {
-                            println!("Unknown type received with status 200. Modifying status to 418");
+                            println!(
+                                "Unknown type received with status 200. Modifying status to 418"
+                            );
                             let res: Box<dyn Any> = Box::new(err.to_string());
                             (StatusCode::IM_A_TEAPOT, res)
-                        },
+                        }
                     }
                 } else if status == StatusCode::BAD_REQUEST {
                     match serde_json::from_slice::<E>(&bytes) {
                         Ok(result) => {
                             let res: Box<dyn Any> = Box::new(result);
                             (status, res)
-                        },
+                        }
                         Err(err) => {
-                            println!("Unknown type received with status 400. Modifying status to 418");
+                            println!(
+                                "Unknown type received with status 400. Modifying status to 418"
+                            );
                             let res: Box<dyn Any> = Box::new(err.to_string());
                             (StatusCode::IM_A_TEAPOT, res)
-                        },
+                        }
                     }
                 } else {
                     let err = String::from_utf8_lossy(&bytes.to_vec()).to_string();

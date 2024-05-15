@@ -67,6 +67,7 @@ where
     const INSERT_PATH: &'static str;
 
     type BadResponse: 'static + DeserializeOwned = ();
+    type Info: 'static + Clone + Debug + Send = ();
 
     fn push_from_insert(state: &mut State, user_id: TableId);
     fn push_bad_from_insert(state: &mut State, user_id: TableId, response: Self::BadResponse);
@@ -79,6 +80,7 @@ where
     const UPDATE_PATH: &'static str;
 
     type BadResponse: 'static + DeserializeOwned = UpdateBadRequestResponse;
+    type Info: 'static + Clone + Debug + Send = ();
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId);
     fn push_bad_from_update(
@@ -171,7 +173,7 @@ impl<T: TableItemInsert> RequestType for TableInsertRequest<T> {
     type Body = T::NewItem;
     type Response = EmptyResponse;
     type BadResponse = T::BadResponse;
-    type Info = StateRequestInfo<()>;
+    type Info = StateRequestInfo<T::Info>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemInsert> StateRequestType for TableInsertRequest<T> {
@@ -193,16 +195,16 @@ impl<T: TableItemUpdate> RequestType for TableUpdateRequest<T> {
     type Body = T::UpdItem;
     type Response = EmptyResponse;
     type BadResponse = T::BadResponse;
-    type Info = StateRequestInfo<TableId>;
+    type Info = StateRequestInfo<(TableId, T::Info)>;
 }
 #[allow(unused_variables)]
 impl<T: TableItemUpdate> StateRequestType for TableUpdateRequest<T> {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        T::push_from_update(state, info.user_id, info.info);
+        T::push_from_update(state, info.user_id, info.info.0);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        T::push_bad_from_update(state, info.user_id, info.info, response);
+        T::push_bad_from_update(state, info.user_id, info.info.0, response);
     }
 }
 

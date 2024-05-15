@@ -42,6 +42,7 @@ impl UserState {
 
     pub fn set_user_id(&mut self, user_id: TableId) {
         self.user_id = user_id;
+        self.users.set_user_id(user_id);
         self.access_levels.set_user_id(user_id);
         self.events.set_user_id(user_id);
         self.event_templates.set_user_id(user_id);
@@ -59,7 +60,9 @@ impl UserState {
         self.event_templates
             .get_table_mut()
             .replace_all(data.event_templates);
-        self.granted_permissions.get_table_mut().replace_all(data.granted_permissions);
+        self.granted_permissions
+            .get_table_mut()
+            .replace_all(data.granted_permissions);
     }
 
     pub fn accept_scheduled_event(

@@ -67,8 +67,23 @@ impl<T: TableItemInsert> StateTable<T> {
     pub fn insert(
         &self,
         item: <TableInsertRequest<T> as RequestType>::Body,
-    ) -> RequestIdentifier<TableInsertRequest<T>> {
+    ) -> RequestIdentifier<TableInsertRequest<T>>
+    where
+        T::Info: Default,
+    {
         make_state_request(StateRequestInfo::new_default(self.user_id), |connector| {
+            connector
+                .make_request::<TableInsertRequest<T>>()
+                .json(&item)
+        })
+    }
+
+    pub fn insert_with_info(
+        &self,
+        item: <TableInsertRequest<T> as RequestType>::Body,
+        info: T::Info,
+    ) -> RequestIdentifier<TableInsertRequest<T>> {
+        make_state_request(StateRequestInfo::new(self.user_id, info), |connector| {
             connector
                 .make_request::<TableInsertRequest<T>>()
                 .json(&item)
@@ -80,13 +95,35 @@ impl<T: TableItemUpdate> StateTable<T> {
     pub fn update(
         &self,
         item: <TableUpdateRequest<T> as RequestType>::Body,
+    ) -> RequestIdentifier<TableUpdateRequest<T>>
+    where
+        T::Info: Default,
+    {
+        let item_id = item.get_id();
+        make_state_request(
+            StateRequestInfo::new(self.user_id, (item_id, T::Info::default())),
+            |connector| {
+                connector
+                    .make_request::<TableUpdateRequest<T>>()
+                    .json(&item)
+            },
+        )
+    }
+
+    pub fn update_with_info(
+        &self,
+        item: <TableUpdateRequest<T> as RequestType>::Body,
+        info: T::Info,
     ) -> RequestIdentifier<TableUpdateRequest<T>> {
         let item_id = item.get_id();
-        make_state_request(StateRequestInfo::new(self.user_id, item_id), |connector| {
-            connector
-                .make_request::<TableUpdateRequest<T>>()
-                .json(&item)
-        })
+        make_state_request(
+            StateRequestInfo::new(self.user_id, (item_id, info)),
+            |connector| {
+                connector
+                    .make_request::<TableUpdateRequest<T>>()
+                    .json(&item)
+            },
+        )
     }
 }
 

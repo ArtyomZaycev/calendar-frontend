@@ -66,10 +66,7 @@ impl PopupContent for Login {
             show_input_field(ui, &mut self.email, "Email", false);
             show_input_field(ui, &mut self.password, "Password", true);
 
-            info.error(
-                &self.email != "admin" && !is_valid_email(&self.email),
-                "Email is not valid",
-            );
+            info.error(!is_valid_email(&self.email), "Email is not valid");
             info.error(!is_password_valid(&self.password), "Password is too long");
             info.error(
                 self.email_not_found
