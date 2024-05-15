@@ -156,9 +156,9 @@ impl PopupContent for PermissionInput {
 
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
-            Some(format!("Change {} Permission", &self.receiver_email))
+            Some(format!("Change {} Permissions", &self.receiver_email))
         } else {
-            Some("New Permission".to_owned())
+            Some("Grant Permission".to_owned())
         }
     }
 
