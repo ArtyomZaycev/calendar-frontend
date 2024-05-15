@@ -67,16 +67,13 @@ impl PermissionInput {
 
             access_level: permissions.permissions.access_level,
             events_view: permissions.permissions.events.view,
-            events_edit: permissions.permissions.events.edit || permissions.permissions.events.view,
+            events_edit: permissions.permissions.events.edit,
             event_templates_view: permissions.permissions.event_templates.view,
-            event_templates_edit: permissions.permissions.event_templates.edit
-                || permissions.permissions.event_templates.view,
+            event_templates_edit: permissions.permissions.event_templates.edit,
             schedules_view: permissions.permissions.schedules.view,
-            schedules_edit: permissions.permissions.schedules.edit
-                || permissions.permissions.schedules.view,
+            schedules_edit: permissions.permissions.schedules.edit,
             sharing: permissions.permissions.allow_share,
-            access_levels_edit: permissions.permissions.access_levels.view
-                || permissions.permissions.access_levels.edit,
+            access_levels_edit: permissions.permissions.access_levels.edit,
 
             update_request: None,
             insert_request: None,
