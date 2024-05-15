@@ -60,7 +60,9 @@ impl CalendarApp {
                     {
                         PopupManager::get().open_update_permission(&gp, user_email.to_owned());
                     }
-                    if ui.button("REVOKE").clicked() {}
+                    if ui.button("REVOKE").clicked() {
+                        self.get_selected_user_state().granted_permissions.delete(gp.id);
+                    }
                 })
             });
         });

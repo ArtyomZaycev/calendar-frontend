@@ -409,6 +409,7 @@ impl TableItemLoadAll for User {
                 .get_user_state_mut(user_id)
                 .users
                 .default_push_from_load_all(items);
+            state.populate_granted_user_states(user_id);
         }
     }
 
@@ -424,6 +425,31 @@ impl TableItemLoadAll for User {
     }
 }
 
+impl TableItemLoadById for GrantedPermission {
+    const LOAD_BY_ID_PATH: &'static str = permissions::load::PATH;
+
+    fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_from_load_by_id(id, item);
+        state.populate_granted_user_states(user_id);
+        state.get_user_state(user_id).users.load_all();
+    }
+
+    fn push_bad_from_load_by_id(
+        state: &mut State,
+        user_id: TableId,
+        id: TableId,
+        response: LoadByIdBadRequestResponse,
+    ) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_bad_from_load_by_id(id, response);
+    }
+}
+
 impl TableItemLoadAll for GrantedPermission {
     const LOAD_ALL_PATH: &'static str = permissions::load_array::PATH;
 
@@ -433,6 +459,7 @@ impl TableItemLoadAll for GrantedPermission {
             .granted_permissions
             .default_push_from_load_all(items);
         state.populate_granted_user_states(user_id);
+        state.get_user_state(user_id).users.load_all();
     }
 
     fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
@@ -478,7 +505,7 @@ impl TableItemUpdate for GrantedPermission {
         state
             .get_user_state_mut(user_id)
             .granted_permissions
-            .load_all();
+            .default_push_from_update(id);
     }
 
     fn push_bad_from_update(
@@ -490,6 +517,29 @@ impl TableItemUpdate for GrantedPermission {
         state
             .get_user_state_mut(user_id)
             .granted_permissions
-            .load_all();
+            .default_push_bad_from_update(id, UpdateBadRequestResponse::NotFound);
+    }
+}
+
+impl TableItemDelete for GrantedPermission {
+    const DELETE_PATH: &'static str = permissions::delete::PATH;
+
+    fn push_from_delete(state: &mut State, user_id: TableId, id: TableId) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_from_delete(id);
+    }
+
+    fn push_bad_from_delete(
+        state: &mut State,
+        user_id: TableId,
+        id: TableId,
+        response: DeleteBadRequestResponse,
+    ) {
+        state
+            .get_user_state_mut(user_id)
+            .granted_permissions
+            .default_push_bad_from_delete(id, response);
     }
 }
