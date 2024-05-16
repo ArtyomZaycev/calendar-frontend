@@ -37,7 +37,7 @@ pub struct ScheduleInput {
 }
 
 impl ScheduleInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         let now = Local::now().naive_local();
         let minutes = now
             .time()
@@ -48,7 +48,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             template_id: None,
             name: String::default(),
@@ -78,7 +78,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: schedule.name.clone(),
-            user_id: -1,
+            user_id: schedule.user_id,
             id: Some(schedule.id),
             template_id: Some(schedule.template_id),
             name: schedule.name.clone(),
@@ -106,11 +106,6 @@ impl ScheduleInput {
             update_request: None,
             insert_request: None,
         }
-    }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
     }
 }
 
@@ -155,7 +150,7 @@ impl PopupContent for ScheduleInput {
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
-                            app.get_selected_user_state()
+                            app.state.get_user_state(self.user_id)
                                 .event_templates
                                 .get_table()
                                 .get()
@@ -167,7 +162,7 @@ impl PopupContent for ScheduleInput {
                         },
                     )
                     .show_ui(ui, |ui| {
-                        app.get_selected_user_state()
+                        app.state.get_user_state(self.user_id)
                             .event_templates
                             .get_table()
                             .get()
@@ -205,7 +200,7 @@ impl PopupContent for ScheduleInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.get_selected_user_state()
+                    app.state.get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -299,7 +294,7 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                self.update_request = Some(app.get_selected_user_state().schedules.update(
+                self.update_request = Some(app.state.get_user_state(self.user_id).schedules.update(
                     UpdateSchedule {
                         id,
                         name: USome(self.name.clone()),
@@ -320,7 +315,7 @@ impl PopupContent for ScheduleInput {
                 .clicked()
             {
                 self.insert_request =
-                    Some(app.get_selected_user_state().schedules.insert(NewSchedule {
+                    Some(app.state.get_user_state(self.user_id).schedules.insert(NewSchedule {
                         user_id: self.user_id,
                         template_id: self.template_id.unwrap(),
                         name: self.name.clone(),

@@ -60,7 +60,7 @@ impl CalendarApp {
                                 )
                                 .clicked()
                             {
-                                PopupManager::get().open_new_event(self.state.get_me().id);
+                                PopupManager::get().open_new_event(self.selected_user_id);
                             }
                         }
                     }
@@ -73,7 +73,7 @@ impl CalendarApp {
                                 )
                                 .clicked()
                             {
-                                PopupManager::get().open_new_schedule(self.state.get_me().id);
+                                PopupManager::get().open_new_schedule(self.selected_user_id);
                             }
                         }
                     }
@@ -86,7 +86,7 @@ impl CalendarApp {
                                 )
                                 .clicked()
                             {
-                                PopupManager::get().open_new_event_template(self.state.get_me().id);
+                                PopupManager::get().open_new_event_template(self.selected_user_id);
                             }
                         }
                     }

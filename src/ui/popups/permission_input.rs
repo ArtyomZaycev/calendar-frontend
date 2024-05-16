@@ -42,7 +42,7 @@ impl PermissionInput {
         Self {
             eid: egui::Id::new(eid),
 
-            giver_user_id: giver_user_id,
+            giver_user_id,
             receiver_user_id: -1,
             receiver_email: String::default(),
             id: None,

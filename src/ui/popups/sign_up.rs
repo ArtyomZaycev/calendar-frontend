@@ -71,7 +71,7 @@ impl PopupContent for SignUp {
             show_input_field(ui, &mut self.password, "Password", true);
             show_input_field(ui, &mut self.password2, "Confirm Password", true);
 
-            info.error(self.name.len() < 6, "Name must be at least 6 symbols");
+            info.error(self.name.is_empty(), "Name cannot be empty");
             info.error(self.name.len() > 30, "Name must be at most 30 symbols");
             info.error(!is_valid_email(&self.email), "Email is not valid");
             info.error(

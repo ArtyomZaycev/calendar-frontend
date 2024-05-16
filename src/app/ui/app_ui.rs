@@ -13,7 +13,7 @@ use egui::{Align, CollapsingHeader, Label, Layout, Sense};
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            let height = ui.heading("Calendar").rect.height();
+            let height = ui.heading(format!("Calendar {}", self.selected_user_id)).rect.height();
 
             ui.allocate_ui_with_layout(
                 egui::Vec2::new(ui.available_width(), height),
@@ -92,12 +92,14 @@ impl CalendarApp {
                             .clicked()
                         {
                             self.selected_user_id = self.state.get_me().id;
+                            self.state.clear_events(self.selected_user_id);
                             self.view = EventsView::Days.into();
                         }
                         ui.separator();
 
                         if !self.state.granted_states.is_empty() {
                             CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
+                                let mut changed = false;
                                 self.state.granted_states.iter().for_each(|shared_state| {
                                     if ui
                                         .add(
@@ -107,8 +109,12 @@ impl CalendarApp {
                                         .clicked()
                                     {
                                         self.selected_user_id = shared_state.user.id;
+                                        changed = true;
                                     }
-                                })
+                                });
+                                if changed {
+                                    self.state.clear_events(self.selected_user_id);
+                                }
                             });
                             ui.separator();
                         }

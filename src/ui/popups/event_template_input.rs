@@ -28,11 +28,11 @@ pub struct EventTemplateInput {
 }
 
 impl EventTemplateInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             name: String::default(),
             event_name: String::default(),
@@ -49,7 +49,7 @@ impl EventTemplateInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: template.name.clone(),
-            user_id: -1,
+            user_id: template.user_id,
             id: Some(template.id),
             name: template.name.clone(),
             event_name: template.event_name.clone(),
@@ -60,11 +60,6 @@ impl EventTemplateInput {
             update_request: None,
             insert_request: None,
         }
-    }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
     }
 }
 
@@ -121,7 +116,7 @@ impl PopupContent for EventTemplateInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.get_selected_user_state()
+                    app.state.get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -146,7 +141,7 @@ impl PopupContent for EventTemplateInput {
                 .clicked()
             {
                 self.update_request = Some(
-                    app.get_selected_user_state()
+                    app.state.get_user_state(self.user_id)
                         .event_templates
                         .update(UpdateEventTemplate {
                             id,
@@ -172,7 +167,7 @@ impl PopupContent for EventTemplateInput {
                 .clicked()
             {
                 self.insert_request = Some(
-                    app.get_selected_user_state()
+                    app.state.get_user_state(self.user_id)
                         .event_templates
                         .insert(NewEventTemplate {
                             user_id: self.user_id,

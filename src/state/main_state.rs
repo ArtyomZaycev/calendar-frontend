@@ -67,9 +67,37 @@ impl State {
         &self.me
     }
 
-    /// Can return user state instead of requested
+    /// Can return this user state instead of requested
     pub fn get_user_state(&self, user_id: i32) -> &UserState {
-        self.try_get_user_state(user_id).unwrap_or(&self.user_state)
+        match self.try_get_user_state(user_id) {
+            Some(user_state) => user_state,
+            None => {
+                println!("get_user_state state {} not found", user_id);
+                &self.user_state
+            },
+        }
+    }
+
+    /// Can return this user state instead of requested
+    pub fn get_user_state_mut<'a>(&'a mut self, user_id: i32) -> &'a mut UserState {
+        if self.me.is_admin() {
+            self.admin_state
+                .users_data
+                .entry(user_id)
+                .or_insert_with(|| {
+                    println!("Admin mode: New user state created: {user_id}");
+                    UserState::new(user_id)
+                })
+        } else {
+            if user_id == self.me.id {
+                &mut self.user_state
+            } else {
+                self.granted_states
+                    .iter_mut()
+                    .find_map(|state| (state.user.id == user_id).then_some(&mut state.state))
+                    .unwrap_or(&mut self.user_state)
+            }
+        }
     }
 
     pub fn try_get_user_state(&self, user_id: i32) -> Option<&UserState> {
@@ -86,27 +114,6 @@ impl State {
         }
     }
 
-    pub fn get_user_state_mut(&mut self, user_id: i32) -> &mut UserState {
-        if self.me.is_admin() {
-            self.admin_state
-                .users_data
-                .entry(user_id)
-                .or_insert_with(|| {
-                    println!("Admin mode: New user state created: {user_id}");
-                    UserState::new(user_id)
-                })
-        } else {
-            if user_id == self.me.id {
-                &mut self.user_state
-            } else {
-                self.granted_states
-                    .iter_mut()
-                    .find_map(|state| (state.user.id == user_id).then_some(&mut state.state))
-                    .unwrap()
-            }
-        }
-    }
-
     pub fn get_user_permissions(&self, user_id: i32) -> Permissions {
         if self.me.is_admin() {
             Permissions::FULL
@@ -114,7 +121,6 @@ impl State {
             if user_id == self.me.id {
                 Permissions::FULL
             } else {
-                println!("get_user_permissions uid = {user_id}");
                 self.granted_states
                     .iter()
                     .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
@@ -289,19 +295,23 @@ impl State {
                     .any(|gs| gs.user.id == gp.giver_user_id)
             })
             .collect_vec();
+        let mut new_states = new_given_permissions
+        .into_iter()
+        .map(|gp| {
+            GrantedUserState::new(
+                User {
+                    id: gp.giver_user_id,
+                    ..User::default()
+                },
+                gp.permissions,
+            )
+        })
+        .collect_vec();
+        new_states.iter().for_each(|state| {
+            state.state.load_state();
+        });
         self.granted_states.append(
-            &mut new_given_permissions
-                .into_iter()
-                .map(|gp| {
-                    GrantedUserState::new(
-                        User {
-                            id: gp.giver_user_id,
-                            ..User::default()
-                        },
-                        gp.permissions,
-                    )
-                })
-                .collect(),
+            &mut new_states,
         );
         self.populate_granted_user_states_users(user_id);
     }

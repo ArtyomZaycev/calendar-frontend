@@ -35,12 +35,12 @@ pub struct EventInput {
 }
 
 impl EventInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         let now = Local::now().naive_local();
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             name: String::default(),
             description: String::default(),
@@ -58,7 +58,7 @@ impl EventInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: event.name.clone(),
-            user_id: -1,
+            user_id: event.user_id,
             id: Some(event.id),
             name: event.name.clone(),
             description: event.description.clone().unwrap_or_default(),
@@ -70,11 +70,6 @@ impl EventInput {
             update_request: None,
             insert_request: None,
         }
-    }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
     }
 }
 
@@ -120,7 +115,7 @@ impl PopupContent for EventInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.get_selected_user_state()
+                    app.state.get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -156,7 +151,7 @@ impl PopupContent for EventInput {
                 .clicked()
             {
                 self.update_request =
-                    Some(app.get_selected_user_state().events.update(UpdateEvent {
+                    Some(app.state.get_user_state(self.user_id).events.update(UpdateEvent {
                         id,
                         name: USome(self.name.clone()),
                         description: USome(
@@ -174,7 +169,8 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                self.insert_request = Some(app.get_selected_user_state().events.insert(NewEvent {
+                println!("self.user_id = {}", self.user_id);
+                self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(NewEvent {
                     user_id: self.user_id,
                     name: self.name.clone(),
                     description: (!self.description.is_empty()).then_some(self.description.clone()),
