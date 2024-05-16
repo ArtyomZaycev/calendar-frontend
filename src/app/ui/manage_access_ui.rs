@@ -1,23 +1,17 @@
-use egui::{Align, Button, Label, Layout, RichText, Sense};
+use egui::{Align, Button, Layout};
 use itertools::Itertools;
 
 use crate::{
-    app::{CalendarApp, CalendarView},
+    app::CalendarApp,
     tables::{DbTable, DbTableGetById},
     ui::popups::popup_manager::PopupManager,
 };
 
 impl CalendarApp {
-    pub(super) fn manage_access_view(&mut self, ui: &mut egui::Ui, previous_view: CalendarView) {
+    pub(super) fn manage_access_view(&mut self, ui: &mut egui::Ui) {
         let permissions = self.get_selected_user_permissions();
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
-                if ui
-                    .add(Label::new(RichText::new("<").heading()).sense(Sense::click()))
-                    .clicked()
-                {
-                    self.view = previous_view.into();
-                }
                 let height = ui.heading("Manage Access").rect.height();
 
                 if permissions.allow_share {

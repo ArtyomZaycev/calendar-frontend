@@ -123,13 +123,7 @@ impl CalendarApp {
                             .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
                             .clicked()
                         {
-                            let calendar_view = match self.view {
-                                AppView::Calendar(view) => view,
-                                _ => EventsView::Days.into(),
-                            };
-                            self.view = AppView::ManageAccess {
-                                previous_view: calendar_view,
-                            };
+                            self.view = AppView::ManageAccess;
                         }
 
                         if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
@@ -206,8 +200,8 @@ impl CalendarApp {
                     }
                 }
             }
-            AppView::ManageAccess { previous_view } => {
-                self.manage_access_view(ui, previous_view);
+            AppView::ManageAccess => {
+                self.manage_access_view(ui);
             }
         }
     }
