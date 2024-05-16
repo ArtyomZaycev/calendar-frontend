@@ -3,9 +3,7 @@ use super::super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    db::aliases::UserUtils,
-    state::custom_requests::LoginRequest,
-    ui::{popups::popup_manager::PopupManager, table_view::TableView},
+    app::ManageAccessView, db::aliases::UserUtils, state::custom_requests::LoginRequest, tables::DbTable, ui::{popups::popup_manager::PopupManager, table_view::TableView}
 };
 use chrono::NaiveDate;
 use egui::{Align, CollapsingHeader, Label, Layout, Sense};
@@ -13,7 +11,17 @@ use egui::{Align, CollapsingHeader, Label, Layout, Sense};
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            let height = ui.heading(format!("Calendar {}", self.selected_user_id)).rect.height();
+            let calendar_name = if self.state.try_get_me().is_none() {
+                "Calendar".to_owned()
+            } else if self.selected_user_id == self.state.get_me().id {
+                "Your Calendar".to_owned()
+            } else {
+                match self.state.user_state.users.get_table().get().iter().find(|u| u.id == self.selected_user_id) {
+                    Some(user) => format!("{} Calendar", user.name),
+                    None => "Other Calendar".to_owned(),
+                }
+            };
+            let height = ui.heading(calendar_name).rect.height();
 
             ui.allocate_ui_with_layout(
                 egui::Vec2::new(ui.available_width(), height),
@@ -23,12 +31,14 @@ impl CalendarApp {
                     ui.add_space(8.);
 
                     if let Some(me) = self.state.try_get_me() {
-                        let profile = egui::Label::new(&me.name);
-                        if PopupManager::get().is_open_profile() {
-                            ui.add(profile);
-                        } else {
-                            if ui.add(profile.sense(Sense::click())).clicked() {
-                                PopupManager::get().open_profile();
+                        if self.selected_user_id == me.id {
+                            let profile = egui::Label::new(&me.name);
+                            if PopupManager::get().is_open_profile() {
+                                ui.add(profile);
+                            } else {
+                                if ui.add(profile.sense(Sense::click())).clicked() {
+                                    PopupManager::get().open_profile();
+                                }
                             }
                         }
                     } else {
@@ -60,12 +70,13 @@ impl CalendarApp {
         });
     }
 
-    fn burger_menu_collapsed(&mut self, ui: &mut egui::Ui) {
+    fn burger_menu_collapsed(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("burger_menu")
             .resizable(false)
             .show_separator_line(true)
             .exact_width(8.)
-            .show_inside(ui, |ui| {
+            .show(ctx, |ui| {
+                ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     if ui.add(Label::new("►").sense(Sense::click())).clicked() {
                         self.burger_menu_expanded = true;
@@ -74,13 +85,14 @@ impl CalendarApp {
             });
     }
 
-    fn burger_menu_expanded(&mut self, ui: &mut egui::Ui) {
+    fn burger_menu_expanded(&mut self, ctx: &egui::Context) {
         let width = 160.;
         egui::SidePanel::left("burger_menu")
             .resizable(false)
             .show_separator_line(true)
             .exact_width(width)
-            .show_inside(ui, |ui| {
+            .show(ctx, |ui| {
+                ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);    
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                     if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
                         self.burger_menu_expanded = false;
@@ -123,8 +135,10 @@ impl CalendarApp {
                             .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
                             .clicked()
                         {
-                            self.view = AppView::ManageAccess;
+                            self.selected_user_id = self.state.get_me().id;
+                            self.view = AppView::ManageAccess(ManageAccessView::Sharing);
                         }
+                        ui.separator();
 
                         if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
                             self.logout();
@@ -134,11 +148,11 @@ impl CalendarApp {
             });
     }
 
-    fn burger_menu(&mut self, ui: &mut egui::Ui) {
+    fn burger_menu(&mut self, ctx: &egui::Context) {
         if self.burger_menu_expanded {
-            self.burger_menu_expanded(ui);
+            self.burger_menu_expanded(ctx);
         } else {
-            self.burger_menu_collapsed(ui);
+            self.burger_menu_collapsed(ctx);
         }
     }
 }
@@ -200,8 +214,16 @@ impl CalendarApp {
                     }
                 }
             }
-            AppView::ManageAccess => {
-                self.manage_access_view(ui);
+            AppView::ManageAccess(manage_access_view) => {
+                self.manage_access_view(ui, manage_access_view);
+                match manage_access_view {
+                    ManageAccessView::Sharing => {
+                        self.manage_access_sharing_view(ui);
+                    },
+                    ManageAccessView::AccessLevels => {
+                        self.manage_access_access_levels_view(ui);
+                    },
+                }
             }
         }
     }
@@ -257,6 +279,10 @@ impl eframe::App for CalendarApp {
                 table: TableView::new("users_table"),
             });
         }
+        
+        if self.state.try_get_me().is_some() {
+            self.burger_menu(ctx);
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             PopupManager::get().show(&self, ctx);
@@ -267,8 +293,6 @@ impl eframe::App for CalendarApp {
 
             ui.horizontal_top(|ui| {
                 if self.state.try_get_me().is_some() {
-                    self.burger_menu(ui);
-                    ui.add_space(ui.ctx().style().spacing.item_spacing.x);
 
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                         self.view_dispatcher(ui);

@@ -2,31 +2,60 @@ use egui::{Align, Button, Layout};
 use itertools::Itertools;
 
 use crate::{
-    app::CalendarApp,
+    app::{CalendarApp, ManageAccessView},
     tables::{DbTable, DbTableGetById},
-    ui::popups::popup_manager::PopupManager,
+    ui::{popups::popup_manager::PopupManager, utils::UiUtils},
 };
 
 impl CalendarApp {
-    pub(super) fn manage_access_view(&mut self, ui: &mut egui::Ui) {
-        let permissions = self.get_selected_user_permissions();
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
-                let height = ui.heading("Manage Access").rect.height();
-
-                if permissions.allow_share {
-                    ui.allocate_ui_with_layout(
-                        egui::Vec2::new(ui.available_width(), height),
-                        Layout::right_to_left(Align::Center),
-                        |ui| {
-                            if ui.button("Share").clicked() {
-                                PopupManager::get().open_new_permission(self.selected_user_id);
-                            }
+    pub(super) fn manage_access_view(&mut self, ui: &mut egui::Ui, view: ManageAccessView) {
+        ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+            let height = ui
+                .horizontal(|ui| {
+                    ui.selectable_header(
+                        "Sharing",
+                        view.is_sharing(),
+                        || {
+                            self.set_view(ManageAccessView::Sharing);
                         },
                     );
-                }
-            });
+                    ui.selectable_header(
+                        "Access Levels",
+                        view.is_access_levels(),
+                        || {
+                            self.set_view(ManageAccessView::AccessLevels);
+                        },
+                    );
+                })
+                .response
+                .rect
+                .height();
 
+            ui.allocate_ui_with_layout(
+                egui::Vec2::new(ui.available_width(), height),
+                Layout::right_to_left(Align::Center),
+                |ui| match view {
+                    ManageAccessView::Sharing => {
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_new_permission(),
+                                egui::Button::new("Share"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_new_permission(self.selected_user_id);
+                        }
+                    }
+                    ManageAccessView::AccessLevels => {
+                        
+                    }
+                },
+            );
+        });
+    }
+
+    pub(super) fn manage_access_sharing_view(&mut self, ui: &mut egui::Ui) {
+        ui.vertical(|ui| {
             egui::Grid::new("access_grid").show(ui, |ui| {
                 let permissions = self
                     .get_selected_user_state()
@@ -37,22 +66,15 @@ impl CalendarApp {
                     .filter(|gp| gp.giver_user_id == self.selected_user_id)
                     .collect_vec();
 
-                permissions.iter().for_each(|gp| {
-                    let user = self
-                        .get_selected_user_state()
-                        .users
-                        .get_table()
-                        .get_by_id(gp.receiver_user_id);
-                    let user_email = match user {
-                        Some(user) => &user.email,
-                        None => "Unknown",
-                    };
-                    ui.label(user_email);
+                permissions.iter().filter_map(|gp| {
+                    self.get_selected_user_state().users.get_table().get_by_id(gp.receiver_user_id).map(|u| (*gp, u))
+                }).for_each(|(gp, user)| {
+                    ui.label(&user.name);
                     if ui
-                        .add_enabled(user.is_some(), Button::new("MANAGE"))
+                        .add_enabled(PopupManager::get().is_open_update_permission(), Button::new("MANAGE"))
                         .clicked()
                     {
-                        PopupManager::get().open_update_permission(&gp, user_email.to_owned());
+                        PopupManager::get().open_update_permission(&gp, user);
                     }
                     if ui.button("REVOKE").clicked() {
                         self.get_selected_user_state()
@@ -62,5 +84,9 @@ impl CalendarApp {
                 })
             });
         });
+    }
+
+    pub(super) fn manage_access_access_levels_view(&mut self, ui: &mut egui::Ui) {
+        
     }
 }

@@ -19,7 +19,7 @@ pub struct PermissionInput {
     pub giver_user_id: i32,
 
     pub id: Option<i32>,
-    pub receiver_user_id: i32,
+    pub receiver_name: String,
     pub receiver_email: String,
 
     pub access_level: i32,
@@ -43,7 +43,7 @@ impl PermissionInput {
             eid: egui::Id::new(eid),
 
             giver_user_id,
-            receiver_user_id: -1,
+            receiver_name: String::default(),
             receiver_email: String::default(),
             id: None,
 
@@ -63,13 +63,13 @@ impl PermissionInput {
         }
     }
 
-    pub fn change(eid: impl Hash, permissions: &GrantedPermission, receiver_email: String) -> Self {
+    pub fn change(eid: impl Hash, permissions: &GrantedPermission, user: &User) -> Self {
         Self {
             eid: egui::Id::new(eid),
 
             giver_user_id: permissions.giver_user_id,
-            receiver_user_id: permissions.receiver_user_id,
-            receiver_email,
+            receiver_name: user.name.clone(),
+            receiver_email: user.email.clone(),
             id: Some(permissions.id),
 
             access_level: permissions.permissions.access_level,
@@ -156,7 +156,7 @@ impl PopupContent for PermissionInput {
 
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
-            Some(format!("Change {} Permissions", &self.receiver_email))
+            Some(format!("Change {} Permissions", &self.receiver_name))
         } else {
             Some("Grant Permission".to_owned())
         }
