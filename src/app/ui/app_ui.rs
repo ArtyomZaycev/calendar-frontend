@@ -6,7 +6,7 @@ use crate::{
     app::ManageAccessView, db::aliases::UserUtils, state::custom_requests::LoginRequest, tables::DbTable, ui::{popups::popup_manager::PopupManager, table_view::TableView}
 };
 use chrono::NaiveDate;
-use egui::{Align, CollapsingHeader, Label, Layout, Sense};
+use egui::{Align, CollapsingHeader, Direction, Label, Layout, Sense};
 
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
@@ -74,10 +74,10 @@ impl CalendarApp {
         egui::SidePanel::left("burger_menu")
             .resizable(false)
             .show_separator_line(true)
-            .exact_width(8.)
+            .exact_width(4.)
             .show(ctx, |ui| {
-                ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                //ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
+                ui.with_layout(Layout::centered_and_justified(Direction::LeftToRight), |ui| {
                     if ui.add(Label::new("►").sense(Sense::click())).clicked() {
                         self.burger_menu_expanded = true;
                     }
@@ -92,58 +92,73 @@ impl CalendarApp {
             .show_separator_line(true)
             .exact_width(width)
             .show(ctx, |ui| {
-                ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);    
-                ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
-                        self.burger_menu_expanded = false;
-                    }
-
-                    ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                        if ui
-                            .add(Label::new("YOUR CALENDAR").sense(Sense::click()))
-                            .clicked()
+                ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
+                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                    ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                        let response = ui
+                        .add(Label::new("YOUR CALENDAR").sense(Sense::click()));
+                        if response.clicked()
                         {
                             self.selected_user_id = self.state.get_me().id;
                             self.state.clear_events(self.selected_user_id);
                             self.view = EventsView::Days.into();
                         }
-                        ui.separator();
+                        let height = response.rect.height();
+                        ui.allocate_ui_with_layout(
+                            egui::Vec2::new(ui.available_width(), height),
+                            Layout::right_to_left(Align::Center),
+                            |ui| {
+                                if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
+                                    self.burger_menu_expanded = false;
+                                }
+                            }
+                        );
+                    });
+                    ui.separator();
 
-                        if !self.state.granted_states.is_empty() {
-                            CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
-                                let mut changed = false;
-                                self.state.granted_states.iter().for_each(|shared_state| {
-                                    if ui
-                                        .add(
-                                            Label::new(&shared_state.user.name)
-                                                .sense(Sense::click()),
-                                        )
-                                        .clicked()
-                                    {
-                                        self.selected_user_id = shared_state.user.id;
-                                        changed = true;
-                                    }
-                                });
-                                if changed {
-                                    self.state.clear_events(self.selected_user_id);
+                    if !self.state.granted_states.is_empty() {
+                        CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
+                            let mut changed = false;
+                            self.state.granted_states.iter().for_each(|shared_state| {
+                                let user_response = ui
+                                    .add(
+                                        Label::new(&shared_state.user.name)
+                                            .sense(Sense::click()),
+                                    );
+                                if user_response.clicked()
+                                {
+                                    self.selected_user_id = shared_state.user.id;
+                                    changed = true;
+                                }
+                                if shared_state.permissions.allow_share {
+                                    user_response.context_menu(|ui| {
+                                        if ui.button("Manage Access").clicked() {
+                                            self.selected_user_id = shared_state.user.id;
+                                            self.view = AppView::ManageAccess(ManageAccessView::Sharing);
+                                            ui.close_menu();
+                                        }
+                                    });
                                 }
                             });
-                            ui.separator();
-                        }
-
-                        if ui
-                            .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
-                            .clicked()
-                        {
-                            self.selected_user_id = self.state.get_me().id;
-                            self.view = AppView::ManageAccess(ManageAccessView::Sharing);
-                        }
+                            if changed {
+                                self.state.clear_events(self.selected_user_id);
+                            }
+                        });
                         ui.separator();
+                    }
 
-                        if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
-                            self.logout();
-                        }
-                    });
+                    if ui
+                        .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
+                        .clicked()
+                    {
+                        self.selected_user_id = self.state.get_me().id;
+                        self.view = AppView::ManageAccess(ManageAccessView::Sharing);
+                    }
+                    ui.separator();
+
+                    if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
+                        self.logout();
+                    }
                 });
             });
     }

@@ -52,6 +52,7 @@ impl CalendarApp {
                 },
             );
         });
+        ui.add_space(4.);
     }
 
     pub(super) fn manage_access_sharing_view(&mut self, ui: &mut egui::Ui) {
@@ -71,12 +72,13 @@ impl CalendarApp {
                 }).for_each(|(gp, user)| {
                     ui.label(&user.name);
                     if ui
-                        .add_enabled(PopupManager::get().is_open_update_permission(), Button::new("MANAGE"))
+                        .add_enabled(!PopupManager::get().is_open_update_permission(), Button::new("MANAGE"))
                         .clicked()
                     {
                         PopupManager::get().open_update_permission(&gp, user);
                     }
-                    if ui.button("REVOKE").clicked() {
+                    // Can't revoke your own access
+                    if ui.add_enabled(gp.receiver_user_id != self.state.get_me().id, Button::new("REVOKE")).clicked() {
                         self.get_selected_user_state()
                             .granted_permissions
                             .delete(gp.id);

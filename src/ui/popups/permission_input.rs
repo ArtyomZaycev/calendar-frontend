@@ -16,9 +16,10 @@ use std::hash::Hash;
 
 pub struct PermissionInput {
     eid: egui::Id,
-    pub giver_user_id: i32,
+    pub giver_user_id: TableId,
 
-    pub id: Option<i32>,
+    pub id: Option<TableId>,
+    pub receiver_user_id: TableId,
     pub receiver_name: String,
     pub receiver_email: String,
 
@@ -43,6 +44,7 @@ impl PermissionInput {
             eid: egui::Id::new(eid),
 
             giver_user_id,
+            receiver_user_id: -1,
             receiver_name: String::default(),
             receiver_email: String::default(),
             id: None,
@@ -68,6 +70,7 @@ impl PermissionInput {
             eid: egui::Id::new(eid),
 
             giver_user_id: permissions.giver_user_id,
+            receiver_user_id: user.id,
             receiver_name: user.name.clone(),
             receiver_email: user.email.clone(),
             id: Some(permissions.id),
@@ -92,7 +95,7 @@ impl PermissionInput {
         Permissions {
             access_level: self.access_level,
             access_levels: TablePermissions {
-                view: self.access_levels_edit,
+                view: self.access_levels_edit || self.sharing,
                 edit: self.access_levels_edit,
                 create: self.access_levels_edit,
                 delete: self.access_levels_edit,
@@ -236,7 +239,7 @@ impl PopupContent for PermissionInput {
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.events_edit, "Create and edit Events"),
+                Checkbox::new(&mut self.events_edit, "Edit Events"),
             );
             if self.events_edit {
                 self.events_view = true;
@@ -255,7 +258,7 @@ impl PopupContent for PermissionInput {
                 edit_mode,
                 Checkbox::new(
                     &mut self.event_templates_edit,
-                    "Create and edit Event Templates",
+                    "Edit Event Templates",
                 ),
             );
             if self.event_templates_edit {
@@ -270,7 +273,7 @@ impl PopupContent for PermissionInput {
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.schedules_edit, "Create and edit Schedules"),
+                Checkbox::new(&mut self.schedules_edit, "Edit Schedules"),
             );
             if self.schedules_view {
                 self.event_templates_view = true;
@@ -283,9 +286,14 @@ impl PopupContent for PermissionInput {
             ui.heading("Other");
             ui.separator();
             ui.add_enabled(
-                edit_mode,
+                edit_mode
+                    // Can't revoke your own access
+                    && self.receiver_user_id != app.state.get_me().id,
                 Checkbox::new(&mut self.sharing, "Manage Sharing"),
             );
+            if edit_mode && self.receiver_user_id == app.state.get_me().id {
+                self.sharing = true;
+            }
             ui.add_enabled(
                 edit_mode,
                 Checkbox::new(&mut self.access_levels_edit, "Edit Access Levels"),
