@@ -15,7 +15,7 @@ pub fn get_height_from_rows(ui: &egui::Ui, num_of_rows: u32) -> f32 {
 }
 
 pub fn get_columns_from_width(ui: &egui::Ui, width: f32) -> u32 {
-    divide_from_size(ui.available_width(), width)
+    divide_from_size(ui.available_width(), width).max(1)
 }
 
 pub fn divide_from_sections(available: f32, spacing: f32, sections: u32) -> f32 {

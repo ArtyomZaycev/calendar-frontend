@@ -182,7 +182,11 @@ impl PopupContent for ScheduleInput {
 
             egui::Grid::new(self.eid.with("time_grid")).show(ui, |ui| {
                 ui.label("First day:");
-                ui.add(DatePickerButton::new(&mut self.first_day).show_icon(false));
+                ui.add(
+                    DatePickerButton::new(&mut self.first_day)
+                        .id_source("first_day")
+                        .show_icon(false),
+                );
                 ui.end_row();
 
                 if self.last_day_enabled && self.first_day > self.last_day {
@@ -192,7 +196,9 @@ impl PopupContent for ScheduleInput {
                 ui.label("Last day:");
                 ui.add_enabled(
                     self.last_day_enabled,
-                    DatePickerButton::new(&mut self.last_day).show_icon(false),
+                    DatePickerButton::new(&mut self.last_day)
+                        .id_source("last_day")
+                        .show_icon(false),
                 );
                 ui.checkbox(&mut self.last_day_enabled, "");
                 ui.end_row();

@@ -377,7 +377,7 @@ impl CalendarApp {
 
     pub(super) fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
             (-1i64..7).for_each(|day| {
@@ -434,7 +434,7 @@ impl CalendarApp {
 
     pub(super) fn schedules_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
             let level = self.get_selected_access_level();
@@ -473,7 +473,7 @@ impl CalendarApp {
 
     pub(super) fn event_templates_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
             let level = self.get_selected_access_level();

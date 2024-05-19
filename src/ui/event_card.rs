@@ -1,6 +1,6 @@
 use super::popups::popup_manager::PopupManager;
 use crate::{app::CalendarApp, db::aliases::Event};
-use calendar_lib::api::permissions::types::TablePermissions;
+use calendar_lib::api::{events::types::EventVisibility, permissions::types::TablePermissions};
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventCard<'a> {
@@ -69,9 +69,18 @@ impl<'a> EventCard<'a> {
 }
 
 impl<'a> EventCard<'a> {
+    fn get_name_text(&self) -> &'a str {
+        if self.event.visibility == EventVisibility::HideName
+            && self.access_level < self.event.access_level
+        {
+            "Hidden"
+        } else {
+            &self.event.name
+        }
+    }
+
     fn show_content(&self, ui: &mut egui::Ui) -> egui::Response {
         let Event {
-            name,
             description,
             start,
             end,
@@ -79,7 +88,7 @@ impl<'a> EventCard<'a> {
         } = self.event;
 
         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-            ui.add(egui::Label::new(name).wrap(true));
+            ui.add(egui::Label::new(self.get_name_text()).wrap(true));
             if self.show_description {
                 if let Some(description) = description {
                     ui.separator();
@@ -133,7 +142,6 @@ impl<'a> EventCard<'a> {
     fn show_content_small(&self, ui: &mut egui::Ui) -> egui::Response {
         let Event {
             id: event_id,
-            name,
             start,
             plan_id,
             ..
@@ -143,7 +151,7 @@ impl<'a> EventCard<'a> {
         let response = ui
             .with_layout(Layout::left_to_right(Align::TOP), |ui| {
                 ui.label(start.format("%H:%M").to_string());
-                ui.add(egui::Label::new(name).truncate(true));
+                ui.add(egui::Label::new(self.get_name_text()).truncate(true));
                 let pwidth = ui.available_width() - ui.style().spacing.item_spacing.x;
                 if pwidth.is_sign_positive() {
                     ui.add_space(pwidth);

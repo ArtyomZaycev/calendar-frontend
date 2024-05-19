@@ -192,7 +192,9 @@ impl State {
             .get_table()
             .get()
             .iter()
-            .filter(move |s| s.access_level <= access_level)
+            .filter(|s| s.first_day <= date)
+            .filter(|s| s.last_day.is_some_and(|last_day| date <= last_day))
+            .filter(|s| s.access_level <= access_level)
             .flat_map(|schedule| {
                 match user_state
                     .event_templates
@@ -216,7 +218,7 @@ impl State {
                                     end: start
                                         + chrono::Duration::from_std(template.duration).unwrap(),
                                     access_level: schedule.access_level,
-                                    visibility: EventVisibility::HideAll,
+                                    visibility: EventVisibility::HideName,
                                     plan_id: Some(event_plan.id),
                                 })
                         })

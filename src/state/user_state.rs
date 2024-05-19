@@ -99,7 +99,7 @@ impl UserState {
                         .checked_add_signed(Duration::from_std(template.duration).unwrap())
                         .unwrap(),
                     access_level: template.access_level,
-                    visibility: EventVisibility::HideAll,
+                    visibility: EventVisibility::HideName,
                     plan_id: Some(plan_id),
                 })
             })

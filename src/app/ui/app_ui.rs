@@ -137,6 +137,7 @@ impl CalendarApp {
                                     .add(Label::new(&shared_state.user.name).sense(Sense::click()));
                                 if user_response.clicked() {
                                     self.selected_user_id = shared_state.user.id;
+                                    self.view = EventsView::Days.into();
                                     changed = true;
                                 }
                                 if shared_state.permissions.allow_share
@@ -145,13 +146,12 @@ impl CalendarApp {
                                     user_response.context_menu(|ui| {
                                         if ui.button("Manage Access").clicked() {
                                             self.selected_user_id = shared_state.user.id;
-                                            self.view = AppView::ManageAccess(
-                                                if shared_state.permissions.allow_share {
-                                                    ManageAccessView::Sharing
-                                                } else {
-                                                    ManageAccessView::AccessLevels
-                                                },
-                                            );
+                                            self.view = if shared_state.permissions.allow_share {
+                                                ManageAccessView::Sharing
+                                            } else {
+                                                ManageAccessView::AccessLevels
+                                            }
+                                            .into();
                                             ui.close_menu();
                                         }
                                     });

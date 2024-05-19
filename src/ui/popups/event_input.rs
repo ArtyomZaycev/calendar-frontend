@@ -45,7 +45,7 @@ impl EventInput {
             name: String::default(),
             description: String::default(),
             access_level: -1,
-            visibility: EventVisibility::HideAll,
+            visibility: EventVisibility::HideName,
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::try_minutes(30).unwrap(),
