@@ -6,7 +6,6 @@ pub fn get_width_from_columns(ui: &egui::Ui, num_of_columns: u32) -> f32 {
     )
 }
 
-#[allow(dead_code)]
 pub fn get_height_from_rows(ui: &egui::Ui, num_of_rows: u32) -> f32 {
     divide_from_sections(
         ui.available_height(),

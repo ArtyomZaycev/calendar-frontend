@@ -1,14 +1,19 @@
 use std::sync::{Mutex, MutexGuard};
 
 use calendar_lib::api::{
-    event_templates::types::EventTemplate, events::types::Event,
-    permissions::types::GrantedPermission, schedules::types::Schedule, utils::{TableId, User},
+    auth::types::AccessLevel,
+    event_templates::types::EventTemplate,
+    events::types::Event,
+    permissions::types::GrantedPermission,
+    schedules::types::Schedule,
+    utils::{TableId, User},
 };
 use itertools::Itertools;
 
-use crate::app::CalendarApp;
+use crate::{app::CalendarApp, state::state_table::StateTable};
 
 use super::{
+    change_access_levels::ChangeAccessLevelsPopup,
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
@@ -135,6 +140,9 @@ impl PopupManager {
     pub fn is_open_update_permission<'a>(&'a mut self) -> bool {
         self.is_open(|t| t.is_update_permission())
     }
+    pub fn is_open_change_access_levels<'a>(&'a mut self) -> bool {
+        self.is_open(|t| t.is_change_access_levels())
+    }
 }
 
 impl PopupManager {
@@ -148,9 +156,8 @@ impl PopupManager {
         self.popups.push(PopupType::SignUp(SignUp::new()).popup());
     }
     pub fn open_new_event(&mut self, user_id: i32) {
-        self.popups.push(
-            PopupType::NewEvent(EventInput::new("new_event_popup", user_id)).popup(),
-        );
+        self.popups
+            .push(PopupType::NewEvent(EventInput::new("new_event_popup", user_id)).popup());
     }
     pub fn open_update_event(&mut self, event: &Event) {
         self.popups.push(
@@ -163,9 +170,10 @@ impl PopupManager {
     }
     pub fn open_new_event_template(&mut self, user_id: i32) {
         self.popups.push(
-            PopupType::NewEventTemplate(
-                EventTemplateInput::new("new_event_template_popup", user_id),
-            )
+            PopupType::NewEventTemplate(EventTemplateInput::new(
+                "new_event_template_popup",
+                user_id,
+            ))
             .popup(),
         );
     }
@@ -180,8 +188,7 @@ impl PopupManager {
     }
     pub fn open_new_schedule(&mut self, user_id: i32) {
         self.popups.push(
-            PopupType::NewSchedule(ScheduleInput::new("new_schedule_popup", user_id))
-                .popup(),
+            PopupType::NewSchedule(ScheduleInput::new("new_schedule_popup", user_id)).popup(),
         );
     }
     pub fn open_update_schedule(&mut self, schedule: &Schedule) {
@@ -202,16 +209,26 @@ impl PopupManager {
             .popup(),
         );
     }
-    pub fn open_update_permission(
-        &mut self,
-        permission: &GrantedPermission,
-        user: &User,
-    ) {
+    pub fn open_update_permission(&mut self, permission: &GrantedPermission, user: &User) {
         self.popups.push(
             PopupType::NewPermission(PermissionInput::change(
                 format!("update_permission_popup_{}", permission.id),
                 permission,
                 user,
+            ))
+            .popup(),
+        );
+    }
+    pub fn open_change_access_levels(
+        &mut self,
+        user_id: TableId,
+        access_levels: &StateTable<AccessLevel>,
+    ) {
+        self.popups.push(
+            PopupType::ChangeAccessLevels(ChangeAccessLevelsPopup::new(
+                format!("change_access_levels_popup_{}", user_id),
+                user_id,
+                access_levels,
             ))
             .popup(),
         );

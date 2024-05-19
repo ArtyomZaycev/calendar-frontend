@@ -184,7 +184,7 @@ impl PopupContent for PermissionInput {
                 Some(&self.receiver_email) == self.email_not_found.as_ref(),
                 "User with this email does not exist",
             );
-            info.error(!is_valid_email(&self.receiver_email), "Invalid Email");
+            info.error(!is_valid_email(&self.receiver_email), "Email is invalid");
 
             let access_levels = app
                 .state
@@ -256,10 +256,7 @@ impl PopupContent for PermissionInput {
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(
-                    &mut self.event_templates_edit,
-                    "Edit Event Templates",
-                ),
+                Checkbox::new(&mut self.event_templates_edit, "Edit Event Templates"),
             );
             if self.event_templates_edit {
                 self.event_templates_view = true;

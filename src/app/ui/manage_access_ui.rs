@@ -1,4 +1,4 @@
-use egui::{Align, Button, Layout};
+use egui::{Align, Button, Label, Layout, RichText};
 use itertools::Itertools;
 
 use crate::{
@@ -9,18 +9,21 @@ use crate::{
 
 impl CalendarApp {
     pub(super) fn manage_access_view(&mut self, ui: &mut egui::Ui, view: ManageAccessView) {
+        let permissions = self.get_selected_user_permissions();
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let height = ui
                 .horizontal(|ui| {
-                    ui.selectable_header(
+                    ui.enabled_selectable_header(
                         "Sharing",
+                        permissions.allow_share,
                         view.is_sharing(),
                         || {
                             self.set_view(ManageAccessView::Sharing);
                         },
                     );
-                    ui.selectable_header(
+                    ui.enabled_selectable_header(
                         "Access Levels",
+                        permissions.access_levels.view,
                         view.is_access_levels(),
                         || {
                             self.set_view(ManageAccessView::AccessLevels);
@@ -47,7 +50,20 @@ impl CalendarApp {
                         }
                     }
                     ManageAccessView::AccessLevels => {
-                        
+                        if permissions.access_levels.edit {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_change_access_levels(),
+                                    egui::Button::new("Edit"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_change_access_levels(
+                                    self.selected_user_id,
+                                    &self.get_selected_user_state().access_levels,
+                                );
+                            }
+                        }
                     }
                 },
             );
@@ -67,28 +83,54 @@ impl CalendarApp {
                     .filter(|gp| gp.giver_user_id == self.selected_user_id)
                     .collect_vec();
 
-                permissions.iter().filter_map(|gp| {
-                    self.get_selected_user_state().users.get_table().get_by_id(gp.receiver_user_id).map(|u| (*gp, u))
-                }).for_each(|(gp, user)| {
-                    ui.label(&user.name);
-                    if ui
-                        .add_enabled(!PopupManager::get().is_open_update_permission(), Button::new("MANAGE"))
-                        .clicked()
-                    {
-                        PopupManager::get().open_update_permission(&gp, user);
-                    }
-                    // Can't revoke your own access
-                    if ui.add_enabled(gp.receiver_user_id != self.state.get_me().id, Button::new("REVOKE")).clicked() {
+                permissions
+                    .iter()
+                    .filter_map(|gp| {
                         self.get_selected_user_state()
-                            .granted_permissions
-                            .delete(gp.id);
-                    }
-                })
+                            .users
+                            .get_table()
+                            .get_by_id(gp.receiver_user_id)
+                            .map(|u| (*gp, u))
+                    })
+                    .for_each(|(gp, user)| {
+                        ui.label(&user.name);
+                        if ui
+                            .add_enabled(
+                                !PopupManager::get().is_open_update_permission(),
+                                Button::new("MANAGE"),
+                            )
+                            .clicked()
+                        {
+                            PopupManager::get().open_update_permission(&gp, user);
+                        }
+                        // Can't revoke your own access
+                        if ui
+                            .add_enabled(
+                                gp.receiver_user_id != self.state.get_me().id,
+                                Button::new("REVOKE"),
+                            )
+                            .clicked()
+                        {
+                            self.get_selected_user_state()
+                                .granted_permissions
+                                .delete(gp.id);
+                        }
+                    })
             });
         });
     }
 
     pub(super) fn manage_access_access_levels_view(&mut self, ui: &mut egui::Ui) {
-        
+        ui.vertical(|ui| {
+            self.get_selected_user_state()
+                .access_levels
+                .get_table()
+                .get()
+                .iter()
+                .sorted_by_key(|al| -al.level)
+                .for_each(|al| {
+                    ui.add(Label::new(RichText::new(&al.name).heading()));
+                });
+        });
     }
 }

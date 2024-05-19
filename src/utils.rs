@@ -42,6 +42,8 @@ pub fn get_monday(date: &NaiveDate) -> NaiveDate {
     .unwrap()
 }
 
+/*
+
 pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
     match weekday {
         chrono::Weekday::Mon => "Monday",
@@ -64,6 +66,28 @@ pub fn weekday_human_name_short(weekday: &Weekday) -> &'static str {
         chrono::Weekday::Sat => "Sat",
         chrono::Weekday::Sun => "Sun",
     }
+}
+
+*/
+
+pub fn weekday_human_name(weekday: Weekday) -> String {
+    chrono::Local::now()
+        .naive_local()
+        .date()
+        .week(weekday)
+        .first_day()
+        .format("%A")
+        .to_string()
+}
+
+pub fn weekday_human_name_short(weekday: Weekday) -> String {
+    chrono::Local::now()
+        .naive_local()
+        .date()
+        .week(weekday)
+        .first_day()
+        .format("%a")
+        .to_string()
 }
 
 pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32) -> String {

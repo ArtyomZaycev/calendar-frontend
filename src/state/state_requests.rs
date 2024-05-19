@@ -1,4 +1,8 @@
-use calendar_lib::api::{auth::*, user_state, utils::User};
+use calendar_lib::api::{
+    auth::{types::AccessLevelChange, *},
+    user_state,
+    utils::User,
+};
 
 use crate::{
     db::{aliases::UserUtils, request::RequestIdentifier},
@@ -14,6 +18,7 @@ use super::{
 impl State {
     pub fn logout(&mut self) -> RequestIdentifier<LogoutRequest> {
         self.user_state = UserState::new(-1);
+        self.granted_states.clear();
         self.admin_state = AdminState::new();
         self.me = User::default();
         make_state_request((), |connector| {
@@ -78,6 +83,20 @@ impl UserState {
             connector
                 .make_request::<LoadStateRequest>()
                 .query(&user_state::load::Args {
+                    user_id: self.user_id,
+                })
+        })
+    }
+
+    pub fn change_access_levels(
+        &self,
+        changes: Vec<AccessLevelChange>,
+    ) -> RequestIdentifier<ChangeAccessLevelsRequest> {
+        make_state_request(self.user_id, |connector| {
+            connector
+                .make_request::<ChangeAccessLevelsRequest>()
+                .json(&change_access_levels::Body { array: changes })
+                .query(&change_access_levels::Args {
                     user_id: self.user_id,
                 })
         })

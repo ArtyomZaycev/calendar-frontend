@@ -91,7 +91,7 @@ impl UserState {
             .map(|(plan, template)| {
                 let start = NaiveDateTime::new(date, plan.time);
                 self.events.insert(NewEvent {
-                    user_id: -1,
+                    user_id: self.user_id,
                     name: template.event_name.clone(),
                     description: template.event_description.clone(),
                     start,

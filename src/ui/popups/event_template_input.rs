@@ -116,7 +116,8 @@ impl PopupContent for EventTemplateInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.state.get_user_state(self.user_id)
+                    app.state
+                        .get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -124,13 +125,9 @@ impl PopupContent for EventTemplateInput {
             });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
+            info.error(self.name.len() > 200, "Name is too long");
             info.error(self.event_name.is_empty(), "Event name cannot be empty");
-            info.error(self.event_name.len() > 80, "Event name is too long");
-            info.error(
-                self.event_description.len() > 250,
-                "Event description is too long",
-            );
+            info.error(self.event_name.len() > 200, "Event name is too long");
         });
     }
 
@@ -141,7 +138,8 @@ impl PopupContent for EventTemplateInput {
                 .clicked()
             {
                 self.update_request = Some(
-                    app.state.get_user_state(self.user_id)
+                    app.state
+                        .get_user_state(self.user_id)
                         .event_templates
                         .update(UpdateEventTemplate {
                             id,
@@ -167,7 +165,8 @@ impl PopupContent for EventTemplateInput {
                 .clicked()
             {
                 self.insert_request = Some(
-                    app.state.get_user_state(self.user_id)
+                    app.state
+                        .get_user_state(self.user_id)
                         .event_templates
                         .insert(NewEventTemplate {
                             user_id: self.user_id,

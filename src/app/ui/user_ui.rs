@@ -7,7 +7,7 @@ use crate::{
     },
     utils::*,
 };
-use chrono::{Datelike, Days, Months, NaiveDate};
+use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
 use egui::{Align, Layout, RichText};
 
 use num_traits::FromPrimitive;
@@ -195,7 +195,7 @@ impl CalendarApp {
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
-                let weekday_name = get_weekday_name(&weekday);
+                let weekday_name = get_weekday_name(weekday);
 
                 ui.vertical(|ui| {
                     ui.set_width(column_width);
@@ -204,33 +204,86 @@ impl CalendarApp {
             });
         });
         let level = self.get_selected_access_level();
+        let num_of_weeks = if month
+            == (first_day + chrono::Days::new(7 * 5))
+                .week(Weekday::Mon)
+                .first_day()
+                .month()
+        {
+            6
+        } else {
+            5
+        };
+        let row_height = get_height_from_rows(ui, num_of_weeks);
         egui::ScrollArea::vertical().show(ui, |ui| {
             egui::Grid::new("month")
                 .num_columns(7)
                 .min_col_width(column_width)
                 .max_col_width(column_width)
+                .min_row_height(row_height)
                 .show(ui, |ui| {
-                    (0..6).for_each(|week| {
+                    (0..num_of_weeks as u64).for_each(|week| {
                         let monday = first_monday + chrono::Days::new(7 * week);
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
                             self.prepare_date(date);
                             let events = self.state.get_events_for_date(date);
-                            ui.vertical(|ui| {
+                            ui.vertical_centered_justified(|ui| {
                                 ui.label(
                                     date.format(if date.month() == month { "%e" } else { "%e %b" })
                                         .to_string(),
                                 );
-                                events.iter().for_each(|event| {
-                                    EventCard::new(
-                                        &self,
-                                        egui::Vec2::new(column_width, 200.),
-                                        event,
-                                        level,
-                                        self.get_selected_user_permissions().events,
+                                let available_height = ui.available_height();
+                                let card_height = 24.;
+                                let number_of_cards = events.len() as f32;
+                                let spacing = ui.style().spacing.item_spacing.y;
+                                let need_height = number_of_cards * card_height
+                                    + (number_of_cards - 1.).max(0.) * spacing;
+
+                                let hide_some = need_height > available_height;
+                                let show_number_of_cards = if hide_some {
+                                    (available_height / (card_height + spacing) - 1.).max(0.)
+                                        as usize
+                                } else {
+                                    number_of_cards as usize
+                                };
+
+                                events[..show_number_of_cards].iter().for_each(|event| {
+                                    ui.add(
+                                        EventCard::new(
+                                            &self,
+                                            egui::Vec2::new(column_width, 200.),
+                                            event,
+                                            level,
+                                            self.get_selected_user_permissions().events,
+                                        )
+                                        .small(),
                                     );
                                 });
+
+                                if hide_some {
+                                    ui.menu_button(
+                                        format!("{} more", events.len() - show_number_of_cards),
+                                        |ui| {
+                                            events[show_number_of_cards..].iter().for_each(
+                                                |event| {
+                                                    ui.add(
+                                                        EventCard::new(
+                                                            &self,
+                                                            egui::Vec2::new(column_width, 200.),
+                                                            event,
+                                                            level,
+                                                            self.get_selected_user_permissions()
+                                                                .events,
+                                                        )
+                                                        .small(),
+                                                    );
+                                                },
+                                            );
+                                        },
+                                    );
+                                }
                             });
                         });
                         ui.end_row();
@@ -255,7 +308,7 @@ impl CalendarApp {
                     let date = monday + chrono::Days::new(weekday);
                     let weekday = chrono::Weekday::from_u64(weekday).unwrap();
 
-                    let weekday_name = get_weekday_name(&weekday);
+                    let weekday_name = get_weekday_name(weekday);
 
                     ui.vertical(|ui| {
                         ui.set_width(column_width);
@@ -361,13 +414,16 @@ impl CalendarApp {
                             .for_each(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events.into_iter().for_each(|event| {
-                                        ui.add(EventCard::new(
-                                            &self,
-                                            egui::Vec2::new(column_width, 200.),
-                                            &event,
-                                            level,
-                                            self.get_selected_user_permissions().events,
-                                        ));
+                                        ui.add(
+                                            EventCard::new(
+                                                &self,
+                                                egui::Vec2::new(column_width, 200.),
+                                                &event,
+                                                level,
+                                                self.get_selected_user_permissions().events,
+                                            )
+                                            .hide_date(),
+                                        );
                                     });
                                 });
                             });
@@ -406,6 +462,8 @@ impl CalendarApp {
                                 &self,
                                 egui::Vec2::new(column_width, 200.),
                                 &schedule,
+                                self.get_selected_access_level(),
+                                self.get_selected_user_permissions().schedules,
                             ));
                         });
                     });
@@ -443,6 +501,8 @@ impl CalendarApp {
                                 &self,
                                 egui::Vec2::new(column_width, 200.),
                                 &template,
+                                self.get_selected_access_level(),
+                                self.get_selected_user_permissions().event_templates,
                             ));
                         });
                     });

@@ -39,7 +39,8 @@ impl RequestResult<Bytes> {
                         }
                         Err(err) => {
                             println!(
-                                "Unknown type received with status 200. Modifying status to 418"
+                                "Unknown type received with status 200. Modifying status to 418. Expected '{}'",
+                                std::any::type_name::<T>()
                             );
                             let res: Box<dyn Any> = Box::new(err.to_string());
                             (StatusCode::IM_A_TEAPOT, res)
@@ -53,7 +54,8 @@ impl RequestResult<Bytes> {
                         }
                         Err(err) => {
                             println!(
-                                "Unknown type received with status 400. Modifying status to 418"
+                                "Unknown type received with status 400. Modifying status to 418. Expected '{}'",
+                                std::any::type_name::<T>()
                             );
                             let res: Box<dyn Any> = Box::new(err.to_string());
                             (StatusCode::IM_A_TEAPOT, res)

@@ -5,10 +5,11 @@ use crate::{
     state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
     ui::{access_level_picker::AccessLevelPicker, time_picker::TimePicker},
+    utils::weekday_human_name,
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{Button, TextEdit, Vec2};
+use egui::{Button, TextEdit};
 use egui_extras::DatePickerButton;
 use itertools::Itertools;
 use num_traits::FromPrimitive;
@@ -150,7 +151,8 @@ impl PopupContent for ScheduleInput {
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
-                            app.state.get_user_state(self.user_id)
+                            app.state
+                                .get_user_state(self.user_id)
                                 .event_templates
                                 .get_table()
                                 .get()
@@ -162,7 +164,8 @@ impl PopupContent for ScheduleInput {
                         },
                     )
                     .show_ui(ui, |ui| {
-                        app.state.get_user_state(self.user_id)
+                        app.state
+                            .get_user_state(self.user_id)
                             .event_templates
                             .get_table()
                             .get()
@@ -200,7 +203,8 @@ impl PopupContent for ScheduleInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.state.get_user_state(self.user_id)
+                    app.state
+                        .get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -216,13 +220,12 @@ impl PopupContent for ScheduleInput {
 
             egui::Grid::new(self.eid.with("weekday_grid"))
                 .min_col_width(0.)
-                .spacing(Vec2::new(4., 0.))
                 .show(ui, |ui| {
                     (0..7).for_each(|weekday_ind| {
                         let weekday = Weekday::from_usize(weekday_ind).unwrap();
                         let mut to_delete = vec![];
 
-                        ui.label(weekday.to_string());
+                        ui.label(weekday_human_name(weekday));
                         if ui
                             .add_enabled(
                                 !self.events[weekday_ind]
@@ -257,8 +260,7 @@ impl PopupContent for ScheduleInput {
                 });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
-            info.error(self.description.len() > 250, "Description is too long");
+            info.error(self.name.len() > 200, "Name is too long");
             info.error(
                 self.id.is_none() && self.template_id.is_none(),
                 "Template must be set",
@@ -294,38 +296,45 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                self.update_request = Some(app.state.get_user_state(self.user_id).schedules.update(
-                    UpdateSchedule {
-                        id,
-                        name: USome(self.name.clone()),
-                        description: USome(
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        ),
-                        first_day: USome(self.first_day),
-                        last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                        access_level: USome(self.access_level),
-                        delete_events,
-                        new_events,
-                    },
-                ));
+                self.update_request = Some(
+                    app.state
+                        .get_user_state(self.user_id)
+                        .schedules
+                        .update(UpdateSchedule {
+                            id,
+                            name: USome(self.name.clone()),
+                            description: USome(
+                                (!self.description.is_empty()).then_some(self.description.clone()),
+                            ),
+                            first_day: USome(self.first_day),
+                            last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                            access_level: USome(self.access_level),
+                            delete_events,
+                            new_events,
+                        }),
+                );
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                self.insert_request =
-                    Some(app.state.get_user_state(self.user_id).schedules.insert(NewSchedule {
-                        user_id: self.user_id,
-                        template_id: self.template_id.unwrap(),
-                        name: self.name.clone(),
-                        description:
-                            (!self.description.is_empty()).then_some(self.description.clone()),
-                        first_day: self.first_day,
-                        last_day: self.last_day_enabled.then_some(self.last_day),
-                        access_level: self.access_level,
-                        events: self.events.clone().into_iter().flatten().collect(),
-                    }));
+                self.insert_request = Some(
+                    app.state
+                        .get_user_state(self.user_id)
+                        .schedules
+                        .insert(NewSchedule {
+                            user_id: self.user_id,
+                            template_id: self.template_id.unwrap(),
+                            name: self.name.clone(),
+                            description: (!self.description.is_empty())
+                                .then_some(self.description.clone()),
+                            first_day: self.first_day,
+                            last_day: self.last_day_enabled.then_some(self.last_day),
+                            access_level: self.access_level,
+                            events: self.events.clone().into_iter().flatten().collect(),
+                        }),
+                );
             }
         }
         if ui.button("Cancel").clicked() {

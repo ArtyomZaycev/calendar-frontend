@@ -74,7 +74,7 @@ impl State {
             None => {
                 println!("get_user_state state {} not found", user_id);
                 &self.user_state
-            },
+            }
         }
     }
 
@@ -296,23 +296,21 @@ impl State {
             })
             .collect_vec();
         let mut new_states = new_given_permissions
-        .into_iter()
-        .map(|gp| {
-            GrantedUserState::new(
-                User {
-                    id: gp.giver_user_id,
-                    ..User::default()
-                },
-                gp.permissions,
-            )
-        })
-        .collect_vec();
+            .into_iter()
+            .map(|gp| {
+                GrantedUserState::new(
+                    User {
+                        id: gp.giver_user_id,
+                        ..User::default()
+                    },
+                    gp.permissions,
+                )
+            })
+            .collect_vec();
         new_states.iter().for_each(|state| {
             state.state.load_state();
         });
-        self.granted_states.append(
-            &mut new_states,
-        );
+        self.granted_states.append(&mut new_states);
         self.populate_granted_user_states_users(user_id);
     }
 

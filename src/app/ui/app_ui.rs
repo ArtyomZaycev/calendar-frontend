@@ -3,7 +3,11 @@ use super::super::{
     CalendarApp, CalendarView, EventsView,
 };
 use crate::{
-    app::ManageAccessView, db::aliases::UserUtils, state::custom_requests::LoginRequest, tables::DbTable, ui::{popups::popup_manager::PopupManager, table_view::TableView}
+    app::ManageAccessView,
+    db::aliases::UserUtils,
+    state::custom_requests::LoginRequest,
+    tables::DbTable,
+    ui::{popups::popup_manager::PopupManager, table_view::TableView},
 };
 use chrono::NaiveDate;
 use egui::{Align, CollapsingHeader, Direction, Label, Layout, Sense};
@@ -16,7 +20,15 @@ impl CalendarApp {
             } else if self.selected_user_id == self.state.get_me().id {
                 "Your Calendar".to_owned()
             } else {
-                match self.state.user_state.users.get_table().get().iter().find(|u| u.id == self.selected_user_id) {
+                match self
+                    .state
+                    .user_state
+                    .users
+                    .get_table()
+                    .get()
+                    .iter()
+                    .find(|u| u.id == self.selected_user_id)
+                {
                     Some(user) => format!("{} Calendar", user.name),
                     None => "Other Calendar".to_owned(),
                 }
@@ -77,11 +89,14 @@ impl CalendarApp {
             .exact_width(4.)
             .show(ctx, |ui| {
                 //ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
-                ui.with_layout(Layout::centered_and_justified(Direction::LeftToRight), |ui| {
-                    if ui.add(Label::new("►").sense(Sense::click())).clicked() {
-                        self.burger_menu_expanded = true;
-                    }
-                });
+                ui.with_layout(
+                    Layout::centered_and_justified(Direction::LeftToRight),
+                    |ui| {
+                        if ui.add(Label::new("►").sense(Sense::click())).clicked() {
+                            self.burger_menu_expanded = true;
+                        }
+                    },
+                );
             });
     }
 
@@ -95,10 +110,8 @@ impl CalendarApp {
                 ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        let response = ui
-                        .add(Label::new("YOUR CALENDAR").sense(Sense::click()));
-                        if response.clicked()
-                        {
+                        let response = ui.add(Label::new("YOUR CALENDAR").sense(Sense::click()));
+                        if response.clicked() {
                             self.selected_user_id = self.state.get_me().id;
                             self.state.clear_events(self.selected_user_id);
                             self.view = EventsView::Days.into();
@@ -111,7 +124,7 @@ impl CalendarApp {
                                 if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
                                     self.burger_menu_expanded = false;
                                 }
-                            }
+                            },
                         );
                     });
                     ui.separator();
@@ -121,20 +134,24 @@ impl CalendarApp {
                             let mut changed = false;
                             self.state.granted_states.iter().for_each(|shared_state| {
                                 let user_response = ui
-                                    .add(
-                                        Label::new(&shared_state.user.name)
-                                            .sense(Sense::click()),
-                                    );
-                                if user_response.clicked()
-                                {
+                                    .add(Label::new(&shared_state.user.name).sense(Sense::click()));
+                                if user_response.clicked() {
                                     self.selected_user_id = shared_state.user.id;
                                     changed = true;
                                 }
-                                if shared_state.permissions.allow_share {
+                                if shared_state.permissions.allow_share
+                                    || shared_state.permissions.access_levels.view
+                                {
                                     user_response.context_menu(|ui| {
                                         if ui.button("Manage Access").clicked() {
                                             self.selected_user_id = shared_state.user.id;
-                                            self.view = AppView::ManageAccess(ManageAccessView::Sharing);
+                                            self.view = AppView::ManageAccess(
+                                                if shared_state.permissions.allow_share {
+                                                    ManageAccessView::Sharing
+                                                } else {
+                                                    ManageAccessView::AccessLevels
+                                                },
+                                            );
                                             ui.close_menu();
                                         }
                                     });
@@ -234,10 +251,10 @@ impl CalendarApp {
                 match manage_access_view {
                     ManageAccessView::Sharing => {
                         self.manage_access_sharing_view(ui);
-                    },
+                    }
                     ManageAccessView::AccessLevels => {
                         self.manage_access_access_levels_view(ui);
-                    },
+                    }
                 }
             }
         }
@@ -294,7 +311,7 @@ impl eframe::App for CalendarApp {
                 table: TableView::new("users_table"),
             });
         }
-        
+
         if self.state.try_get_me().is_some() {
             self.burger_menu(ctx);
         }
@@ -308,7 +325,6 @@ impl eframe::App for CalendarApp {
 
             ui.horizontal_top(|ui| {
                 if self.state.try_get_me().is_some() {
-
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                         self.view_dispatcher(ui);
                     });

@@ -115,7 +115,8 @@ impl PopupContent for EventInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    app.state.get_user_state(self.user_id)
+                    app.state
+                        .get_user_state(self.user_id)
                         .access_levels
                         .get_table()
                         .get(),
@@ -139,8 +140,7 @@ impl PopupContent for EventInput {
             });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
-            info.error(self.description.len() > 250, "Description is too long");
+            info.error(self.name.len() > 200, "Name is too long");
         });
     }
 
@@ -150,8 +150,8 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                self.update_request =
-                    Some(app.state.get_user_state(self.user_id).events.update(UpdateEvent {
+                self.update_request = Some(app.state.get_user_state(self.user_id).events.update(
+                    UpdateEvent {
                         id,
                         name: USome(self.name.clone()),
                         description: USome(
@@ -162,7 +162,8 @@ impl PopupContent for EventInput {
                         access_level: USome(self.access_level),
                         visibility: USome(self.visibility),
                         plan_id: UNone,
-                    }));
+                    },
+                ));
             }
         } else {
             if ui
@@ -170,16 +171,19 @@ impl PopupContent for EventInput {
                 .clicked()
             {
                 println!("self.user_id = {}", self.user_id);
-                self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(NewEvent {
-                    user_id: self.user_id,
-                    name: self.name.clone(),
-                    description: (!self.description.is_empty()).then_some(self.description.clone()),
-                    start: NaiveDateTime::new(self.date, self.start),
-                    end: NaiveDateTime::new(self.date, self.end),
-                    access_level: self.access_level,
-                    visibility: self.visibility,
-                    plan_id: None,
-                }));
+                self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(
+                    NewEvent {
+                        user_id: self.user_id,
+                        name: self.name.clone(),
+                        description:
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        start: NaiveDateTime::new(self.date, self.start),
+                        end: NaiveDateTime::new(self.date, self.end),
+                        access_level: self.access_level,
+                        visibility: self.visibility,
+                        plan_id: None,
+                    },
+                ));
             }
         }
         if ui.button("Cancel").clicked() {

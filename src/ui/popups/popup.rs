@@ -1,4 +1,5 @@
 use super::{
+    change_access_levels::ChangeAccessLevelsPopup,
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
@@ -25,6 +26,7 @@ pub enum PopupType {
     UpdateSchedule(ScheduleInput),
     NewPermission(PermissionInput),
     UpdatePermission(PermissionInput),
+    ChangeAccessLevels(ChangeAccessLevelsPopup),
 }
 
 impl PopupContent for PopupType {
@@ -41,6 +43,7 @@ impl PopupContent for PopupType {
             PopupType::UpdateSchedule(w) => w.init_frame(state, info),
             PopupType::NewPermission(w) => w.init_frame(state, info),
             PopupType::UpdatePermission(w) => w.init_frame(state, info),
+            PopupType::ChangeAccessLevels(w) => w.init_frame(state, info),
         }
     }
 
@@ -57,6 +60,7 @@ impl PopupContent for PopupType {
             PopupType::UpdateSchedule(w) => w.get_title(),
             PopupType::NewPermission(w) => w.get_title(),
             PopupType::UpdatePermission(w) => w.get_title(),
+            PopupType::ChangeAccessLevels(w) => w.get_title(),
         }
     }
 
@@ -73,6 +77,7 @@ impl PopupContent for PopupType {
             PopupType::UpdateSchedule(w) => w.show_title(state, ui, info),
             PopupType::NewPermission(w) => w.show_title(state, ui, info),
             PopupType::UpdatePermission(w) => w.show_title(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_title(state, ui, info),
         }
     }
 
@@ -89,6 +94,7 @@ impl PopupContent for PopupType {
             PopupType::UpdateSchedule(w) => w.show_content(state, ui, info),
             PopupType::NewPermission(w) => w.show_content(state, ui, info),
             PopupType::UpdatePermission(w) => w.show_content(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_content(state, ui, info),
         }
     }
 
@@ -105,6 +111,7 @@ impl PopupContent for PopupType {
             PopupType::UpdateSchedule(w) => w.show_buttons(state, ui, info),
             PopupType::NewPermission(w) => w.show_buttons(state, ui, info),
             PopupType::UpdatePermission(w) => w.show_buttons(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_buttons(state, ui, info),
         }
     }
 }

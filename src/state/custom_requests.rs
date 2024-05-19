@@ -139,3 +139,30 @@ impl StateRequestType for LoadStateRequest {
         }
     }
 }
+
+#[derive(Clone, Copy)]
+pub struct ChangeAccessLevelsRequest {}
+impl RequestType for ChangeAccessLevelsRequest {
+    const URL: &'static str = change_access_levels::PATH;
+    const IS_AUTHORIZED: bool = true;
+    const METHOD: reqwest::Method = change_access_levels::METHOD;
+
+    type Query = change_access_levels::Args;
+    type Body = change_access_levels::Body;
+    type Response = change_access_levels::Response;
+    type BadResponse = change_access_levels::BadRequestResponse;
+
+    /// user_id
+    type Info = TableId;
+}
+impl StateRequestType for ChangeAccessLevelsRequest {
+    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
+        let user_id = info;
+        state.get_user_state(user_id).access_levels.load_all();
+    }
+
+    fn push_bad_to_state(_response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        let user_id = info;
+        state.get_user_state(user_id).access_levels.load_all();
+    }
+}
