@@ -1,19 +1,20 @@
+use calendar_lib::api::{permissions::types::Permissions, utils::TableId};
 use chrono::NaiveDate;
 
 use super::{AppView, EventsView};
 use crate::{
     app_local_storage::AppLocalStorage,
-    state::State,
-    tables::DbTable,
-    ui::{popups::popup_manager::PopupManager, signal::AppSignal},
+    state::{main_state::UserState, State},
+    ui::popups::popup_manager::PopupManager,
 };
 
 pub struct CalendarApp {
     pub(super) local_storage: AppLocalStorage,
-    pub(super) state: State,
+    pub state: State,
     pub(super) view: AppView,
-    pub(super) popup_manager: PopupManager,
 
+    pub burger_menu_expanded: bool,
+    pub selected_user_id: TableId,
     pub selected_date: NaiveDate,
 }
 
@@ -36,7 +37,9 @@ impl CalendarApp {
             local_storage,
             state,
             view: EventsView::Days.into(),
-            popup_manager: PopupManager::new(),
+
+            burger_menu_expanded: true,
+            selected_user_id: -1,
             selected_date: chrono::Local::now().naive_local().date(),
         }
     }
@@ -45,62 +48,32 @@ impl CalendarApp {
 impl CalendarApp {
     pub(super) fn logout(&mut self) {
         self.local_storage.clear_jwt();
-        self.popup_manager.clear();
+        PopupManager::get().clear();
         self.view = EventsView::Days.into();
         self.state.logout();
+
+        self.burger_menu_expanded = true;
+        self.selected_user_id = -1;
+        self.selected_date = chrono::Local::now().naive_local().date();
     }
 
-    pub(super) fn parse_signal(&mut self, signal: AppSignal) {
-        match signal {
-            AppSignal::ChangeEvent(event_id) => {
-                if let Some(event) = self
-                    .state
-                    .user_state
-                    .events
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|event| event.id == event_id)
-                {
-                    self.popup_manager.open_update_event(&event.clone());
-                }
-            }
-            AppSignal::ChangeEventTemplate(template_id) => {
-                if let Some(template) = self
-                    .state
-                    .user_state
-                    .event_templates
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|template| template.id == template_id)
-                {
-                    self.popup_manager
-                        .open_update_event_template(&template.clone());
-                }
-            }
-            AppSignal::ChangeSchedule(schedule_id) => {
-                if let Some(schedule) = self
-                    .state
-                    .user_state
-                    .schedules
-                    .get_table()
-                    .get()
-                    .iter()
-                    .find(|schedule| schedule.id == schedule_id)
-                {
-                    self.popup_manager.open_update_schedule(&schedule.clone());
-                }
-            }
-            AppSignal::AddPassword => {
-                self.popup_manager.open_new_password();
-            }
-        }
+    pub fn get_selected_user_state(&self) -> &UserState {
+        self.state.get_user_state(self.selected_user_id)
     }
 
-    pub(super) fn parse_signals(&mut self, signals: Vec<AppSignal>) {
-        signals
-            .into_iter()
-            .for_each(|signal| self.parse_signal(signal));
+    pub fn get_selected_user_permissions(&self) -> Permissions {
+        self.state.get_user_permissions(self.selected_user_id)
+    }
+
+    pub fn get_selected_access_level(&self) -> i32 {
+        self.get_selected_user_permissions().access_level
+    }
+
+    pub fn prepare_date(&mut self, date: NaiveDate) {
+        self.state.prepare_date(
+            self.selected_user_id,
+            self.get_selected_user_permissions().access_level,
+            date,
+        );
     }
 }

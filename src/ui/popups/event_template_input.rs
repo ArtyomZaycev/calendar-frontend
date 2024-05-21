@@ -1,10 +1,8 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::{
-        request::RequestIdentifier,
-        table_requests::{TableInsertRequest, TableUpdateRequest},
-        State,
-    },
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
     ui::{access_level_picker::AccessLevelPicker, time_picker::TimePicker},
 };
@@ -30,11 +28,11 @@ pub struct EventTemplateInput {
 }
 
 impl EventTemplateInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             name: String::default(),
             event_name: String::default(),
@@ -51,7 +49,7 @@ impl EventTemplateInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: template.name.clone(),
-            user_id: -1,
+            user_id: template.user_id,
             id: Some(template.id),
             name: template.name.clone(),
             event_name: template.event_name.clone(),
@@ -63,17 +61,12 @@ impl EventTemplateInput {
             insert_request: None,
         }
     }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
-    }
 }
 
 impl PopupContent for EventTemplateInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.update_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -81,7 +74,7 @@ impl PopupContent for EventTemplateInput {
             }
         }
         if let Some(identifier) = self.insert_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -90,7 +83,7 @@ impl PopupContent for EventTemplateInput {
         }
 
         if self.access_level == -1 {
-            self.access_level = state.get_access_level().level;
+            self.access_level = app.get_selected_access_level();
         }
     }
 
@@ -102,12 +95,7 @@ impl PopupContent for EventTemplateInput {
         }
     }
 
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
             ui.separator();
@@ -128,35 +116,30 @@ impl PopupContent for EventTemplateInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.user_state.access_levels.get_table().get(),
+                    app.state
+                        .get_user_state(self.user_id)
+                        .access_levels
+                        .get_table()
+                        .get(),
                 ));
             });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
+            info.error(self.name.len() > 200, "Name is too long");
             info.error(self.event_name.is_empty(), "Event name cannot be empty");
-            info.error(self.event_name.len() > 80, "Event name is too long");
-            info.error(
-                self.event_description.len() > 250,
-                "Event description is too long",
-            );
+            info.error(self.event_name.len() > 200, "Event name is too long");
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Update"))
                 .clicked()
             {
                 self.update_request = Some(
-                    state
-                        .user_state
+                    app.state
+                        .get_user_state(self.user_id)
                         .event_templates
                         .update(UpdateEventTemplate {
                             id,
@@ -182,19 +165,22 @@ impl PopupContent for EventTemplateInput {
                 .clicked()
             {
                 self.insert_request = Some(
-                    state.user_state.event_templates.insert(NewEventTemplate {
-                        user_id: self.user_id,
-                        name: self.name.clone(),
-                        event_name: self.event_name.clone(),
-                        event_description: (!self.event_description.is_empty())
-                            .then_some(self.event_description.clone()),
-                        duration: self
-                            .duration
-                            .signed_duration_since(NaiveTime::default())
-                            .to_std()
-                            .unwrap(),
-                        access_level: self.access_level,
-                    }),
+                    app.state
+                        .get_user_state(self.user_id)
+                        .event_templates
+                        .insert(NewEventTemplate {
+                            user_id: self.user_id,
+                            name: self.name.clone(),
+                            event_name: self.event_name.clone(),
+                            event_description: (!self.event_description.is_empty())
+                                .then_some(self.event_description.clone()),
+                            duration: self
+                                .duration
+                                .signed_duration_since(NaiveTime::default())
+                                .to_std()
+                                .unwrap(),
+                            access_level: self.access_level,
+                        }),
                 );
             }
         }

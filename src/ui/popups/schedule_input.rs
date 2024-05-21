@@ -1,16 +1,15 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::{
-        request::RequestIdentifier,
-        table_requests::{TableInsertRequest, TableUpdateRequest},
-        State,
-    },
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
     ui::{access_level_picker::AccessLevelPicker, time_picker::TimePicker},
+    utils::weekday_human_name,
 };
 use calendar_lib::api::{schedules::types::*, utils::*};
 use chrono::{Days, Local, NaiveDate, NaiveTime, Weekday};
-use egui::{Button, TextEdit, Vec2};
+use egui::{Button, TextEdit};
 use egui_extras::DatePickerButton;
 use itertools::Itertools;
 use num_traits::FromPrimitive;
@@ -39,7 +38,7 @@ pub struct ScheduleInput {
 }
 
 impl ScheduleInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         let now = Local::now().naive_local();
         let minutes = now
             .time()
@@ -50,7 +49,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             template_id: None,
             name: String::default(),
@@ -80,7 +79,7 @@ impl ScheduleInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: schedule.name.clone(),
-            user_id: -1,
+            user_id: schedule.user_id,
             id: Some(schedule.id),
             template_id: Some(schedule.template_id),
             name: schedule.name.clone(),
@@ -109,17 +108,12 @@ impl ScheduleInput {
             insert_request: None,
         }
     }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
-    }
 }
 
 impl PopupContent for ScheduleInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.update_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -127,7 +121,7 @@ impl PopupContent for ScheduleInput {
             }
         }
         if let Some(identifier) = self.insert_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -136,7 +130,7 @@ impl PopupContent for ScheduleInput {
         }
 
         if self.access_level == -1 {
-            self.access_level = state.get_access_level().level;
+            self.access_level = app.get_selected_access_level();
         }
     }
 
@@ -148,12 +142,7 @@ impl PopupContent for ScheduleInput {
         }
     }
 
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
@@ -162,8 +151,8 @@ impl PopupContent for ScheduleInput {
                 egui::ComboBox::from_id_source("schedule_template_list")
                     .selected_text(
                         match self.template_id.and_then(|template_id| {
-                            state
-                                .user_state
+                            app.state
+                                .get_user_state(self.user_id)
                                 .event_templates
                                 .get_table()
                                 .get()
@@ -175,8 +164,8 @@ impl PopupContent for ScheduleInput {
                         },
                     )
                     .show_ui(ui, |ui| {
-                        state
-                            .user_state
+                        app.state
+                            .get_user_state(self.user_id)
                             .event_templates
                             .get_table()
                             .get()
@@ -193,7 +182,11 @@ impl PopupContent for ScheduleInput {
 
             egui::Grid::new(self.eid.with("time_grid")).show(ui, |ui| {
                 ui.label("First day:");
-                ui.add(DatePickerButton::new(&mut self.first_day).show_icon(false));
+                ui.add(
+                    DatePickerButton::new(&mut self.first_day)
+                        .id_source("first_day")
+                        .show_icon(false),
+                );
                 ui.end_row();
 
                 if self.last_day_enabled && self.first_day > self.last_day {
@@ -203,7 +196,9 @@ impl PopupContent for ScheduleInput {
                 ui.label("Last day:");
                 ui.add_enabled(
                     self.last_day_enabled,
-                    DatePickerButton::new(&mut self.last_day).show_icon(false),
+                    DatePickerButton::new(&mut self.last_day)
+                        .id_source("last_day")
+                        .show_icon(false),
                 );
                 ui.checkbox(&mut self.last_day_enabled, "");
                 ui.end_row();
@@ -214,7 +209,11 @@ impl PopupContent for ScheduleInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.user_state.access_levels.get_table().get(),
+                    app.state
+                        .get_user_state(self.user_id)
+                        .access_levels
+                        .get_table()
+                        .get(),
                 ));
             });
 
@@ -227,13 +226,12 @@ impl PopupContent for ScheduleInput {
 
             egui::Grid::new(self.eid.with("weekday_grid"))
                 .min_col_width(0.)
-                .spacing(Vec2::new(4., 0.))
                 .show(ui, |ui| {
                     (0..7).for_each(|weekday_ind| {
                         let weekday = Weekday::from_usize(weekday_ind).unwrap();
                         let mut to_delete = vec![];
 
-                        ui.label(weekday.to_string());
+                        ui.label(weekday_human_name(weekday));
                         if ui
                             .add_enabled(
                                 !self.events[weekday_ind]
@@ -268,8 +266,7 @@ impl PopupContent for ScheduleInput {
                 });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
-            info.error(self.description.len() > 250, "Description is too long");
+            info.error(self.name.len() > 200, "Name is too long");
             info.error(
                 self.id.is_none() && self.template_id.is_none(),
                 "Template must be set",
@@ -277,12 +274,7 @@ impl PopupContent for ScheduleInput {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
@@ -310,34 +302,45 @@ impl PopupContent for ScheduleInput {
                         .then_some(new_event_plan.clone())
                     })
                     .collect_vec();
-                self.update_request = Some(state.user_state.schedules.update(UpdateSchedule {
-                    id,
-                    name: USome(self.name.clone()),
-                    description: USome(
-                        (!self.description.is_empty()).then_some(self.description.clone()),
-                    ),
-                    first_day: USome(self.first_day),
-                    last_day: USome(self.last_day_enabled.then_some(self.last_day)),
-                    access_level: USome(self.access_level),
-                    delete_events,
-                    new_events,
-                }));
+                self.update_request = Some(
+                    app.state
+                        .get_user_state(self.user_id)
+                        .schedules
+                        .update(UpdateSchedule {
+                            id,
+                            name: USome(self.name.clone()),
+                            description: USome(
+                                (!self.description.is_empty()).then_some(self.description.clone()),
+                            ),
+                            first_day: USome(self.first_day),
+                            last_day: USome(self.last_day_enabled.then_some(self.last_day)),
+                            access_level: USome(self.access_level),
+                            delete_events,
+                            new_events,
+                        }),
+                );
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                self.insert_request = Some(state.user_state.schedules.insert(NewSchedule {
-                    user_id: self.user_id,
-                    template_id: self.template_id.unwrap(),
-                    name: self.name.clone(),
-                    description: (!self.description.is_empty()).then_some(self.description.clone()),
-                    first_day: self.first_day,
-                    last_day: self.last_day_enabled.then_some(self.last_day),
-                    access_level: self.access_level,
-                    events: self.events.clone().into_iter().flatten().collect(),
-                }));
+                self.insert_request = Some(
+                    app.state
+                        .get_user_state(self.user_id)
+                        .schedules
+                        .insert(NewSchedule {
+                            user_id: self.user_id,
+                            template_id: self.template_id.unwrap(),
+                            name: self.name.clone(),
+                            description: (!self.description.is_empty())
+                                .then_some(self.description.clone()),
+                            first_day: self.first_day,
+                            last_day: self.last_day_enabled.then_some(self.last_day),
+                            access_level: self.access_level,
+                            events: self.events.clone().into_iter().flatten().collect(),
+                        }),
+                );
             }
         }
         if ui.button("Cancel").clicked() {

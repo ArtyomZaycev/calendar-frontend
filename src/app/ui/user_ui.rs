@@ -3,64 +3,95 @@ use crate::{
     tables::DbTable,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::*,
-        schedule_card::ScheduleCard, utils::UiUtils,
+        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
     },
     utils::*,
 };
-use chrono::{Datelike, Days, Months, NaiveDate};
-use egui::{Align, Layout, RichText};
+use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
+use egui::{Align, Color32, Layout, RichText, Stroke, Vec2};
 
 use num_traits::FromPrimitive;
 
 impl CalendarApp {
     pub(super) fn calendar_view_picker(&mut self, ui: &mut egui::Ui, view: CalendarView) {
+        let permissions = self.get_selected_user_permissions();
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-            ui.selectable_header("Events", view.is_events(), || {
-                self.set_view(EventsView::Days);
-            });
-            ui.selectable_header("Schedules", view.is_schedules(), || {
-                self.set_view(CalendarView::Schedules);
-            });
-            ui.selectable_header("Templates", view.is_event_templates(), || {
-                self.set_view(CalendarView::EventTemplates);
-            });
+            let height = ui
+                .horizontal(|ui| {
+                    ui.enabled_selectable_header(
+                        "Events",
+                        permissions.events.view,
+                        view.is_events(),
+                        || {
+                            self.set_view(EventsView::Days);
+                        },
+                    );
+                    ui.enabled_selectable_header(
+                        "Schedules",
+                        permissions.schedules.view,
+                        view.is_schedules(),
+                        || {
+                            self.set_view(CalendarView::Schedules);
+                        },
+                    );
+                    ui.enabled_selectable_header(
+                        "Templates",
+                        permissions.event_templates.view,
+                        view.is_event_templates(),
+                        || {
+                            self.set_view(CalendarView::EventTemplates);
+                        },
+                    );
+                })
+                .response
+                .rect
+                .height();
 
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| match view {
-                CalendarView::Events(_) => {
-                    if ui
-                        .add_enabled(
-                            !self.popup_manager.is_open_new_event(),
-                            egui::Button::new("Add Event"),
-                        )
-                        .clicked()
-                    {
-                        self.popup_manager.open_new_event(self.state.get_me().id);
+            ui.allocate_ui_with_layout(
+                egui::Vec2::new(ui.available_width(), height),
+                Layout::right_to_left(Align::Center),
+                |ui| match view {
+                    CalendarView::Events(_) => {
+                        if permissions.events.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_event(),
+                                    egui::Button::new("Create Event"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_event(self.selected_user_id);
+                            }
+                        }
                     }
-                }
-                CalendarView::Schedules => {
-                    if ui
-                        .add_enabled(
-                            !self.popup_manager.is_open_new_schedule(),
-                            egui::Button::new("Add Schedule"),
-                        )
-                        .clicked()
-                    {
-                        self.popup_manager.open_new_schedule(self.state.get_me().id);
+                    CalendarView::Schedules => {
+                        if permissions.schedules.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_schedule(),
+                                    egui::Button::new("Create Schedule"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_schedule(self.selected_user_id);
+                            }
+                        }
                     }
-                }
-                CalendarView::EventTemplates => {
-                    if ui
-                        .add_enabled(
-                            !self.popup_manager.is_open_new_event_template(),
-                            egui::Button::new("Add Template"),
-                        )
-                        .clicked()
-                    {
-                        self.popup_manager
-                            .open_new_event_template(self.state.get_me().id);
+                    CalendarView::EventTemplates => {
+                        if permissions.event_templates.create {
+                            if ui
+                                .add_enabled(
+                                    !PopupManager::get().is_open_new_event_template(),
+                                    egui::Button::new("Create Template"),
+                                )
+                                .clicked()
+                            {
+                                PopupManager::get().open_new_event_template(self.selected_user_id);
+                            }
+                        }
                     }
-                }
-            });
+                },
+            );
         });
     }
 
@@ -148,11 +179,13 @@ impl CalendarApp {
         });
     }
 
-    pub(super) fn month_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
-        let month = date.month();
-        let first_day = get_first_month_day_date(&date);
+    pub(super) fn month_view(&mut self, ui: &mut egui::Ui, day: NaiveDate) {
+        let month = day.month();
+        let first_day = get_first_month_day_date(&day);
         let first_monday = get_monday(&first_day);
 
+        let spacing = ui.spacing().item_spacing;
+        ui.spacing_mut().item_spacing = Vec2::default();
         let column_width = get_width_from_columns(ui, 7);
 
         let get_weekday_name = if column_width < 120. {
@@ -161,11 +194,10 @@ impl CalendarApp {
             weekday_human_name
         };
 
-        let mut signals = vec![];
         ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
-                let weekday_name = get_weekday_name(&weekday);
+                let weekday_name = get_weekday_name(weekday);
 
                 ui.vertical(|ui| {
                     ui.set_width(column_width);
@@ -173,33 +205,93 @@ impl CalendarApp {
                 });
             });
         });
-        let level = self.state.get_access_level().level;
+        ui.spacing_mut().item_spacing = spacing;
+        let level = self.get_selected_access_level();
+        let num_of_weeks = if month
+            == (first_day + chrono::Days::new(7 * 5))
+                .week(Weekday::Mon)
+                .first_day()
+                .month()
+        {
+            6
+        } else {
+            5
+        };
+        let row_height = get_height_from_rows(ui, num_of_weeks);
         egui::ScrollArea::vertical().show(ui, |ui| {
             egui::Grid::new("month")
                 .num_columns(7)
                 .min_col_width(column_width)
                 .max_col_width(column_width)
+                .min_row_height(row_height)
+                .spacing(Vec2::default())
                 .show(ui, |ui| {
-                    (0..6).for_each(|week| {
+                    (0..num_of_weeks as u64).for_each(|week| {
                         let monday = first_monday + chrono::Days::new(7 * week);
                         (0..7).for_each(|weekday| {
                             let date = monday + chrono::Days::new(weekday);
 
-                            self.state.prepare_date(date);
+                            self.prepare_date(date);
                             let events = self.state.get_events_for_date(date);
-                            ui.vertical(|ui| {
-                                ui.label(
-                                    date.format(if date.month() == month { "%e" } else { "%e %b" })
-                                        .to_string(),
-                                );
-                                events.iter().for_each(|event| {
-                                    EventCard::new(
-                                        &self.state,
-                                        &mut signals,
-                                        egui::Vec2::new(column_width, 200.),
-                                        event,
-                                        level,
-                                    );
+                            egui::Frame::none().stroke(Stroke::new(1., Color32::BLACK)).show(ui, |ui| {
+                                ui.set_height(row_height);
+                                ui.vertical_centered_justified(|ui| {
+                                    let mut text = RichText::new(date.format(if date.month() == month { "%e" } else { "%e %b" })
+                                    .to_string());
+                                    if date == chrono::Local::now().naive_local().date() {
+                                        text = text.underline().strong();
+                                    }
+                                    ui.label(text);
+                                    let available_height = ui.available_height();
+                                    let card_height = 24.;
+                                    let number_of_cards = events.len() as f32;
+                                    let spacing = ui.style().spacing.item_spacing.y;
+                                    let need_height = number_of_cards * card_height
+                                        + (number_of_cards - 1.).max(0.) * spacing;
+    
+                                    let hide_some = need_height > available_height;
+                                    let show_number_of_cards = if hide_some {
+                                        (available_height / (card_height + spacing) - 1.).max(0.)
+                                            as usize
+                                    } else {
+                                        number_of_cards as usize
+                                    };
+    
+                                    events[..show_number_of_cards].iter().for_each(|event| {
+                                        ui.add(
+                                            EventCard::new(
+                                                &self,
+                                                egui::Vec2::new(column_width, 200.),
+                                                event,
+                                                level,
+                                                self.get_selected_user_permissions().events,
+                                            )
+                                            .small(),
+                                        );
+                                    });
+    
+                                    if hide_some {
+                                        ui.menu_button(
+                                            format!("{} more", events.len() - show_number_of_cards),
+                                            |ui| {
+                                                events[show_number_of_cards..].iter().for_each(
+                                                    |event| {
+                                                        ui.add(
+                                                            EventCard::new(
+                                                                &self,
+                                                                egui::Vec2::new(column_width, 200.),
+                                                                event,
+                                                                level,
+                                                                self.get_selected_user_permissions()
+                                                                    .events,
+                                                            )
+                                                            .small(),
+                                                        );
+                                                    },
+                                                );
+                                            },
+                                        );
+                                    }
                                 });
                             });
                         });
@@ -207,12 +299,11 @@ impl CalendarApp {
                     });
                 });
         });
-        self.parse_signals(signals);
     }
 
-    pub(super) fn week_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
+    pub(super) fn week_view(&mut self, ui: &mut egui::Ui, day: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let monday = get_monday(&date);
+            let monday = get_monday(&day);
             let column_width = get_width_from_columns(ui, 7);
 
             let get_weekday_name = if column_width < 120. {
@@ -222,38 +313,40 @@ impl CalendarApp {
             };
 
             ui.horizontal_top(|ui| {
-                let mut signals = vec![];
                 (0..7).for_each(|weekday| {
                     let date = monday + chrono::Days::new(weekday);
                     let weekday = chrono::Weekday::from_u64(weekday).unwrap();
 
-                    let weekday_name = get_weekday_name(&weekday);
+                    let weekday_name = get_weekday_name(weekday);
 
                     ui.vertical(|ui| {
                         ui.set_width(column_width);
-                        ui.vertical_centered(|ui| ui.heading(weekday_name));
+                        let mut text = RichText::new(weekday_name);
+                        if date == chrono::Local::now().naive_local().date() {
+                            text = text.underline().strong();
+                        }
+                        ui.vertical_centered(|ui| ui.heading(text));
                         ui.add_space(4.);
 
-                        let level = self.state.get_access_level().level;
-                        self.state.prepare_date(date);
+                        let level = self.get_selected_access_level();
+                        self.prepare_date(date);
                         self.state
                             .get_events_for_date(date)
                             .iter()
                             .for_each(|event| {
                                 ui.add(
                                     EventCard::new(
-                                        &self.state,
-                                        &mut signals,
+                                        &self,
                                         egui::Vec2::new(column_width, 200.),
                                         &event,
                                         level,
+                                        self.get_selected_user_permissions().events,
                                     )
                                     .hide_date(),
                                 );
                             });
                     });
                 });
-                self.parse_signals(signals);
             });
         });
     }
@@ -263,10 +356,8 @@ impl CalendarApp {
             let column_width = 200.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
-            let mut signals = vec![];
-
-            let level = self.state.get_access_level().level;
-            self.state.prepare_date(date);
+            let level = self.get_selected_access_level();
+            self.prepare_date(date);
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
             self.state
@@ -285,26 +376,22 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         events.into_iter().for_each(|event| {
                             ui.add(EventCard::new(
-                                &self.state,
-                                &mut signals,
+                                &self,
                                 egui::Vec2::new(column_width, 200.),
                                 &event,
                                 level,
+                                self.get_selected_user_permissions().events,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 
     pub(super) fn events_view(&mut self, ui: &mut egui::Ui, date: NaiveDate) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
-
-            let mut signals = vec![];
 
             (-1i64..7).for_each(|day| {
                 let date = date
@@ -321,8 +408,8 @@ impl CalendarApp {
                 egui::CollapsingHeader::new(RichText::new(header_text).heading())
                     .default_open(day >= 0)
                     .show_unindented(ui, |ui| {
-                        let level = self.state.get_access_level().level;
-                        self.state.prepare_date(date);
+                        let level = self.get_selected_access_level();
+                        self.prepare_date(date);
                         // TODO: Use array_chunks, once it becomes stable
                         // https://github.com/rust-lang/rust/issues/100450
                         self.state
@@ -340,35 +427,33 @@ impl CalendarApp {
                             .for_each(|events| {
                                 ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                                     events.into_iter().for_each(|event| {
-                                        ui.add(EventCard::new(
-                                            &self.state,
-                                            &mut signals,
-                                            egui::Vec2::new(column_width, 200.),
-                                            &event,
-                                            level,
-                                        ));
+                                        ui.add(
+                                            EventCard::new(
+                                                &self,
+                                                egui::Vec2::new(column_width, 200.),
+                                                &event,
+                                                level,
+                                                self.get_selected_user_permissions().events,
+                                            )
+                                            .hide_date(),
+                                        );
                                     });
                                 });
                             });
                     });
             });
-
-            self.parse_signals(signals);
         });
     }
 
     pub(super) fn schedules_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
-            let mut signals = vec![];
-
-            let level = self.state.get_access_level().level;
+            let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
-            self.state
-                .user_state
+            self.get_selected_user_state()
                 .schedules
                 .get_table()
                 .get()
@@ -387,31 +472,27 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         schedules.into_iter().for_each(|schedule| {
                             ui.add(ScheduleCard::new(
-                                &self.state,
-                                &mut signals,
+                                &self,
                                 egui::Vec2::new(column_width, 200.),
                                 &schedule,
+                                self.get_selected_access_level(),
+                                self.get_selected_user_permissions().schedules,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 
     pub(super) fn event_templates_view(&mut self, ui: &mut egui::Ui) {
         egui::ScrollArea::vertical().show(ui, |ui| {
-            let column_width = 200.;
+            let column_width = 240.;
             let num_of_columns = get_columns_from_width(ui, column_width);
 
-            let mut signals = vec![];
-
-            let level = self.state.get_access_level().level;
+            let level = self.get_selected_access_level();
             // TODO: Use array_chunks, once it becomes stable
             // https://github.com/rust-lang/rust/issues/100450
-            self.state
-                .user_state
+            self.get_selected_user_state()
                 .event_templates
                 .get_table()
                 .get()
@@ -430,16 +511,15 @@ impl CalendarApp {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                         templates.into_iter().for_each(|template| {
                             ui.add(EventTemplateCard::new(
-                                &self.state,
-                                &mut signals,
+                                &self,
                                 egui::Vec2::new(column_width, 200.),
                                 &template,
+                                self.get_selected_access_level(),
+                                self.get_selected_user_permissions().event_templates,
                             ));
                         });
                     });
                 });
-
-            self.parse_signals(signals);
         });
     }
 }

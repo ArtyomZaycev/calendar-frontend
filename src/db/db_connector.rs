@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use crate::config::Config;
 
 use super::request::{RequestId, RequestIdAtomic, RequestType};
-use super::requests_holder::RequestData;
+use super::requests_holder::{RequestData, RequestsHolder};
 
 struct RequestResult<T> {
     id: RequestId,
@@ -31,14 +31,42 @@ impl RequestResult<Bytes> {
         RequestResult::new(
             self.id,
             self.result.map(|(status, bytes)| {
-                let b: Box<dyn Any> = if status == StatusCode::OK {
-                    Box::new(serde_json::from_slice::<T>(&bytes).unwrap())
+                if status == StatusCode::OK {
+                    match serde_json::from_slice::<T>(&bytes) {
+                        Ok(result) => {
+                            let res: Box<dyn Any> = Box::new(result);
+                            (status, res)
+                        }
+                        Err(err) => {
+                            println!(
+                                "Unknown type received with status 200. Modifying status to 418. Expected '{}'",
+                                std::any::type_name::<T>()
+                            );
+                            let res: Box<dyn Any> = Box::new(err.to_string());
+                            (StatusCode::IM_A_TEAPOT, res)
+                        }
+                    }
                 } else if status == StatusCode::BAD_REQUEST {
-                    Box::new(serde_json::from_slice::<E>(&bytes).unwrap())
+                    match serde_json::from_slice::<E>(&bytes) {
+                        Ok(result) => {
+                            let res: Box<dyn Any> = Box::new(result);
+                            (status, res)
+                        }
+                        Err(err) => {
+                            println!(
+                                "Unknown type received with status 400. Modifying status to 418. Expected '{}'",
+                                std::any::type_name::<T>()
+                            );
+                            let res: Box<dyn Any> = Box::new(err.to_string());
+                            (StatusCode::IM_A_TEAPOT, res)
+                        }
+                    }
                 } else {
-                    Box::new(String::from_utf8_lossy(&bytes.to_vec()).to_string())
-                };
-                (status, b)
+                    let err = String::from_utf8_lossy(&bytes.to_vec()).to_string();
+                    println!("Unexpected response status code '{}': {}", status, err);
+                    let res: Box<dyn Any> = Box::new(err);
+                    (status, res)
+                }
             }),
         )
     }
@@ -74,14 +102,14 @@ impl DbConnectorData {
             .into()
     }
 
-    pub(super) fn make_request<T: RequestType>(&self) -> reqwest::RequestBuilder {
+    pub fn make_request<T: RequestType>(&self) -> reqwest::RequestBuilder {
         let method = T::METHOD;
         let op = T::URL;
         let authorize = T::IS_AUTHORIZED;
         self.make_request2(method, op, authorize)
     }
 
-    pub(super) fn make_request2(
+    pub fn make_request2(
         &self,
         method: reqwest::Method,
         op: &str,
@@ -100,7 +128,7 @@ impl DbConnectorData {
         }
     }
 
-    pub(super) fn push_jwt(&self, jwt: String) {
+    pub fn push_jwt(&self, jwt: String) {
         *self.jwt.write().unwrap() = Some(jwt);
     }
 }
@@ -165,9 +193,16 @@ impl DbConnector {
         request_id
     }
 
-    pub fn pull(&mut self) {
+    pub fn pull_responses(&mut self) {
         let mut pulled = self.reciever.try_iter().collect::<Vec<_>>();
         self.results.borrow_mut().append(&mut pulled);
+    }
+
+    pub fn send_requests(&mut self) {
+        let requests = RequestsHolder::get().take();
+        requests.into_iter().for_each(|request| {
+            self.request(request);
+        });
     }
 
     pub fn convert_response<T: DeserializeOwned + 'static, E: DeserializeOwned + 'static>(

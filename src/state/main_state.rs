@@ -1,134 +1,39 @@
 use std::{cell::Ref, collections::HashMap};
 
 use calendar_lib::api::{
-    auth::types::AccessLevel,
-    event_templates::types::EventTemplate,
-    events::types::Event,
-    events::types::{EventVisibility, NewEvent},
-    schedules::types::Schedule,
-    user_state,
+    events::types::{Event, EventVisibility},
+    permissions::types::Permissions,
     utils::{TableId, User},
 };
 
-use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime};
+use chrono::{Datelike, NaiveDate, NaiveDateTime};
 use itertools::Itertools;
 
-use crate::{db::aliases::UserUtils, tables::DbTable};
-
-use super::{
-    db_connector::DbConnector,
-    request::{RequestIdentifier, RequestType},
-    requests_holder::RequestsHolder,
-    state_table::StateTable,
-    state_updater::StateUpdater,
-    table_requests::TableInsertRequest,
+use crate::{
+    db::{
+        aliases::UserUtils,
+        db_connector::{DbConnector, DbConnectorData},
+        request::RequestIdentifier,
+    },
+    tables::DbTable,
 };
 
-pub struct UserState {
-    pub access_levels: StateTable<AccessLevel>,
-    pub events: StateTable<Event>,
-    pub event_templates: StateTable<EventTemplate>,
-    pub schedules: StateTable<Schedule>,
-}
+use super::{request::RequestType, shared_state::GrantedUserState, state_updater::StateUpdater};
 
-impl UserState {
-    pub(super) fn new() -> Self {
-        Self {
-            access_levels: StateTable::new(),
-            events: StateTable::new(),
-            schedules: StateTable::new(),
-            event_templates: StateTable::new(),
-        }
-    }
-
-    pub fn replace_data(&mut self, data: user_state::load::Response) {
-        self.access_levels
-            .get_table_mut()
-            .replace_all(data.access_levels);
-        self.events.get_table_mut().replace_all(data.events);
-        self.schedules.get_table_mut().replace_all(data.schedules);
-        self.event_templates
-            .get_table_mut()
-            .replace_all(data.event_templates);
-    }
-
-    pub fn accept_scheduled_event(
-        &self,
-        plan_id: TableId,
-        date: NaiveDate,
-    ) -> Option<RequestIdentifier<TableInsertRequest<Event>>> {
-        self.schedules
-            .get_table()
-            .get()
-            .iter()
-            .find_map(|schedule| {
-                schedule
-                    .event_plans
-                    .iter()
-                    .find(|plan| plan.id == plan_id)
-                    .and_then(|plan| {
-                        self.event_templates
-                            .get_table()
-                            .get()
-                            .iter()
-                            .find(|template| schedule.template_id == template.id)
-                            .map(|template| (plan, template))
-                    })
-            })
-            .map(|(plan, template)| {
-                let start = NaiveDateTime::new(date, plan.time);
-                self.events.insert(NewEvent {
-                    user_id: -1,
-                    name: template.event_name.clone(),
-                    description: template.event_description.clone(),
-                    start,
-                    end: start
-                        .checked_add_signed(Duration::from_std(template.duration).unwrap())
-                        .unwrap(),
-                    access_level: template.access_level,
-                    visibility: EventVisibility::HideAll,
-                    plan_id: Some(plan_id),
-                })
-            })
-    }
-}
-
-impl From<user_state::load::Response> for UserState {
-    fn from(value: user_state::load::Response) -> Self {
-        Self {
-            access_levels: StateTable::from_vec(value.access_levels),
-            events: StateTable::from_vec(value.events),
-            schedules: StateTable::from_vec(value.schedules),
-            event_templates: StateTable::from_vec(value.event_templates),
-        }
-    }
-}
-
-pub struct AdminState {
-    pub users: StateTable<User>,
-    pub users_data: HashMap<i32, UserState>,
-}
-
-impl AdminState {
-    pub(super) fn new() -> Self {
-        Self {
-            users: StateTable::new(),
-            users_data: HashMap::default(),
-        }
-    }
-}
+pub use super::{admin_state::AdminState, user_state::UserState};
 
 pub struct State {
     pub(super) db_connector: DbConnector,
 
     pub(super) me: User,
-    pub(super) current_access_level: i32,
 
     pub user_state: UserState,
+    pub granted_states: Vec<GrantedUserState>,
     pub admin_state: AdminState,
 
     /// Has both server and phantom events
     pub(super) events_per_day: HashMap<NaiveDate, Vec<Event>>,
+    pub(super) events_per_day_user_id: TableId,
 }
 
 impl State {
@@ -136,46 +41,18 @@ impl State {
         State {
             db_connector: DbConnector::new(),
             me: User::default(),
-            current_access_level: -1,
-            user_state: UserState::new(),
+            user_state: UserState::new(-1),
+            granted_states: Vec::new(),
             admin_state: AdminState::new(),
 
             events_per_day: HashMap::new(),
+            events_per_day_user_id: -1,
         }
     }
 
     pub fn any_pending_requests(&self) -> bool {
         // This is not quite correct
         StateUpdater::get().any_checkers()
-    }
-
-    pub fn change_access_level(&mut self, new_access_level: i32) {
-        self.current_access_level = new_access_level;
-        self.clear_events();
-    }
-
-    pub fn get_access_level(&self) -> AccessLevel {
-        let levels = self
-            .user_state
-            .access_levels
-            .get_table()
-            .get()
-            .iter()
-            .filter(|l| l.level == self.current_access_level)
-            .collect_vec();
-        if levels.len() == 0 {
-            self.user_state
-                .access_levels
-                .get_table()
-                .get()
-                .last()
-                .unwrap()
-                .clone()
-        } else if levels.len() == 1 {
-            levels[0].clone()
-        } else {
-            (*levels.iter().find(|v| v.edit_rights).unwrap_or(&levels[0])).clone()
-        }
     }
 
     pub fn try_get_me(&self) -> Option<&User> {
@@ -190,17 +67,65 @@ impl State {
         &self.me
     }
 
-    pub fn get_user_state(&mut self, user_id: i32) -> &mut UserState {
+    /// Can return this user state instead of requested
+    pub fn get_user_state(&self, user_id: i32) -> &UserState {
+        match self.try_get_user_state(user_id) {
+            Some(user_state) => user_state,
+            None => {
+                println!("get_user_state state {} not found", user_id);
+                &self.user_state
+            }
+        }
+    }
+
+    /// Can return this user state instead of requested
+    pub fn get_user_state_mut<'a>(&'a mut self, user_id: i32) -> &'a mut UserState {
         if self.me.is_admin() {
             self.admin_state
                 .users_data
                 .entry(user_id)
                 .or_insert_with(|| {
                     println!("Admin mode: New user state created: {user_id}");
-                    UserState::new()
+                    UserState::new(user_id)
                 })
         } else {
-            &mut self.user_state
+            if user_id == self.me.id {
+                &mut self.user_state
+            } else {
+                self.granted_states
+                    .iter_mut()
+                    .find_map(|state| (state.user.id == user_id).then_some(&mut state.state))
+                    .unwrap_or(&mut self.user_state)
+            }
+        }
+    }
+
+    pub fn try_get_user_state(&self, user_id: i32) -> Option<&UserState> {
+        if self.me.is_admin() {
+            self.admin_state.users_data.get(&user_id)
+        } else {
+            if user_id == self.me.id {
+                Some(&self.user_state)
+            } else {
+                self.granted_states
+                    .iter()
+                    .find_map(|state| (state.user.id == user_id).then_some(&state.state))
+            }
+        }
+    }
+
+    pub fn get_user_permissions(&self, user_id: i32) -> Permissions {
+        if self.me.is_admin() {
+            Permissions::FULL
+        } else {
+            if user_id == self.me.id {
+                Permissions::FULL
+            } else {
+                self.granted_states
+                    .iter()
+                    .find_map(|state| (state.user.id == user_id).then_some(state.permissions))
+                    .unwrap_or(Permissions::NONE)
+            }
         }
     }
 
@@ -233,31 +158,28 @@ impl State {
             .and_then(|r| r.ok())
     }
 
-    fn send_requests(&mut self) {
-        let requests = RequestsHolder::get().take();
-        requests.into_iter().for_each(|request| {
-            self.db_connector.request(request);
-        });
-    }
-
     pub fn update(&mut self) {
         StateUpdater::get().update(self);
-        self.db_connector.pull();
-        self.send_requests();
+        self.db_connector.pull_responses();
+        self.db_connector.send_requests();
     }
 }
 
 impl State {
-    pub fn clear_events_for_day(&mut self, date: NaiveDate) {
-        self.events_per_day.remove(&date);
-    }
-    pub fn clear_events(&mut self) {
+    pub fn clear_events(&mut self, _user_id: TableId) {
         self.events_per_day.clear();
     }
 
-    pub(super) fn generate_phantom_events(&self, date: NaiveDate) -> Vec<Event> {
+    pub(super) fn generate_phantom_events(
+        &self,
+        user_id: TableId,
+        access_level: i32,
+        date: NaiveDate,
+    ) -> Vec<Event> {
+        let user_state = self.get_user_state(user_id);
+
         let event_exists = |plan_id: i32| {
-            self.user_state
+            user_state
                 .events
                 .get_table()
                 .get()
@@ -265,16 +187,16 @@ impl State {
                 .any(|e| e.plan_id == Some(plan_id) && e.start.date() == date)
         };
 
-        let level = self.get_access_level().level;
-        self.user_state
+        user_state
             .schedules
             .get_table()
             .get()
             .iter()
-            .filter(move |s| s.access_level <= level)
+            .filter(|s| s.first_day <= date)
+            .filter(|s| s.last_day.is_some_and(|last_day| date <= last_day))
+            .filter(|s| s.access_level <= access_level)
             .flat_map(|schedule| {
-                match self
-                    .user_state
+                match user_state
                     .event_templates
                     .get_table()
                     .get()
@@ -296,7 +218,7 @@ impl State {
                                     end: start
                                         + chrono::Duration::from_std(template.duration).unwrap(),
                                     access_level: schedule.access_level,
-                                    visibility: EventVisibility::HideAll,
+                                    visibility: EventVisibility::HideName,
                                     plan_id: Some(event_plan.id),
                                 })
                         })
@@ -307,18 +229,22 @@ impl State {
             .collect()
     }
 
-    pub fn prepare_date(&mut self, date: NaiveDate) {
+    pub fn prepare_date(&mut self, user_id: TableId, access_level: i32, date: NaiveDate) {
+        if self.events_per_day_user_id != user_id {
+            self.events_per_day_user_id = user_id;
+            self.events_per_day.clear();
+        }
+
         if !self.events_per_day.contains_key(&date) {
-            let level = self.get_access_level().level;
             self.events_per_day.insert(date, {
-                self.user_state
+                self.get_user_state(user_id)
                     .events
                     .get_table()
                     .get()
                     .iter()
                     .filter(|e| e.start.date() == date)
                     .filter_map(move |e| {
-                        if e.access_level <= level {
+                        if e.access_level <= access_level {
                             Some(e.clone())
                         } else {
                             match e.visibility {
@@ -336,7 +262,7 @@ impl State {
                             }
                         }
                     })
-                    .chain(self.generate_phantom_events(date))
+                    .chain(self.generate_phantom_events(user_id, access_level, date))
                     .sorted_by_key(|v| v.start)
                     .collect()
             });
@@ -346,8 +272,56 @@ impl State {
     pub fn get_events_for_date(&self, date: NaiveDate) -> &[Event] {
         self.events_per_day.get(&date).unwrap()
     }
-    pub fn get_prepared_events_for_date(&mut self, date: NaiveDate) -> &[Event] {
-        self.prepare_date(date);
-        self.get_events_for_date(date)
+}
+
+impl State {
+    pub(super) fn on_logged_in(&mut self, user: User, jwt: String) {
+        DbConnectorData::get().push_jwt(jwt);
+        self.me = user;
+        self.user_state.set_user_id(self.me.id);
+        self.load_state();
+    }
+
+    pub(super) fn populate_granted_user_states(&mut self, user_id: TableId) {
+        let new_given_permissions = self
+            .get_user_state(user_id)
+            .granted_permissions
+            .get_table()
+            .get()
+            .iter()
+            .filter(|gp| gp.receiver_user_id == user_id)
+            .filter(|gp| {
+                !self
+                    .granted_states
+                    .iter()
+                    .any(|gs| gs.user.id == gp.giver_user_id)
+            })
+            .collect_vec();
+        let mut new_states = new_given_permissions
+            .into_iter()
+            .map(|gp| {
+                GrantedUserState::new(
+                    User {
+                        id: gp.giver_user_id,
+                        ..User::default()
+                    },
+                    gp.permissions,
+                )
+            })
+            .collect_vec();
+        new_states.iter().for_each(|state| {
+            state.state.load_state();
+        });
+        self.granted_states.append(&mut new_states);
+        self.populate_granted_user_states_users(user_id);
+    }
+
+    pub(super) fn populate_granted_user_states_users(&mut self, user_id: TableId) {
+        let users = self.get_user_state(user_id).users.get_table().get().clone();
+        self.granted_states.iter_mut().for_each(|gs| {
+            if let Some(user) = users.iter().find(|u| u.id == gs.user.id) {
+                gs.user = user.clone();
+            }
+        })
     }
 }

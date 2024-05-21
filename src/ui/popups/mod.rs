@@ -1,7 +1,8 @@
+pub mod change_access_levels;
 pub mod event_input;
 pub mod event_template_input;
 pub mod login;
-pub mod new_password_input;
+pub mod permission_input;
 pub mod popup;
 pub mod popup_content;
 pub mod popup_manager;

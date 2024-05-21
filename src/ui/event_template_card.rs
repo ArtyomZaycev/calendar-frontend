@@ -1,27 +1,32 @@
-use super::signal::AppSignal;
-use crate::{db::aliases::EventTemplate, state::State};
+use super::popups::popup_manager::PopupManager;
+use crate::{app::CalendarApp, db::aliases::EventTemplate};
+use calendar_lib::api::permissions::types::TablePermissions;
 use egui::{Align, Color32, Layout, Stroke, Vec2, Widget};
 
 pub struct EventTemplateCard<'a> {
-    state: &'a State,
-    signals: &'a mut Vec<AppSignal>,
+    app: &'a CalendarApp,
     desired_size: Vec2,
-    template: &'a EventTemplate,
+    event_template: &'a EventTemplate,
+    permission: TablePermissions,
+    access_level: i32,
+
     show_description: bool,
 }
 
 impl<'a> EventTemplateCard<'a> {
     pub fn new(
-        state: &'a State,
-        signals: &'a mut Vec<AppSignal>,
+        app: &'a CalendarApp,
         desired_size: Vec2,
         template: &'a EventTemplate,
+        access_level: i32,
+        permission: TablePermissions,
     ) -> Self {
         Self {
-            state,
-            signals,
+            app,
             desired_size,
-            template,
+            event_template: template,
+            access_level,
+            permission,
             show_description: true,
         }
     }
@@ -43,30 +48,15 @@ impl<'a> Widget for EventTemplateCard<'a> {
                 name,
                 event_description,
                 ..
-            } = self.template;
+            } = self.event_template;
 
-            egui::Frame::none()
+            let response = egui::Frame::none()
                 .rounding(4.)
                 .stroke(Stroke::new(1., Color32::LIGHT_BLUE))
                 .inner_margin(4.)
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
-                        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            ui.menu_button("C", |ui| {
-                                if ui.button("Edit").clicked() {
-                                    self.signals
-                                        .push(AppSignal::ChangeEventTemplate(*template_id));
-                                    ui.close_menu();
-                                }
-                                if ui.button("Delete").clicked() {
-                                    self.state.user_state.event_templates.delete(*template_id);
-                                    ui.close_menu();
-                                }
-                            });
-                            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                                ui.add(egui::Label::new(name).wrap(true));
-                            });
-                        });
+                        ui.add(egui::Label::new(name).wrap(true));
                         if self.show_description {
                             if let Some(description) = event_description {
                                 ui.separator();
@@ -75,7 +65,29 @@ impl<'a> Widget for EventTemplateCard<'a> {
                         }
                     })
                 })
-                .response
+                .response;
+
+            if (self.permission.edit || self.permission.delete)
+                && self.access_level >= self.event_template.access_level
+            {
+                response.context_menu(|ui| {
+                    if self.permission.edit {
+                        if ui.button("Edit").clicked() {
+                            PopupManager::get().open_update_event_template(&self.event_template);
+                            ui.close_menu();
+                        }
+                    }
+                    if self.permission.delete {
+                        if ui.button("Delete").clicked() {
+                            self.app
+                                .get_selected_user_state()
+                                .event_templates
+                                .delete(*template_id);
+                            ui.close_menu();
+                        }
+                    }
+                });
+            };
         })
         .response
     }

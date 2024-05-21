@@ -1,8 +1,10 @@
 use calendar_lib::api::auth::register;
 
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::{custom_requests::RegisterRequest, request::RequestIdentifier, State},
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::custom_requests::RegisterRequest,
     utils::{is_password_strong_enough, is_valid_email},
 };
 
@@ -34,9 +36,9 @@ impl SignUp {
 }
 
 impl PopupContent for SignUp {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
-            if let Some(response_info) = state.get_response(identifier) {
+            if let Some(response_info) = app.state.get_response(identifier) {
                 self.request = None;
                 match response_info {
                     Ok(_) => info.close(),
@@ -52,12 +54,7 @@ impl PopupContent for SignUp {
         Some("Sign Up".to_owned())
     }
 
-    fn show_content(
-        &mut self,
-        _state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(
@@ -74,7 +71,7 @@ impl PopupContent for SignUp {
             show_input_field(ui, &mut self.password, "Password", true);
             show_input_field(ui, &mut self.password2, "Confirm Password", true);
 
-            info.error(self.name.len() < 6, "Name must be at least 6 symbols");
+            info.error(self.name.is_empty(), "Name cannot be empty");
             info.error(self.name.len() > 30, "Name must be at most 30 symbols");
             info.error(!is_valid_email(&self.email), "Email is not valid");
             info.error(
@@ -94,18 +91,16 @@ impl PopupContent for SignUp {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
             .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
             .clicked()
         {
-            self.request =
-                Some(state.register(self.name.clone(), self.email.clone(), self.password.clone()));
+            self.request = Some(app.state.register(
+                self.name.clone(),
+                self.email.clone(),
+                self.password.clone(),
+            ));
         }
         if ui.button("Cancel").clicked() {
             info.close();

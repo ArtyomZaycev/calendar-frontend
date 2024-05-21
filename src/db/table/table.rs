@@ -21,14 +21,6 @@ impl<T: DbTableItem> Table<T> {
             items: Vec::default(),
         }
     }
-
-    pub fn from_vec(items: Vec<T>) -> Self {
-        Self { items }
-    }
-
-    pub fn clear(&mut self) {
-        self.items.clear()
-    }
 }
 
 impl<T: DbTableItem> Table<T> {

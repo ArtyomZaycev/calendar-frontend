@@ -37,18 +37,8 @@ impl StateUpdater {
             .is_ok_and(|checkers| checkers.len() > 0)
     }
 
-    pub fn any_executors(&self) -> bool {
-        self.executors
-            .try_lock()
-            .is_ok_and(|executors| executors.len() > 0)
-    }
-
     pub fn push_checker(&self, checker: StateChecker) {
         self.checkers.lock().unwrap().push(checker);
-    }
-
-    pub fn push_executor(&self, executor: StateExecutor) {
-        self.executors.lock().unwrap().push(executor);
     }
 
     pub fn update(&self, state: &mut State) {

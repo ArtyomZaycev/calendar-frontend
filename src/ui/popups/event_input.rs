@@ -1,10 +1,8 @@
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::{
-        request::RequestIdentifier,
-        table_requests::{TableInsertRequest, TableUpdateRequest},
-        State,
-    },
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::table_requests::{TableInsertRequest, TableUpdateRequest},
     tables::DbTable,
     ui::{
         access_level_picker::AccessLevelPicker, event_visibility_picker::EventVisibilityPicker,
@@ -37,17 +35,17 @@ pub struct EventInput {
 }
 
 impl EventInput {
-    pub fn new(eid: impl Hash) -> Self {
+    pub fn new(eid: impl Hash, user_id: TableId) -> Self {
         let now = Local::now().naive_local();
         Self {
             eid: egui::Id::new(eid),
             orig_name: String::default(),
-            user_id: -1,
+            user_id,
             id: None,
             name: String::default(),
             description: String::default(),
             access_level: -1,
-            visibility: EventVisibility::HideAll,
+            visibility: EventVisibility::HideName,
             date: now.date(),
             start: now.time(),
             end: now.time() + Duration::try_minutes(30).unwrap(),
@@ -60,7 +58,7 @@ impl EventInput {
         Self {
             eid: egui::Id::new(eid),
             orig_name: event.name.clone(),
-            user_id: -1,
+            user_id: event.user_id,
             id: Some(event.id),
             name: event.name.clone(),
             description: event.description.clone().unwrap_or_default(),
@@ -73,17 +71,12 @@ impl EventInput {
             insert_request: None,
         }
     }
-
-    /// Works only for new event
-    pub fn with_user_id(self, user_id: i32) -> Self {
-        Self { user_id, ..self }
-    }
 }
 
 impl PopupContent for EventInput {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.update_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -91,7 +84,7 @@ impl PopupContent for EventInput {
             }
         }
         if let Some(identifier) = self.insert_request.as_ref() {
-            if let Some(response_info) = state.get_response(&identifier) {
+            if let Some(response_info) = app.state.get_response(&identifier) {
                 self.insert_request = None;
                 if !response_info.is_err() {
                     info.close();
@@ -100,7 +93,7 @@ impl PopupContent for EventInput {
         }
 
         if self.access_level == -1 {
-            self.access_level = state.get_access_level().level;
+            self.access_level = app.get_selected_access_level();
         }
     }
 
@@ -112,12 +105,7 @@ impl PopupContent for EventInput {
         }
     }
 
-    fn show_content(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
             ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
             ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
@@ -127,7 +115,11 @@ impl PopupContent for EventInput {
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
-                    state.user_state.access_levels.get_table().get(),
+                    app.state
+                        .get_user_state(self.user_id)
+                        .access_levels
+                        .get_table()
+                        .get(),
                 ));
             });
             ui.add(
@@ -148,50 +140,50 @@ impl PopupContent for EventInput {
             });
 
             info.error(self.name.is_empty(), "Name cannot be empty");
-            info.error(self.name.len() > 80, "Name is too long");
-            info.error(self.description.len() > 250, "Description is too long");
+            info.error(self.name.len() > 200, "Name is too long");
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Save"))
                 .clicked()
             {
-                self.update_request = Some(state.user_state.events.update(UpdateEvent {
-                    id,
-                    name: USome(self.name.clone()),
-                    description: USome(
-                        (!self.description.is_empty()).then_some(self.description.clone()),
-                    ),
-                    start: USome(NaiveDateTime::new(self.date, self.start)),
-                    end: USome(NaiveDateTime::new(self.date, self.end)),
-                    access_level: USome(self.access_level),
-                    visibility: USome(self.visibility),
-                    plan_id: UNone,
-                }));
+                self.update_request = Some(app.state.get_user_state(self.user_id).events.update(
+                    UpdateEvent {
+                        id,
+                        name: USome(self.name.clone()),
+                        description: USome(
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        ),
+                        start: USome(NaiveDateTime::new(self.date, self.start)),
+                        end: USome(NaiveDateTime::new(self.date, self.end)),
+                        access_level: USome(self.access_level),
+                        visibility: USome(self.visibility),
+                        plan_id: UNone,
+                    },
+                ));
             }
         } else {
             if ui
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                self.insert_request = Some(state.user_state.events.insert(NewEvent {
-                    user_id: self.user_id,
-                    name: self.name.clone(),
-                    description: (!self.description.is_empty()).then_some(self.description.clone()),
-                    start: NaiveDateTime::new(self.date, self.start),
-                    end: NaiveDateTime::new(self.date, self.end),
-                    access_level: self.access_level,
-                    visibility: self.visibility,
-                    plan_id: None,
-                }));
+                println!("self.user_id = {}", self.user_id);
+                self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(
+                    NewEvent {
+                        user_id: self.user_id,
+                        name: self.name.clone(),
+                        description:
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        start: NaiveDateTime::new(self.date, self.start),
+                        end: NaiveDateTime::new(self.date, self.end),
+                        access_level: self.access_level,
+                        visibility: self.visibility,
+                        plan_id: None,
+                    },
+                ));
             }
         }
         if ui.button("Cancel").clicked() {

@@ -1,8 +1,10 @@
 use calendar_lib::api::auth::login;
 
-use super::popup_content::PopupContent;
+use super::popup_content::{ContentInfo, PopupContent};
 use crate::{
-    state::{custom_requests::LoginRequest, request::RequestIdentifier, State},
+    app::CalendarApp,
+    db::request::RequestIdentifier,
+    state::custom_requests::LoginRequest,
     utils::{is_password_valid, is_valid_email},
 };
 
@@ -28,9 +30,9 @@ impl Login {
 }
 
 impl PopupContent for Login {
-    fn init_frame(&mut self, state: &State, info: &mut super::popup_content::ContentInfo) {
+    fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
-            if let Some(response_info) = state.get_response(identifier) {
+            if let Some(response_info) = app.state.get_response(identifier) {
                 match response_info {
                     Ok(_) => info.close(),
                     Err(error_info) => match &*error_info {
@@ -49,12 +51,7 @@ impl PopupContent for Login {
         Some("Login".to_owned())
     }
 
-    fn show_content(
-        &mut self,
-        _state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         let show_input_field =
             |ui: &mut egui::Ui, value: &mut String, hint: &str, password: bool| {
                 ui.add(
@@ -69,10 +66,7 @@ impl PopupContent for Login {
             show_input_field(ui, &mut self.email, "Email", false);
             show_input_field(ui, &mut self.password, "Password", true);
 
-            info.error(
-                &self.email != "admin" && !is_valid_email(&self.email),
-                "Email is not valid",
-            );
+            info.error(!is_valid_email(&self.email), "Email is not valid");
             info.error(!is_password_valid(&self.password), "Password is too long");
             info.error(
                 self.email_not_found
@@ -87,17 +81,12 @@ impl PopupContent for Login {
         });
     }
 
-    fn show_buttons(
-        &mut self,
-        state: &State,
-        ui: &mut egui::Ui,
-        info: &mut super::popup_content::ContentInfo,
-    ) {
+    fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
             .add_enabled(!info.is_error(), egui::Button::new("Login"))
             .clicked()
         {
-            self.request = Some(state.login(self.email.clone(), self.password.clone()));
+            self.request = Some(app.state.login(self.email.clone(), self.password.clone()));
         }
         if ui.button("Cancel").clicked() {
             info.close();

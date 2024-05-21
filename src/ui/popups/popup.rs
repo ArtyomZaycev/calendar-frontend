@@ -1,14 +1,15 @@
 use super::{
+    change_access_levels::ChangeAccessLevelsPopup,
     event_input::EventInput,
     event_template_input::EventTemplateInput,
     login::Login,
-    new_password_input::NewPasswordInput,
+    permission_input::PermissionInput,
     popup_content::{ContentInfo, PopupContent},
     profile::Profile,
     schedule_input::ScheduleInput,
     sign_up::SignUp,
 };
-use crate::{state::State, ui::signal::AppSignal};
+use crate::app::CalendarApp;
 use derive_is_enum_variant::is_enum_variant;
 use egui::{Align, Layout, Vec2};
 
@@ -23,11 +24,13 @@ pub enum PopupType {
     UpdateEventTemplate(EventTemplateInput),
     NewSchedule(ScheduleInput),
     UpdateSchedule(ScheduleInput),
-    NewPassword(NewPasswordInput),
+    NewPermission(PermissionInput),
+    UpdatePermission(PermissionInput),
+    ChangeAccessLevels(ChangeAccessLevelsPopup),
 }
 
 impl PopupContent for PopupType {
-    fn init_frame(&mut self, state: &State, info: &mut ContentInfo) {
+    fn init_frame(&mut self, state: &CalendarApp, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.init_frame(state, info),
             PopupType::Login(w) => w.init_frame(state, info),
@@ -38,7 +41,9 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.init_frame(state, info),
             PopupType::NewSchedule(w) => w.init_frame(state, info),
             PopupType::UpdateSchedule(w) => w.init_frame(state, info),
-            PopupType::NewPassword(w) => w.init_frame(state, info),
+            PopupType::NewPermission(w) => w.init_frame(state, info),
+            PopupType::UpdatePermission(w) => w.init_frame(state, info),
+            PopupType::ChangeAccessLevels(w) => w.init_frame(state, info),
         }
     }
 
@@ -53,11 +58,13 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.get_title(),
             PopupType::NewSchedule(w) => w.get_title(),
             PopupType::UpdateSchedule(w) => w.get_title(),
-            PopupType::NewPassword(w) => w.get_title(),
+            PopupType::NewPermission(w) => w.get_title(),
+            PopupType::UpdatePermission(w) => w.get_title(),
+            PopupType::ChangeAccessLevels(w) => w.get_title(),
         }
     }
 
-    fn show_title(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_title(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_title(state, ui, info),
             PopupType::Login(w) => w.show_title(state, ui, info),
@@ -68,11 +75,13 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_title(state, ui, info),
             PopupType::NewSchedule(w) => w.show_title(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_title(state, ui, info),
-            PopupType::NewPassword(w) => w.show_title(state, ui, info),
+            PopupType::NewPermission(w) => w.show_title(state, ui, info),
+            PopupType::UpdatePermission(w) => w.show_title(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_title(state, ui, info),
         }
     }
 
-    fn show_content(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_content(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_content(state, ui, info),
             PopupType::Login(w) => w.show_content(state, ui, info),
@@ -83,11 +92,13 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_content(state, ui, info),
             PopupType::NewSchedule(w) => w.show_content(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_content(state, ui, info),
-            PopupType::NewPassword(w) => w.show_content(state, ui, info),
+            PopupType::NewPermission(w) => w.show_content(state, ui, info),
+            PopupType::UpdatePermission(w) => w.show_content(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_content(state, ui, info),
         }
     }
 
-    fn show_buttons(&mut self, state: &State, ui: &mut egui::Ui, info: &mut ContentInfo) {
+    fn show_buttons(&mut self, state: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         match self {
             PopupType::Profile(w) => w.show_buttons(state, ui, info),
             PopupType::Login(w) => w.show_buttons(state, ui, info),
@@ -98,7 +109,9 @@ impl PopupContent for PopupType {
             PopupType::UpdateEventTemplate(w) => w.show_buttons(state, ui, info),
             PopupType::NewSchedule(w) => w.show_buttons(state, ui, info),
             PopupType::UpdateSchedule(w) => w.show_buttons(state, ui, info),
-            PopupType::NewPassword(w) => w.show_buttons(state, ui, info),
+            PopupType::NewPermission(w) => w.show_buttons(state, ui, info),
+            PopupType::UpdatePermission(w) => w.show_buttons(state, ui, info),
+            PopupType::ChangeAccessLevels(w) => w.show_buttons(state, ui, info),
         }
     }
 }
@@ -112,13 +125,11 @@ impl PopupType {
 pub struct Popup {
     id: egui::Id,
     t: PopupType,
-
-    signals: Vec<AppSignal>,
     is_closed: bool,
 }
 
 impl Popup {
-    pub fn show(&mut self, state: &State, ctx: &egui::Context) {
+    pub fn show(&mut self, app: &CalendarApp, ctx: &egui::Context) {
         let mut info = ContentInfo::new();
         egui::Window::new("")
             .id(self.id)
@@ -127,21 +138,20 @@ impl Popup {
             .resizable(false)
             .default_size(Vec2::new(320., 0.))
             .show(ctx, |ui| {
-                self.t.init_frame(state, &mut info);
-                self.t.show_title(state, ui, &mut info);
-                self.t.show_content(state, ui, &mut info);
+                self.t.init_frame(app, &mut info);
+                self.t.show_title(app, ui, &mut info);
+                self.t.show_content(app, ui, &mut info);
                 ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                    self.t.show_buttons(state, ui, &mut info);
+                    self.t.show_buttons(app, ui, &mut info);
                     if let Some(error) = info.get_error() {
                         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                            self.t.show_error(state, ui, &error);
+                            self.t.show_error(app, ui, &error);
                         });
                     }
                 });
             });
-        let (signals, is_closed) = info.take();
+        let is_closed = info.take();
         self.is_closed = is_closed;
-        self.signals = signals;
     }
 }
 
@@ -151,7 +161,6 @@ impl Popup {
         Self {
             id: egui::Id::new(rand::random::<i64>()),
             t: popup,
-            signals: vec![],
             is_closed: false,
         }
     }
@@ -169,8 +178,5 @@ impl Popup {
 
     pub fn is_closed(&self) -> bool {
         self.is_closed
-    }
-    pub fn get_signals(&mut self) -> Vec<AppSignal> {
-        self.signals.drain(..).collect()
     }
 }

@@ -1,12 +1,8 @@
 use calendar_lib::api::{auth::*, user_state};
 
-use crate::tables::TableId;
+use crate::{db::aliases::UserUtils, tables::TableId};
 
-use super::{
-    db_connector::DbConnectorData,
-    main_state::State,
-    request::{RequestType, StateRequestType},
-};
+use super::{main_state::State, request::*};
 
 /* TODO:
     admin requests:
@@ -58,16 +54,7 @@ impl RequestType for LoginRequest {
 #[allow(unused_variables)]
 impl StateRequestType for LoginRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        DbConnectorData::get().push_jwt(response.jwt);
-        state.me = response.user;
-        state.current_access_level = response.access_level.level;
-        state
-            .user_state
-            .access_levels
-            .get_table_mut()
-            .replace_all(vec![response.access_level]);
-
-        state.load_state();
+        state.on_logged_in(response.user, response.jwt);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
@@ -89,16 +76,7 @@ impl RequestType for LoginByKeyRequest {
 #[allow(unused_variables)]
 impl StateRequestType for LoginByKeyRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        DbConnectorData::get().push_jwt(response.jwt);
-        state.me = response.user;
-        state.current_access_level = response.access_level.level;
-        state
-            .user_state
-            .access_levels
-            .get_table_mut()
-            .replace_all(vec![response.access_level]);
-
-        state.load_state();
+        state.on_logged_in(response.user, response.jwt);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
@@ -125,28 +103,6 @@ impl StateRequestType for RegisterRequest {
 }
 
 #[derive(Clone, Copy)]
-pub struct NewPasswordRequest {}
-impl RequestType for NewPasswordRequest {
-    const URL: &'static str = new_password::PATH;
-    const IS_AUTHORIZED: bool = false;
-    const METHOD: reqwest::Method = new_password::METHOD;
-
-    type Query = new_password::Args;
-    type Body = new_password::Body;
-    type Response = new_password::Response;
-
-    type Info = ();
-}
-#[allow(unused_variables)]
-impl StateRequestType for NewPasswordRequest {
-    fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        state.user_state.access_levels.load_all();
-    }
-
-    fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {}
-}
-
-#[derive(Clone, Copy)]
 pub struct LoadStateRequest {}
 impl RequestType for LoadStateRequest {
     const URL: &'static str = user_state::load::PATH;
@@ -157,38 +113,56 @@ impl RequestType for LoadStateRequest {
     type Response = user_state::load::Response;
     type BadResponse = user_state::load::BadRequestResponse;
 
-    /// None for loading own state, Some(user_id) for admin request
-    type Info = Option<TableId>;
+    /// user_id
+    type Info = TableId;
 }
-#[allow(unused_variables)]
 impl StateRequestType for LoadStateRequest {
     fn push_to_state(response: Self::Response, info: Self::Info, state: &mut State) {
-        match info {
-            Some(user_id) => {
-                state
-                    .admin_state
-                    .users_data
-                    .insert(user_id, response.into());
-            }
-            None => {
-                state.user_state.replace_data(response);
-                state.clear_events();
-            }
-        }
+        let user_id = info;
+        state.get_user_state_mut(user_id).replace_data(response);
+        state.populate_granted_user_states(user_id);
+        state.clear_events(user_id);
     }
 
     fn push_bad_to_state(response: Self::BadResponse, info: Self::Info, state: &mut State) {
-        match info {
-            Some(user_id) => match response {
+        let user_id = info;
+        if state.me.is_admin() {
+            match response {
                 user_state::load::BadRequestResponse::UserNotFound => {
                     state.admin_state.users.get_table_mut().remove_one(user_id);
                     state.admin_state.users_data.remove(&user_id);
                 }
-            },
-            None => {
-                println!("Failed loading state");
-                state.clear_events();
             }
+        } else {
+            println!("Failed loading state");
+            state.clear_events(user_id);
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ChangeAccessLevelsRequest {}
+impl RequestType for ChangeAccessLevelsRequest {
+    const URL: &'static str = change_access_levels::PATH;
+    const IS_AUTHORIZED: bool = true;
+    const METHOD: reqwest::Method = change_access_levels::METHOD;
+
+    type Query = change_access_levels::Args;
+    type Body = change_access_levels::Body;
+    type Response = change_access_levels::Response;
+    type BadResponse = change_access_levels::BadRequestResponse;
+
+    /// user_id
+    type Info = TableId;
+}
+impl StateRequestType for ChangeAccessLevelsRequest {
+    fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
+        let user_id = info;
+        state.get_user_state(user_id).access_levels.load_all();
+    }
+
+    fn push_bad_to_state(_response: Self::BadResponse, info: Self::Info, state: &mut State) {
+        let user_id = info;
+        state.get_user_state(user_id).access_levels.load_all();
     }
 }
