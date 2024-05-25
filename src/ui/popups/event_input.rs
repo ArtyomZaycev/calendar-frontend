@@ -170,7 +170,6 @@ impl PopupContent for EventInput {
                 .add_enabled(!info.is_error(), egui::Button::new("Create"))
                 .clicked()
             {
-                println!("self.user_id = {}", self.user_id);
                 self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(
                     NewEvent {
                         user_id: self.user_id,
