@@ -88,6 +88,7 @@ impl<'a> EventCard<'a> {
         } = self.event;
 
         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
+            ui.set_width(self.desired_size.x);
             ui.add(egui::Label::new(self.get_name_text()).wrap(true));
             if self.show_description {
                 if let Some(description) = description {

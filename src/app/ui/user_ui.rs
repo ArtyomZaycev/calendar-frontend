@@ -7,8 +7,9 @@ use crate::{
     },
     utils::*,
 };
+use calendar_lib::api::events::types::Event;
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
-use egui::{Align, Color32, Layout, RichText, Stroke, Vec2};
+use egui::{Align, Color32, Layout, Pos2, Rect, RichText, Rounding, Stroke, Vec2};
 
 use num_traits::FromPrimitive;
 
@@ -194,7 +195,7 @@ impl CalendarApp {
             weekday_human_name
         };
 
-        ui.horizontal(|ui| {
+        let response = ui.horizontal(|ui| {
             (0..7).for_each(|weekday| {
                 let weekday = chrono::Weekday::from_u64(weekday).unwrap();
                 let weekday_name = get_weekday_name(weekday);
@@ -204,8 +205,11 @@ impl CalendarApp {
                     ui.vertical_centered(|ui| ui.heading(weekday_name));
                 });
             });
-        });
+        }).response;
         ui.spacing_mut().item_spacing = spacing;
+
+        let weekday_height = response.rect.height();
+
         let level = self.get_selected_access_level();
         let num_of_weeks = if month
             == (first_day + chrono::Days::new(7 * 5))
@@ -218,86 +222,108 @@ impl CalendarApp {
             5
         };
         let row_height = get_height_from_rows(ui, num_of_weeks);
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            egui::Grid::new("month")
-                .num_columns(7)
-                .min_col_width(column_width)
-                .max_col_width(column_width)
-                .min_row_height(row_height)
-                .spacing(Vec2::default())
-                .show(ui, |ui| {
-                    (0..num_of_weeks as u64).for_each(|week| {
-                        let monday = first_monday + chrono::Days::new(7 * week);
-                        (0..7).for_each(|weekday| {
-                            let date = monday + chrono::Days::new(weekday);
+        let response = egui::Grid::new("month")
+            .num_columns(7)
+            .min_col_width(column_width)
+            .max_col_width(column_width)
+            .min_row_height(row_height)
+            .spacing(Vec2::default())
+            .show(ui, |ui| {
+                (0..num_of_weeks as u64).for_each(|week| {
+                    let monday = first_monday + chrono::Days::new(7 * week);
+                    (0..7).for_each(|weekday| {
+                        let date = monday + chrono::Days::new(weekday);
 
-                            self.prepare_date(date);
-                            let events = self.state.get_events_for_date(date);
-                            egui::Frame::none().stroke(Stroke::new(1., Color32::BLACK)).show(ui, |ui| {
-                                ui.set_height(row_height);
-                                ui.vertical_centered_justified(|ui| {
-                                    let mut text = RichText::new(date.format(if date.month() == month { "%e" } else { "%e %b" })
-                                    .to_string());
-                                    if date == chrono::Local::now().naive_local().date() {
-                                        text = text.underline().strong();
-                                    }
-                                    ui.label(text);
-                                    let available_height = ui.available_height();
-                                    let card_height = 24.;
-                                    let number_of_cards = events.len() as f32;
-                                    let spacing = ui.style().spacing.item_spacing.y;
-                                    let need_height = number_of_cards * card_height
-                                        + (number_of_cards - 1.).max(0.) * spacing;
-    
-                                    let hide_some = need_height > available_height;
-                                    let show_number_of_cards = if hide_some {
-                                        (available_height / (card_height + spacing) - 1.).max(0.)
-                                            as usize
-                                    } else {
-                                        number_of_cards as usize
-                                    };
-    
-                                    events[..show_number_of_cards].iter().for_each(|event| {
-                                        ui.add(
-                                            EventCard::new(
-                                                &self,
-                                                egui::Vec2::new(column_width, 200.),
-                                                event,
-                                                level,
-                                                self.get_selected_user_permissions().events,
-                                            )
-                                            .small(),
-                                        );
+                        self.prepare_date(date);
+                        let events = self.state.get_events_for_date(date);
+                        egui::Frame::none().show(ui, |ui| {
+                            ui.set_height(row_height);
+                            ui.vertical_centered_justified(|ui| {
+                                ui.add_space(4.);
+                                let mut text = RichText::new(date.format(if date.month() == month { "%e" } else { "%e %b" })
+                                .to_string());
+                                if date == chrono::Local::now().naive_local().date() {
+                                    text = text.underline().strong();
+                                }
+                                ui.label(text);
+                                let available_height = ui.available_height();
+                                let card_height = 24.;
+                                let number_of_cards = events.len() as f32;
+                                let spacing = ui.style().spacing.item_spacing.y;
+                                let need_height = number_of_cards * card_height
+                                    + (number_of_cards - 1.).max(0.) * spacing;
+
+                                let hide_some = need_height > available_height;
+                                let show_number_of_cards = if hide_some {
+                                    (available_height / (card_height + spacing) - 1.).max(0.)
+                                        as usize
+                                } else {
+                                    number_of_cards as usize
+                                };
+
+                                let show_card = |ui: &mut egui::Ui, event: &Event| {
+                                    let response = ui.add(
+                                        EventCard::new(
+                                            &self,
+                                            egui::Vec2::new(column_width - 2., 200.),
+                                            event,
+                                            level,
+                                            self.get_selected_user_permissions().events,
+                                        )
+                                        .small(),
+                                    );
+                                    response.on_hover_ui(|ui| {
+                                        ui.add(EventCard::new(
+                                            &self,
+                                            egui::Vec2::new(column_width, 200.),
+                                            event,
+                                            level,
+                                            self.get_selected_user_permissions().events,
+                                        ));
                                     });
-    
-                                    if hide_some {
-                                        ui.menu_button(
-                                            format!("{} more", events.len() - show_number_of_cards),
-                                            |ui| {
-                                                events[show_number_of_cards..].iter().for_each(
-                                                    |event| {
-                                                        ui.add(
-                                                            EventCard::new(
-                                                                &self,
-                                                                egui::Vec2::new(column_width, 200.),
-                                                                event,
-                                                                level,
-                                                                self.get_selected_user_permissions()
-                                                                    .events,
-                                                            )
-                                                            .small(),
-                                                        );
-                                                    },
-                                                );
-                                            },
-                                        );
-                                    }
+                                };
+
+                                events[..show_number_of_cards].iter().for_each(|event| {
+                                    show_card(ui, event);
                                 });
+
+                                if hide_some {
+                                    ui.menu_button(
+                                        format!("{} more", events.len() - show_number_of_cards),
+                                        |ui| {
+                                            events[show_number_of_cards..].iter().for_each(
+                                                |event| {
+                                                    show_card(ui, event);
+                                                },
+                                            );
+                                        },
+                                    );
+                                }
                             });
                         });
-                        ui.end_row();
                     });
+                    ui.end_row();
                 });
+            }).response;
+        let painter_rect = Rect::from_min_max((response.rect.left_top() - Pos2::new(0., weekday_height)).to_pos2(), response.rect.right_bottom());
+            
+        let painter = ui.painter_at(painter_rect);
+        let left = painter.clip_rect().left();
+        let right = painter.clip_rect().right();
+        let top = painter.clip_rect().top();
+        let bottom = painter.clip_rect().bottom();
+        let stroke = Stroke::new(1., Color32::BLACK.gamma_multiply(0.5));
+        (1..7).for_each(|i| {
+            painter.line_segment([
+                Pos2::new(left + i as f32 * column_width, top),
+                Pos2::new(left + i as f32 * column_width, bottom),
+            ], stroke);
+        });
+        (0..num_of_weeks).for_each(|i| {
+            painter.line_segment([
+                Pos2::new(left, top + weekday_height + i as f32 * row_height),
+                Pos2::new(right, top + weekday_height + i as f32 * row_height),
+            ], stroke);
         });
     }
 
