@@ -49,7 +49,7 @@ impl CalendarApp {
     pub(super) fn logout(&mut self) {
         self.local_storage.clear_jwt();
         PopupManager::get().clear();
-        self.view = EventsView::Days.into();
+        self.view = EventsView::Month.into();
         self.state.logout();
 
         self.burger_menu_expanded = true;

@@ -114,7 +114,7 @@ impl CalendarApp {
                         if response.clicked() {
                             self.selected_user_id = self.state.get_me().id;
                             self.state.clear_events(self.selected_user_id);
-                            self.view = EventsView::Days.into();
+                            self.view = EventsView::Month.into();
                         }
                         let height = response.rect.height();
                         ui.allocate_ui_with_layout(
@@ -137,7 +137,7 @@ impl CalendarApp {
                                     .add(Label::new(&shared_state.user.name).sense(Sense::click()));
                                 if user_response.clicked() {
                                     self.selected_user_id = shared_state.user.id;
-                                    self.view = EventsView::Days.into();
+                                    self.view = EventsView::Month.into();
                                     changed = true;
                                 }
                                 if shared_state.permissions.allow_share
@@ -208,6 +208,7 @@ impl CalendarApp {
                                 self.calendar_events_day_view(ui, self.selected_date)
                             }
                             EventsView::Days => {
+                                self.set_view(EventsView::Month);
                                 self.calendar_events_days_view(ui, self.selected_date)
                             }
                         }

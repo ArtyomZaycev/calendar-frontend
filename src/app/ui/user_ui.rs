@@ -23,7 +23,7 @@ impl CalendarApp {
                         permissions.events.view,
                         view.is_events(),
                         || {
-                            self.set_view(EventsView::Days);
+                            self.set_view(EventsView::Month);
                         },
                     );
                     ui.enabled_selectable_header(
@@ -106,9 +106,9 @@ impl CalendarApp {
                         self.set_view(EventsView::Week)
                     });
                     ui.selectable_header("Day", view.is_day(), || self.set_view(EventsView::Day));
-                    ui.selectable_header("Events", view.is_days(), || {
+                    /*ui.selectable_header("Events", view.is_days(), || {
                         self.set_view(EventsView::Days)
-                    });
+                    });*/
                 })
                 .response;
             let height = view_chooser_response.rect.height();
