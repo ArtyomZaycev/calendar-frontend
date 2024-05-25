@@ -75,9 +75,7 @@ pub struct DirectionSymbol {
 
 impl DirectionSymbol {
     pub fn new(direction: Direction) -> Self {
-        Self {
-            direction,
-        }
+        Self { direction }
     }
 }
 
@@ -92,7 +90,9 @@ impl Widget for DirectionSymbol {
                 widget_visuals.inactive.fg_stroke.color
             }
         } else {
-            ui.style().visuals.gray_out(widget_visuals.noninteractive.fg_stroke.color)
+            ui.style()
+                .visuals
+                .gray_out(widget_visuals.noninteractive.fg_stroke.color)
         };
         let start = painter.clip_rect().center();
         let radius = 5.;
@@ -108,9 +108,16 @@ impl Widget for DirectionSymbol {
             Vec2::new(radius, 0.),
             Vec2::new(-radius, radius),
             Vec2::new(-radius, -radius),
-        ].into_iter();
+        ]
+        .into_iter();
 
-        painter.add(Shape::convex_polygon(points.map(|v| start + mul * if swap {v.yx()} else {v}).collect(), color, Stroke::NONE));
+        painter.add(Shape::convex_polygon(
+            points
+                .map(|v| start + mul * if swap { v.yx() } else { v })
+                .collect(),
+            color,
+            Stroke::NONE,
+        ));
         response
     }
 }

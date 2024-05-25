@@ -2,8 +2,12 @@ use super::super::{CalendarApp, CalendarView, EventsView};
 use crate::{
     tables::DbTable,
     ui::{
-        event_card::EventCard, event_template_card::EventTemplateCard, layout_info::*,
-        popups::{popup::PopupType, popup_manager::PopupManager}, schedule_card::ScheduleCard, utils::UiUtils,
+        event_card::EventCard,
+        event_template_card::EventTemplateCard,
+        layout_info::*,
+        popups::{popup::PopupType, popup_manager::PopupManager},
+        schedule_card::ScheduleCard,
+        utils::UiUtils,
     },
     utils::*,
 };
@@ -195,17 +199,19 @@ impl CalendarApp {
             weekday_human_name
         };
 
-        let response = ui.horizontal(|ui| {
-            (0..7).for_each(|weekday| {
-                let weekday = chrono::Weekday::from_u64(weekday).unwrap();
-                let weekday_name = get_weekday_name(weekday);
+        let response = ui
+            .horizontal(|ui| {
+                (0..7).for_each(|weekday| {
+                    let weekday = chrono::Weekday::from_u64(weekday).unwrap();
+                    let weekday_name = get_weekday_name(weekday);
 
-                ui.vertical(|ui| {
-                    ui.set_width(column_width);
-                    ui.vertical_centered(|ui| ui.heading(weekday_name));
+                    ui.vertical(|ui| {
+                        ui.set_width(column_width);
+                        ui.vertical_centered(|ui| ui.heading(weekday_name));
+                    });
                 });
-            });
-        }).response;
+            })
+            .response;
         ui.spacing_mut().item_spacing = spacing;
 
         let weekday_height = response.rect.height();
@@ -240,8 +246,10 @@ impl CalendarApp {
                             ui.set_height(row_height);
                             ui.vertical_centered_justified(|ui| {
                                 ui.add_space(4.);
-                                let mut text = RichText::new(date.format(if date.month() == month { "%e" } else { "%e %b" })
-                                .to_string());
+                                let mut text = RichText::new(
+                                    date.format(if date.month() == month { "%e" } else { "%e %b" })
+                                        .to_string(),
+                                );
                                 if date == chrono::Local::now().naive_local().date() {
                                     text = text.underline().strong();
                                 }
@@ -304,9 +312,13 @@ impl CalendarApp {
                     });
                     ui.end_row();
                 });
-            }).response;
-        let painter_rect = Rect::from_min_max((response.rect.left_top() - Pos2::new(0., weekday_height)).to_pos2(), response.rect.right_bottom());
-            
+            })
+            .response;
+        let painter_rect = Rect::from_min_max(
+            (response.rect.left_top() - Pos2::new(0., weekday_height)).to_pos2(),
+            response.rect.right_bottom(),
+        );
+
         let painter = ui.painter_at(painter_rect);
         let left = painter.clip_rect().left();
         let right = painter.clip_rect().right();
@@ -314,16 +326,22 @@ impl CalendarApp {
         let bottom = painter.clip_rect().bottom();
         let stroke = Stroke::new(1., Color32::BLACK.gamma_multiply(0.5));
         (1..7).for_each(|i| {
-            painter.line_segment([
-                Pos2::new(left + i as f32 * column_width, top),
-                Pos2::new(left + i as f32 * column_width, bottom),
-            ], stroke);
+            painter.line_segment(
+                [
+                    Pos2::new(left + i as f32 * column_width, top),
+                    Pos2::new(left + i as f32 * column_width, bottom),
+                ],
+                stroke,
+            );
         });
         (0..num_of_weeks).for_each(|i| {
-            painter.line_segment([
-                Pos2::new(left, top + weekday_height + i as f32 * row_height),
-                Pos2::new(right, top + weekday_height + i as f32 * row_height),
-            ], stroke);
+            painter.line_segment(
+                [
+                    Pos2::new(left, top + weekday_height + i as f32 * row_height),
+                    Pos2::new(right, top + weekday_height + i as f32 * row_height),
+                ],
+                stroke,
+            );
         });
     }
 

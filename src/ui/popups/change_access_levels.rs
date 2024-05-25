@@ -3,7 +3,8 @@ use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
     state::{custom_requests::ChangeAccessLevelsRequest, state_table::StateTable},
-    tables::DbTable, ui::utils::DirectionSymbol,
+    tables::DbTable,
+    ui::utils::DirectionSymbol,
 };
 use calendar_lib::api::{
     auth::types::{AccessLevel, AccessLevelChange},
@@ -89,7 +90,10 @@ impl PopupContent for ChangeAccessLevelsPopup {
                         move_height = ui
                             .vertical(|ui| {
                                 //ui.style_mut().spacing.item_spacing.y = 0.;
-                                if ui.add_enabled(i > 1, DirectionSymbol::new(Direction::BottomUp)).clicked() {
+                                if ui
+                                    .add_enabled(i > 1, DirectionSymbol::new(Direction::BottomUp))
+                                    .clicked()
+                                {
                                     move_up = Some(i);
                                 }
                                 if ui

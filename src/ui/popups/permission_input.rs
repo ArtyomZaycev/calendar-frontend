@@ -194,7 +194,8 @@ impl PopupContent for PermissionInput {
                 .access_levels
                 .get_table()
                 .get()
-                .iter().sorted_by_key(|al| -al.level)
+                .iter()
+                .sorted_by_key(|al| -al.level)
                 .collect_vec();
             let current_access_level = access_levels
                 .iter()

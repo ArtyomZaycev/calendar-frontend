@@ -284,15 +284,26 @@ impl State {
 
     pub(super) fn populate_granted_user_states(&mut self, user_id: TableId) {
         // Update existing states permissions
-        let permissions = self.granted_states.iter().filter_map(|gs| {
-            self.get_user_state(user_id).granted_permissions.get_table().get().iter().find(|gp| gp.giver_user_id == gs.user.id).and_then(|permission| {
-                if (gs.permissions != permission.permissions) {
-                    Some(permission)
-                } else {
-                    None
-                }
-            }).cloned()
-        }).collect_vec();
+        let permissions = self
+            .granted_states
+            .iter()
+            .filter_map(|gs| {
+                self.get_user_state(user_id)
+                    .granted_permissions
+                    .get_table()
+                    .get()
+                    .iter()
+                    .find(|gp| gp.giver_user_id == gs.user.id)
+                    .and_then(|permission| {
+                        if gs.permissions != permission.permissions {
+                            Some(permission)
+                        } else {
+                            None
+                        }
+                    })
+                    .cloned()
+            })
+            .collect_vec();
         self.granted_states.iter_mut().for_each(|gs| {
             if let Some(permission) = permissions.iter().find(|gp| gp.giver_user_id == gs.user.id) {
                 gs.permissions = permission.permissions;

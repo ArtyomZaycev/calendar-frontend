@@ -4,7 +4,10 @@ use itertools::Itertools;
 use crate::{
     app::{CalendarApp, ManageAccessView},
     tables::{DbTable, DbTableGetById},
-    ui::{popups::{popup::PopupType, popup_manager::PopupManager}, utils::UiUtils},
+    ui::{
+        popups::{popup::PopupType, popup_manager::PopupManager},
+        utils::UiUtils,
+    },
 };
 
 impl CalendarApp {
@@ -53,7 +56,8 @@ impl CalendarApp {
                         if permissions.access_levels.edit {
                             if ui
                                 .add_enabled(
-                                    !PopupManager::get().is_open(PopupType::is_change_access_levels),
+                                    !PopupManager::get()
+                                        .is_open(PopupType::is_change_access_levels),
                                     egui::Button::new("Edit"),
                                 )
                                 .clicked()
