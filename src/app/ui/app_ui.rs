@@ -137,7 +137,19 @@ impl CalendarApp {
                                     .add(Label::new(&shared_state.user.name).sense(Sense::click()));
                                 if user_response.clicked() {
                                     self.selected_user_id = shared_state.user.id;
-                                    self.view = EventsView::Month.into();
+                                    self.view = if shared_state.permissions.events.view {
+                                        EventsView::Month.into()
+                                    } else if shared_state.permissions.schedules.view {
+                                        CalendarView::Schedules.into()
+                                    } else if shared_state.permissions.event_templates.view {
+                                        CalendarView::EventTemplates.into()
+                                    } else if shared_state.permissions.allow_share {
+                                        ManageAccessView::Sharing.into()
+                                    } else if shared_state.permissions.access_levels.view {
+                                        ManageAccessView::AccessLevels.into()
+                                    } else {
+                                        EventsView::Month.into()
+                                    };
                                     changed = true;
                                 }
                                 if shared_state.permissions.allow_share
