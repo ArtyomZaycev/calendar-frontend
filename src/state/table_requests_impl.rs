@@ -169,6 +169,7 @@ impl TableItemLoadById for EventTemplate {
     const LOAD_BY_ID_PATH: &'static str = event_templates::load::PATH;
 
     fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -181,6 +182,7 @@ impl TableItemLoadById for EventTemplate {
         id: TableId,
         response: LoadByIdBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -192,6 +194,7 @@ impl TableItemLoadAll for EventTemplate {
     const LOAD_ALL_PATH: &'static str = event_templates::load_array::PATH;
 
     fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -199,6 +202,7 @@ impl TableItemLoadAll for EventTemplate {
     }
 
     fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -211,6 +215,7 @@ impl TableItemInsert for EventTemplate {
     const INSERT_PATH: &'static str = event_templates::insert::PATH;
 
     fn push_from_insert(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -218,6 +223,7 @@ impl TableItemInsert for EventTemplate {
     }
 
     fn push_bad_from_insert(state: &mut State, user_id: TableId, _: Self::BadResponse) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -230,6 +236,7 @@ impl TableItemUpdate for EventTemplate {
     const UPDATE_PATH: &'static str = event_templates::update::PATH;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -242,6 +249,7 @@ impl TableItemUpdate for EventTemplate {
         id: TableId,
         response: UpdateBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -253,6 +261,7 @@ impl TableItemDelete for EventTemplate {
     const DELETE_PATH: &'static str = event_templates::delete::PATH;
 
     fn push_from_delete(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -265,6 +274,7 @@ impl TableItemDelete for EventTemplate {
         id: TableId,
         response: DeleteBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .event_templates
@@ -276,6 +286,7 @@ impl TableItemLoadById for Schedule {
     const LOAD_BY_ID_PATH: &'static str = schedules::load::PATH;
 
     fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -288,6 +299,7 @@ impl TableItemLoadById for Schedule {
         id: TableId,
         response: LoadByIdBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -299,6 +311,7 @@ impl TableItemLoadAll for Schedule {
     const LOAD_ALL_PATH: &'static str = schedules::load_array::PATH;
 
     fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -306,6 +319,7 @@ impl TableItemLoadAll for Schedule {
     }
 
     fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -318,6 +332,7 @@ impl TableItemInsert for Schedule {
     const INSERT_PATH: &'static str = schedules::insert::PATH;
 
     fn push_from_insert(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -325,6 +340,7 @@ impl TableItemInsert for Schedule {
     }
 
     fn push_bad_from_insert(state: &mut State, user_id: TableId, _: Self::BadResponse) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -337,6 +353,7 @@ impl TableItemUpdate for Schedule {
     const UPDATE_PATH: &'static str = schedules::update::PATH;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -349,6 +366,7 @@ impl TableItemUpdate for Schedule {
         id: TableId,
         response: UpdateBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -360,6 +378,7 @@ impl TableItemDelete for Schedule {
     const DELETE_PATH: &'static str = schedules::delete::PATH;
 
     fn push_from_delete(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -372,6 +391,7 @@ impl TableItemDelete for Schedule {
         id: TableId,
         response: DeleteBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .schedules
@@ -429,6 +449,7 @@ impl TableItemLoadById for GrantedPermission {
     const LOAD_BY_ID_PATH: &'static str = permissions::load::PATH;
 
     fn push_from_load_by_id(state: &mut State, user_id: TableId, id: TableId, item: Self) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -443,6 +464,7 @@ impl TableItemLoadById for GrantedPermission {
         id: TableId,
         response: LoadByIdBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -454,6 +476,7 @@ impl TableItemLoadAll for GrantedPermission {
     const LOAD_ALL_PATH: &'static str = permissions::load_array::PATH;
 
     fn push_from_load_all(state: &mut State, user_id: TableId, items: Vec<Self>) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -463,6 +486,7 @@ impl TableItemLoadAll for GrantedPermission {
     }
 
     fn push_bad_from_load_all(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -481,6 +505,7 @@ impl TableItemInsert for GrantedPermission {
     type Info = String;
 
     fn push_from_insert(state: &mut State, user_id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -488,6 +513,7 @@ impl TableItemInsert for GrantedPermission {
     }
 
     fn push_bad_from_insert(state: &mut State, user_id: TableId, response: Self::BadResponse) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -506,6 +532,7 @@ impl TableItemUpdate for GrantedPermission {
     type Info = String;
 
     fn push_from_update(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -518,6 +545,7 @@ impl TableItemUpdate for GrantedPermission {
         id: TableId,
         response: Self::BadResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -529,6 +557,7 @@ impl TableItemDelete for GrantedPermission {
     const DELETE_PATH: &'static str = permissions::delete::PATH;
 
     fn push_from_delete(state: &mut State, user_id: TableId, id: TableId) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
@@ -541,6 +570,7 @@ impl TableItemDelete for GrantedPermission {
         id: TableId,
         response: DeleteBadRequestResponse,
     ) {
+        state.clear_events(user_id);
         state
             .get_user_state_mut(user_id)
             .granted_permissions
