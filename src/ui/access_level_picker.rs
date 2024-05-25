@@ -31,7 +31,7 @@ impl<'a> Widget for AccessLevelPicker<'a> {
                 .show_ui(ui, |ui| {
                     self.access_levels
                         .iter()
-                        .dedup_by(|a, b| a.level == b.level)
+                        .sorted_by_key(|al| -al.level)
                         .for_each(|level| {
                             ui.selectable_value(
                                 self.access_level,

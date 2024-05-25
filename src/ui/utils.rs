@@ -89,7 +89,7 @@ impl Widget for DirectionSymbol {
             if response.hovered() {
                 widget_visuals.hovered.fg_stroke.color
             } else {
-                widget_visuals.active.fg_stroke.color
+                widget_visuals.inactive.fg_stroke.color
             }
         } else {
             ui.style().visuals.gray_out(widget_visuals.noninteractive.fg_stroke.color)

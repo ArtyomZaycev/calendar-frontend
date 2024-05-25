@@ -158,11 +158,11 @@ impl RequestType for ChangeAccessLevelsRequest {
 impl StateRequestType for ChangeAccessLevelsRequest {
     fn push_to_state(_response: Self::Response, info: Self::Info, state: &mut State) {
         let user_id = info;
-        state.get_user_state(user_id).access_levels.load_all();
+        state.get_user_state(user_id).load_state();
     }
 
     fn push_bad_to_state(_response: Self::BadResponse, info: Self::Info, state: &mut State) {
         let user_id = info;
-        state.get_user_state(user_id).access_levels.load_all();
+        state.get_user_state(user_id).load_state();
     }
 }

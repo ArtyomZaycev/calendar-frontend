@@ -12,6 +12,7 @@ use calendar_lib::api::{
     utils::*,
 };
 use egui::Checkbox;
+use itertools::Itertools;
 use std::hash::Hash;
 
 pub struct PermissionInput {
@@ -66,6 +67,7 @@ impl PermissionInput {
     }
 
     pub fn change(eid: impl Hash, permissions: &GrantedPermission, user: &User) -> Self {
+        println!("permissions = {:?}", permissions);
         Self {
             eid: egui::Id::new(eid),
 
@@ -191,7 +193,9 @@ impl PopupContent for PermissionInput {
                 .get_user_state(self.giver_user_id)
                 .access_levels
                 .get_table()
-                .get();
+                .get()
+                .iter().sorted_by_key(|al| -al.level)
+                .collect_vec();
             let current_access_level = access_levels
                 .iter()
                 .find(|al| al.level == self.access_level)
