@@ -7,7 +7,7 @@ use crate::{
     db::aliases::UserUtils,
     state::custom_requests::LoginRequest,
     tables::DbTable,
-    ui::{popups::{popup::PopupType, popup_manager::PopupManager}, table_view::TableView},
+    ui::{popups::{popup::PopupType, popup_manager::PopupManager}, table_view::TableView, utils::DirectionSymbol},
 };
 use chrono::NaiveDate;
 use egui::{Align, CollapsingHeader, Direction, Label, Layout, Sense};
@@ -92,7 +92,7 @@ impl CalendarApp {
                 ui.with_layout(
                     Layout::centered_and_justified(Direction::LeftToRight),
                     |ui| {
-                        if ui.add(Label::new("►").sense(Sense::click())).clicked() {
+                        if ui.add(DirectionSymbol::new(Direction::LeftToRight)).clicked() {
                             self.burger_menu_expanded = true;
                         }
                     },
@@ -121,7 +121,7 @@ impl CalendarApp {
                             egui::Vec2::new(ui.available_width(), height),
                             Layout::right_to_left(Align::Center),
                             |ui| {
-                                if ui.add(Label::new("◄").sense(Sense::click())).clicked() {
+                                if ui.add(DirectionSymbol::new(Direction::RightToLeft)).clicked() {
                                     self.burger_menu_expanded = false;
                                 }
                             },
