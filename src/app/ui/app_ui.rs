@@ -7,7 +7,7 @@ use crate::{
     db::aliases::UserUtils,
     state::custom_requests::LoginRequest,
     tables::DbTable,
-    ui::{popups::popup_manager::PopupManager, table_view::TableView},
+    ui::{popups::{popup::PopupType, popup_manager::PopupManager}, table_view::TableView},
 };
 use chrono::NaiveDate;
 use egui::{Align, CollapsingHeader, Direction, Label, Layout, Sense};
@@ -45,7 +45,7 @@ impl CalendarApp {
                     if let Some(me) = self.state.try_get_me() {
                         if self.selected_user_id == me.id {
                             let profile = egui::Label::new(&me.name);
-                            if PopupManager::get().is_open_profile() {
+                            if PopupManager::get().is_open(PopupType::is_profile) {
                                 ui.add(profile);
                             } else {
                                 if ui.add(profile.sense(Sense::click())).clicked() {
@@ -56,7 +56,7 @@ impl CalendarApp {
                     } else {
                         if ui
                             .add_enabled(
-                                !PopupManager::get().is_open_login(),
+                                !PopupManager::get().is_open(PopupType::is_login),
                                 egui::Button::new("Login"),
                             )
                             .clicked()
@@ -65,7 +65,7 @@ impl CalendarApp {
                         }
                         if ui
                             .add_enabled(
-                                !PopupManager::get().is_open_sign_up(),
+                                !PopupManager::get().is_open(PopupType::is_sign_up),
                                 egui::Button::new("Sign Up"),
                             )
                             .clicked()

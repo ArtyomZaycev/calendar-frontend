@@ -3,13 +3,13 @@ use crate::{
     tables::DbTable,
     ui::{
         event_card::EventCard, event_template_card::EventTemplateCard, layout_info::*,
-        popups::popup_manager::PopupManager, schedule_card::ScheduleCard, utils::UiUtils,
+        popups::{popup::PopupType, popup_manager::PopupManager}, schedule_card::ScheduleCard, utils::UiUtils,
     },
     utils::*,
 };
 use calendar_lib::api::events::types::Event;
 use chrono::{Datelike, Days, Months, NaiveDate, Weekday};
-use egui::{Align, Color32, Layout, Pos2, Rect, RichText, Rounding, Stroke, Vec2};
+use egui::{Align, Color32, Layout, Pos2, Rect, RichText, Stroke, Vec2};
 
 use num_traits::FromPrimitive;
 
@@ -56,7 +56,7 @@ impl CalendarApp {
                         if permissions.events.create {
                             if ui
                                 .add_enabled(
-                                    !PopupManager::get().is_open_new_event(),
+                                    !PopupManager::get().is_open(PopupType::is_new_event),
                                     egui::Button::new("Create Event"),
                                 )
                                 .clicked()
@@ -69,7 +69,7 @@ impl CalendarApp {
                         if permissions.schedules.create {
                             if ui
                                 .add_enabled(
-                                    !PopupManager::get().is_open_new_schedule(),
+                                    !PopupManager::get().is_open(PopupType::is_new_schedule),
                                     egui::Button::new("Create Schedule"),
                                 )
                                 .clicked()
@@ -82,7 +82,7 @@ impl CalendarApp {
                         if permissions.event_templates.create {
                             if ui
                                 .add_enabled(
-                                    !PopupManager::get().is_open_new_event_template(),
+                                    !PopupManager::get().is_open(PopupType::is_new_event_template),
                                     egui::Button::new("Create Template"),
                                 )
                                 .clicked()

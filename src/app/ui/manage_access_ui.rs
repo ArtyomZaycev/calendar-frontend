@@ -4,7 +4,7 @@ use itertools::Itertools;
 use crate::{
     app::{CalendarApp, ManageAccessView},
     tables::{DbTable, DbTableGetById},
-    ui::{popups::popup_manager::PopupManager, utils::UiUtils},
+    ui::{popups::{popup::PopupType, popup_manager::PopupManager}, utils::UiUtils},
 };
 
 impl CalendarApp {
@@ -41,7 +41,7 @@ impl CalendarApp {
                     ManageAccessView::Sharing => {
                         if ui
                             .add_enabled(
-                                !PopupManager::get().is_open_new_permission(),
+                                !PopupManager::get().is_open(PopupType::is_new_permission),
                                 egui::Button::new("Share"),
                             )
                             .clicked()
@@ -53,7 +53,7 @@ impl CalendarApp {
                         if permissions.access_levels.edit {
                             if ui
                                 .add_enabled(
-                                    !PopupManager::get().is_open_change_access_levels(),
+                                    !PopupManager::get().is_open(PopupType::is_change_access_levels),
                                     egui::Button::new("Edit"),
                                 )
                                 .clicked()
@@ -96,7 +96,7 @@ impl CalendarApp {
                         ui.label(&user.name);
                         if ui
                             .add_enabled(
-                                !PopupManager::get().is_open_update_permission(),
+                                !PopupManager::get().is_open(PopupType::is_update_permission),
                                 Button::new("MANAGE"),
                             )
                             .clicked()

@@ -64,84 +64,16 @@ impl PopupManager {
     }
 }
 
-#[allow(dead_code)]
 impl PopupManager {
-    fn get_popup<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> Option<&'a mut Popup> {
+    #[allow(dead_code)]
+    fn get_popup_mut<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> Option<&'a mut Popup> {
         self.popups
             .iter_mut()
             .find_map(|p| check(p.get_type()).then_some(p))
     }
 
-    pub fn get_profile<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_profile())
-    }
-    pub fn get_login<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_login())
-    }
-    pub fn get_sign_up<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_sign_up())
-    }
-    pub fn get_new_event<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_new_event())
-    }
-    pub fn get_update_event<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_update_event())
-    }
-    pub fn get_new_event_template<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_new_event_template())
-    }
-    pub fn get_update_event_template<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_update_event_template())
-    }
-    pub fn get_new_schedule<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_new_schedule())
-    }
-    pub fn get_update_schedule<'a>(&'a mut self) -> Option<&'a mut Popup> {
-        self.get_popup(|t| t.is_update_schedule())
-    }
-}
-
-#[allow(dead_code)]
-impl PopupManager {
-    fn is_open<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> bool {
+    pub fn is_open<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> bool {
         self.popups.iter_mut().any(|p| check(p.get_type()))
-    }
-
-    pub fn is_open_profile<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_profile())
-    }
-    pub fn is_open_login<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_login())
-    }
-    pub fn is_open_sign_up<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_sign_up())
-    }
-    pub fn is_open_new_event<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_new_event())
-    }
-    pub fn is_open_update_event<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_update_event())
-    }
-    pub fn is_open_new_event_template<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_new_event_template())
-    }
-    pub fn is_open_update_event_template<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_update_event_template())
-    }
-    pub fn is_open_new_schedule<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_new_schedule())
-    }
-    pub fn is_open_update_schedule<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_update_schedule())
-    }
-    pub fn is_open_new_permission<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_new_permission())
-    }
-    pub fn is_open_update_permission<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_update_permission())
-    }
-    pub fn is_open_change_access_levels<'a>(&'a mut self) -> bool {
-        self.is_open(|t| t.is_change_access_levels())
     }
 }
 

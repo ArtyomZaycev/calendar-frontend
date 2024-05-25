@@ -5,7 +5,7 @@ use super::super::{
 use crate::{
     tables::{DbTable, DbTableGetById},
     ui::{
-        popups::popup_manager::PopupManager,
+        popups::{popup::PopupType, popup_manager::PopupManager},
         table_view::{TableView, TableViewActions},
     },
 };
@@ -127,7 +127,7 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !PopupManager::get().is_open_new_event(),
+                !PopupManager::get().is_open(PopupType::is_new_event),
                 egui::Button::new("Add Event"),
             )
             .clicked()
@@ -165,7 +165,7 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !PopupManager::get().is_open_new_event_template(),
+                !PopupManager::get().is_open(PopupType::is_new_event_template),
                 egui::Button::new("Add Template"),
             )
             .clicked()
@@ -203,7 +203,7 @@ impl CalendarApp {
     ) {
         if ui
             .add_enabled(
-                !PopupManager::get().is_open_new_schedule(),
+                !PopupManager::get().is_open(PopupType::is_new_schedule),
                 egui::Button::new("Add Schedule"),
             )
             .clicked()
