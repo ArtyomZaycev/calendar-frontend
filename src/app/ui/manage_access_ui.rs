@@ -119,7 +119,8 @@ impl CalendarApp {
                                 .granted_permissions
                                 .delete(gp.id);
                         }
-                    })
+                        ui.end_row();
+                    });
             });
         });
     }

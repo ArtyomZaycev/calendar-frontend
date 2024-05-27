@@ -67,7 +67,6 @@ impl PermissionInput {
     }
 
     pub fn change(eid: impl Hash, permissions: &GrantedPermission, user: &User) -> Self {
-        println!("permissions = {:?}", permissions);
         Self {
             eid: egui::Id::new(eid),
 
