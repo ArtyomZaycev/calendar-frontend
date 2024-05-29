@@ -48,7 +48,7 @@ impl PopupContent for Login {
     }
 
     fn get_title(&mut self) -> Option<String> {
-        Some("Login".to_owned())
+        Some("Авторизация".to_owned())
     }
 
     fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
@@ -63,10 +63,10 @@ impl PopupContent for Login {
             };
 
         ui.vertical_centered(|ui| {
-            show_input_field(ui, &mut self.email, "Email", false);
-            show_input_field(ui, &mut self.password, "Password", true);
+            show_input_field(ui, &mut self.email, "E-mail", false);
+            show_input_field(ui, &mut self.password, "Пароль", true);
 
-            info.error(!is_valid_email(&self.email), "Email is not valid");
+            info.error(!is_valid_email(&self.email), "Некорректный формат E-mail");
             info.error(!is_password_valid(&self.password), "Password is too long");
             info.error(
                 self.email_not_found
@@ -76,19 +76,19 @@ impl PopupContent for Login {
                         .password_not_found
                         .as_ref()
                         .map_or(false, |e| e == &self.password),
-                "Unknown login",
+                "Неизвестный пользователь",
             );
         });
     }
 
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
-            .add_enabled(!info.is_error(), egui::Button::new("Login"))
+            .add_enabled(!info.is_error(), egui::Button::new("Вход"))
             .clicked()
         {
             self.request = Some(app.state.login(self.email.clone(), self.password.clone()));
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button("Отмена").clicked() {
             info.close();
         }
     }

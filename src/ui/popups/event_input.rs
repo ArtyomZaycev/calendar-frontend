@@ -99,19 +99,19 @@ impl PopupContent for EventInput {
 
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
-            Some(format!("Change '{}' Event", self.orig_name))
+            Some(format!("Изменить Событие '{}'", self.orig_name))
         } else {
-            Some("New Event".to_owned())
+            Some("Новое Событие".to_owned())
         }
     }
 
     fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
-            ui.add(TextEdit::singleline(&mut self.name).hint_text("Name"));
-            ui.add(TextEdit::multiline(&mut self.description).hint_text("Description"));
+            ui.add(TextEdit::singleline(&mut self.name).hint_text("Название"));
+            ui.add(TextEdit::multiline(&mut self.description).hint_text("Описание"));
 
             ui.horizontal(|ui| {
-                ui.label("Access level: ");
+                ui.label("Уровень доступа: ");
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
@@ -124,7 +124,7 @@ impl PopupContent for EventInput {
             });
             ui.add(
                 EventVisibilityPicker::new(self.eid.with("visibility"), &mut self.visibility)
-                    .with_label("Visibility: "),
+                    .with_label("Видимость: "),
             );
 
             ui.add(DatePickerButton::new(&mut self.date).show_icon(false));
@@ -139,7 +139,7 @@ impl PopupContent for EventInput {
                 ui.add(TimePicker::new(self.eid.with("time_end"), &mut self.end));
             });
 
-            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.is_empty(), "Название не может быть пустым");
             info.error(self.name.len() > 200, "Name is too long");
         });
     }
@@ -147,7 +147,7 @@ impl PopupContent for EventInput {
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Save"))
+                .add_enabled(!info.is_error(), egui::Button::new("Сохранить"))
                 .clicked()
             {
                 self.update_request = Some(app.state.get_user_state(self.user_id).events.update(
@@ -167,7 +167,7 @@ impl PopupContent for EventInput {
             }
         } else {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .add_enabled(!info.is_error(), egui::Button::new("Сохранить"))
                 .clicked()
             {
                 self.insert_request = Some(app.state.get_user_state(self.user_id).events.insert(

@@ -219,13 +219,13 @@ impl<'a> Widget for EventCard<'a> {
             {
                 response.context_menu(|ui| {
                     if self.permission.edit {
-                        if ui.button("Edit").clicked() {
+                        if ui.button("Изменить").clicked() {
                             PopupManager::get().open_update_event(&self.event);
                             ui.close_menu();
                         }
                     }
                     if self.permission.delete {
-                        if ui.button("Delete").clicked() {
+                        if ui.button("Удалить").clicked() {
                             self.app.get_selected_user_state().events.delete(*event_id);
                             ui.close_menu();
                         }

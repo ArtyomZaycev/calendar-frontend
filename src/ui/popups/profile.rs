@@ -27,7 +27,7 @@ impl PopupContent for Profile {
     fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, _info: &mut ContentInfo) {
         ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
             ui.horizontal(|ui| {
-                ui.label("Email: ");
+                ui.label("E-mail: ");
                 ui.label(&app.state.get_me().email);
             });
         });

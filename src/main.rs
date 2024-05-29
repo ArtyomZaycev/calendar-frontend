@@ -27,7 +27,7 @@ fn main() {
 
     let native_options = eframe::NativeOptions::default();
     let _ = eframe::run_native(
-        "Calendar",
+        "Календарь",
         native_options,
         Box::new(|cc| Box::new(CalendarApp::new(cc))),
     );

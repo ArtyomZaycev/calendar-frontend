@@ -89,22 +89,22 @@ impl PopupContent for EventTemplateInput {
 
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
-            Some(format!("Change '{}' Event Template", self.orig_name))
+            Some(format!("Изменить шаблон '{}'", self.orig_name))
         } else {
-            Some("New Event Template".to_owned())
+            Some("Новый шаблон события".to_owned())
         }
     }
 
     fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.vertical(|ui| {
-            ui.add(TextEdit::singleline(&mut self.name).hint_text("Template name"));
+            ui.add(TextEdit::singleline(&mut self.name).hint_text("Название шаблона"));
             ui.separator();
 
-            ui.add(TextEdit::singleline(&mut self.event_name).hint_text("Name"));
-            ui.add(TextEdit::multiline(&mut self.event_description).hint_text("Description"));
+            ui.add(TextEdit::singleline(&mut self.event_name).hint_text("Название"));
+            ui.add(TextEdit::multiline(&mut self.event_description).hint_text("Описание"));
 
             ui.horizontal(|ui| {
-                ui.label("Duration: ");
+                ui.label("Длительность: ");
                 ui.add(TimePicker::new(
                     "event_template_duration_picker",
                     &mut self.duration,
@@ -112,7 +112,7 @@ impl PopupContent for EventTemplateInput {
             });
 
             ui.horizontal(|ui| {
-                ui.label("Access level: ");
+                ui.label("Уровень доступа: ");
                 ui.add(AccessLevelPicker::new(
                     self.eid.with("access_level"),
                     &mut self.access_level,
@@ -124,9 +124,9 @@ impl PopupContent for EventTemplateInput {
                 ));
             });
 
-            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.is_empty(), "Название не может быть пустым");
             info.error(self.name.len() > 200, "Name is too long");
-            info.error(self.event_name.is_empty(), "Event name cannot be empty");
+            info.error(self.event_name.is_empty(), "Название события не может быть пустым");
             info.error(self.event_name.len() > 200, "Event name is too long");
         });
     }
@@ -134,7 +134,7 @@ impl PopupContent for EventTemplateInput {
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(id) = self.id {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Update"))
+                .add_enabled(!info.is_error(), egui::Button::new("Сохранить"))
                 .clicked()
             {
                 self.update_request = Some(
@@ -161,7 +161,7 @@ impl PopupContent for EventTemplateInput {
             }
         } else {
             if ui
-                .add_enabled(!info.is_error(), egui::Button::new("Create"))
+                .add_enabled(!info.is_error(), egui::Button::new("Сохранить"))
                 .clicked()
             {
                 self.insert_request = Some(
@@ -184,7 +184,7 @@ impl PopupContent for EventTemplateInput {
                 );
             }
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button("Отмена").clicked() {
             info.close();
         }
     }

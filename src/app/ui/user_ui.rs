@@ -24,7 +24,7 @@ impl CalendarApp {
             let height = ui
                 .horizontal(|ui| {
                     ui.enabled_selectable_header(
-                        "Events",
+                        "События",
                         permissions.events.view,
                         view.is_events(),
                         || {
@@ -32,7 +32,7 @@ impl CalendarApp {
                         },
                     );
                     ui.enabled_selectable_header(
-                        "Schedules",
+                        "Расписания",
                         permissions.schedules.view,
                         view.is_schedules(),
                         || {
@@ -40,7 +40,7 @@ impl CalendarApp {
                         },
                     );
                     ui.enabled_selectable_header(
-                        "Templates",
+                        "Шаблоны событий",
                         permissions.event_templates.view,
                         view.is_event_templates(),
                         || {
@@ -61,7 +61,7 @@ impl CalendarApp {
                             if ui
                                 .add_enabled(
                                     !PopupManager::get().is_open(PopupType::is_new_event),
-                                    egui::Button::new("Create Event"),
+                                    egui::Button::new("Создать Событие"),
                                 )
                                 .clicked()
                             {
@@ -74,7 +74,7 @@ impl CalendarApp {
                             if ui
                                 .add_enabled(
                                     !PopupManager::get().is_open(PopupType::is_new_schedule),
-                                    egui::Button::new("Create Schedule"),
+                                    egui::Button::new("Создать Расписание"),
                                 )
                                 .clicked()
                             {
@@ -87,7 +87,7 @@ impl CalendarApp {
                             if ui
                                 .add_enabled(
                                     !PopupManager::get().is_open(PopupType::is_new_event_template),
-                                    egui::Button::new("Create Template"),
+                                    egui::Button::new("Создать Шаблон события"),
                                 )
                                 .clicked()
                             {
@@ -104,13 +104,13 @@ impl CalendarApp {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let view_chooser_response = ui
                 .horizontal(|ui| {
-                    ui.selectable_header("Month", view.is_month(), || {
+                    ui.selectable_header("Месяц", view.is_month(), || {
                         self.set_view(EventsView::Month)
                     });
-                    ui.selectable_header("Week", view.is_week(), || {
+                    ui.selectable_header("Неделя", view.is_week(), || {
                         self.set_view(EventsView::Week)
                     });
-                    ui.selectable_header("Day", view.is_day(), || self.set_view(EventsView::Day));
+                    ui.selectable_header("День", view.is_day(), || self.set_view(EventsView::Day));
                     /*ui.selectable_header("Events", view.is_days(), || {
                         self.set_view(EventsView::Days)
                     });*/
@@ -137,7 +137,7 @@ impl CalendarApp {
                                 .unwrap();
                         }
                         ui.label(self.selected_date.format("%B %Y").to_string());
-                        if ui.button("Today").clicked() {
+                        if ui.button("Сегодня").clicked() {
                             self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
@@ -160,7 +160,7 @@ impl CalendarApp {
                                 .format("%B %d"),
                             week.first_day().format("%Y"),
                         ));
-                        if ui.button("Today").clicked() {
+                        if ui.button("Сегодня").clicked() {
                             self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
@@ -174,7 +174,7 @@ impl CalendarApp {
                                 self.selected_date.checked_add_days(Days::new(1)).unwrap();
                         }
                         ui.label(self.selected_date.format("%x").to_string());
-                        if ui.button("Today").clicked() {
+                        if ui.button("Сегодня").clicked() {
                             self.selected_date = chrono::Local::now().naive_local().date();
                         }
                     }
@@ -297,7 +297,7 @@ impl CalendarApp {
 
                                 if hide_some {
                                     ui.menu_button(
-                                        format!("{} more", events.len() - show_number_of_cards),
+                                        format!("Ещё {}", events.len() - show_number_of_cards),
                                         |ui| {
                                             events[show_number_of_cards..].iter().for_each(
                                                 |event| {

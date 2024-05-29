@@ -71,7 +71,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
     }
 
     fn get_title(&mut self) -> Option<String> {
-        Some("Change Access Levels".to_owned())
+        Some("Изменение Уровней доступа".to_owned())
     }
 
     fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
@@ -141,7 +141,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
                             Layout::left_to_right(Align::Center),
                             |ui| {
                                 if ui
-                                    .add_enabled(access_levels_count < 5, Button::new("Add"))
+                                    .add_enabled(access_levels_count < 5, Button::new("Добавить"))
                                     .clicked()
                                 {
                                     add_after = Some(i);
@@ -157,7 +157,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
                             Vec2::new(0., height_per_item),
                             Layout::left_to_right(Align::Center),
                             |ui| {
-                                let text = if al.deleted { "Restore" } else { "Delete" };
+                                let text = if al.deleted { "Восстановить" } else { "Удалить" };
                                 if ui.add_enabled(i > 0, Button::new(text)).clicked() {
                                     delete_at = Some(i);
                                 }
@@ -170,7 +170,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
 
         info.error(
             self.access_levels.iter().any(|al| al.name.is_empty()),
-            "Name cannot be empty",
+            "Имя не может быть пустым",
         );
 
         if let Some(move_up) = move_up {
@@ -221,7 +221,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
                 ),
             );
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button("Отмена").clicked() {
             info.close();
         }
     }

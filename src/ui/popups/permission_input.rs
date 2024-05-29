@@ -160,9 +160,9 @@ impl PopupContent for PermissionInput {
 
     fn get_title(&mut self) -> Option<String> {
         if self.id.is_some() {
-            Some(format!("Change {} Permissions", &self.receiver_name))
+            Some(format!("Изменить разрешения {}", &self.receiver_name))
         } else {
-            Some("Grant Permission".to_owned())
+            Some("Предоставить разрешение".to_owned())
         }
     }
 
@@ -176,16 +176,16 @@ impl PopupContent for PermissionInput {
                 ui.add(
                     egui::TextEdit::singleline(&mut self.receiver_email)
                         .desired_width(f32::INFINITY)
-                        .hint_text("Email"),
+                        .hint_text("E-mail"),
                 );
                 ui.add_space(2.);
             }
 
             info.error(
                 Some(&self.receiver_email) == self.email_not_found.as_ref(),
-                "User with this email does not exist",
+                "Пользователь с таким e-mail не существует",
             );
-            info.error(!is_valid_email(&self.receiver_email), "Email is invalid");
+            info.error(!is_valid_email(&self.receiver_email), "Некорректный формат E-mail");
 
             let access_levels = app
                 .state
@@ -201,7 +201,7 @@ impl PopupContent for PermissionInput {
                 .find(|al| al.level == self.access_level)
                 .unwrap_or(access_levels.first().unwrap());
             ui.add_enabled_ui(!self.access_levels_edit, |ui| {
-                egui::ComboBox::new(self.eid.with("access_level"), "Access Level")
+                egui::ComboBox::new(self.eid.with("access_level"), "Уровень доступа")
                     .selected_text(&current_access_level.name)
                     .show_ui(ui, |ui| {
                         access_levels.iter().for_each(|al| {
@@ -221,7 +221,7 @@ impl PopupContent for PermissionInput {
             if ui
                 .add_enabled(
                     edit_mode,
-                    Checkbox::new(&mut full_permissions, "Full permissions"),
+                    Checkbox::new(&mut full_permissions, "Все разрешения"),
                 )
                 .clicked()
             {
@@ -235,46 +235,46 @@ impl PopupContent for PermissionInput {
                 self.access_levels_edit = full_permissions;
             }
 
-            ui.heading("Events");
+            ui.heading("События");
             ui.separator();
             ui.add_enabled(
                 edit_mode && !self.events_edit,
-                Checkbox::new(&mut self.events_view, "View Events"),
+                Checkbox::new(&mut self.events_view, "Просмотр Событий"),
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.events_edit, "Edit Events"),
+                Checkbox::new(&mut self.events_edit, "Изменение Событий"),
             );
             if self.events_edit {
                 self.events_view = true;
             }
 
-            ui.heading("Event Templates");
+            ui.heading("Шаблоны событий");
             ui.separator();
             ui.add_enabled(
                 edit_mode
                     && !self.event_templates_edit
                     && !self.schedules_view
                     && !self.schedules_edit,
-                Checkbox::new(&mut self.event_templates_view, "View Event Templates"),
+                Checkbox::new(&mut self.event_templates_view, "Просмотр Шаблонов событий"),
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.event_templates_edit, "Edit Event Templates"),
+                Checkbox::new(&mut self.event_templates_edit, "Изменение Шаблонов событий"),
             );
             if self.event_templates_edit {
                 self.event_templates_view = true;
             }
 
-            ui.heading("Schedules");
+            ui.heading("Расписания");
             ui.separator();
             ui.add_enabled(
                 edit_mode && !self.schedules_edit,
-                Checkbox::new(&mut self.schedules_view, "View Schedules"),
+                Checkbox::new(&mut self.schedules_view, "Просмотр Расписаний"),
             );
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.schedules_edit, "Edit Schedules"),
+                Checkbox::new(&mut self.schedules_edit, "Изменение Расписаний"),
             );
             if self.schedules_view {
                 self.event_templates_view = true;
@@ -284,20 +284,20 @@ impl PopupContent for PermissionInput {
                 self.schedules_view = true;
             }
 
-            ui.heading("Other");
+            ui.heading("Другое");
             ui.separator();
             ui.add_enabled(
                 edit_mode
                     // Can't revoke your own access
                     && self.receiver_user_id != app.state.get_me().id,
-                Checkbox::new(&mut self.sharing, "Manage Sharing"),
+                Checkbox::new(&mut self.sharing, "Управление доступом"),
             );
             if edit_mode && self.receiver_user_id == app.state.get_me().id {
                 self.sharing = true;
             }
             ui.add_enabled(
                 edit_mode,
-                Checkbox::new(&mut self.access_levels_edit, "Edit Access Levels"),
+                Checkbox::new(&mut self.access_levels_edit, "Изменение Уровней доступа"),
             );
             if self.access_levels_edit {
                 self.access_level = AccessLevel::MAX_LEVEL;
@@ -310,7 +310,7 @@ impl PopupContent for PermissionInput {
             if ui
                 .add_enabled(
                     self.update_request.is_none() && !info.is_error(),
-                    egui::Button::new("Update"),
+                    egui::Button::new("Сохранить"),
                 )
                 .clicked()
             {
@@ -332,7 +332,7 @@ impl PopupContent for PermissionInput {
             if ui
                 .add_enabled(
                     self.insert_request.is_none() && !info.is_error(),
-                    egui::Button::new("Create"),
+                    egui::Button::new("Сохранить"),
                 )
                 .clicked()
             {
@@ -351,7 +351,7 @@ impl PopupContent for PermissionInput {
                 );
             }
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button("Отмена").clicked() {
             info.close();
         }
     }

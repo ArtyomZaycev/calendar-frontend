@@ -51,7 +51,7 @@ impl PopupContent for SignUp {
     }
 
     fn get_title(&mut self) -> Option<String> {
-        Some("Sign Up".to_owned())
+        Some("Регистрация".to_owned())
     }
 
     fn show_content(&mut self, _app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
@@ -66,19 +66,19 @@ impl PopupContent for SignUp {
             };
 
         ui.vertical_centered(|ui| {
-            show_input_field(ui, &mut self.name, "Name", false);
-            show_input_field(ui, &mut self.email, "Email", false);
-            show_input_field(ui, &mut self.password, "Password", true);
-            show_input_field(ui, &mut self.password2, "Confirm Password", true);
+            show_input_field(ui, &mut self.name, "Имя пользователя", false);
+            show_input_field(ui, &mut self.email, "E-mail", false);
+            show_input_field(ui, &mut self.password, "Пароль", true);
+            show_input_field(ui, &mut self.password2, "Подтверждение пароля", true);
 
-            info.error(self.name.is_empty(), "Name cannot be empty");
+            info.error(self.name.is_empty(), "Имя пользователя не может быть пустым");
             info.error(self.name.len() > 30, "Name must be at most 30 symbols");
-            info.error(!is_valid_email(&self.email), "Email is not valid");
+            info.error(!is_valid_email(&self.email), "Некорректный формат E-mail");
             info.error(
                 self.email_taken
                     .as_ref()
                     .map_or(false, |e| e == &self.email),
-                "Account with this email is already registered",
+                "Аккаунт с таким E-mail уже зарегестрирован",
             );
             info.error(
                 !is_password_strong_enough(&self.password),
@@ -86,14 +86,14 @@ impl PopupContent for SignUp {
             );
             info.error(
                 self.password != self.password2,
-                "Passwords must be the same",
+                "Пароли не совпадают",
             );
         });
     }
 
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
-            .add_enabled(!info.is_error(), egui::Button::new("Sign Up"))
+            .add_enabled(!info.is_error(), egui::Button::new("Регистрация"))
             .clicked()
         {
             self.request = Some(app.state.register(
@@ -102,7 +102,7 @@ impl PopupContent for SignUp {
                 self.password.clone(),
             ));
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button("Отмена").clicked() {
             info.close();
         }
     }

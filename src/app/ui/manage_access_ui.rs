@@ -17,7 +17,7 @@ impl CalendarApp {
             let height = ui
                 .horizontal(|ui| {
                     ui.enabled_selectable_header(
-                        "Sharing",
+                        "Права",
                         permissions.allow_share,
                         view.is_sharing(),
                         || {
@@ -25,7 +25,7 @@ impl CalendarApp {
                         },
                     );
                     ui.enabled_selectable_header(
-                        "Access Levels",
+                        "Уровни доступа",
                         permissions.access_levels.view,
                         view.is_access_levels(),
                         || {
@@ -45,7 +45,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 !PopupManager::get().is_open(PopupType::is_new_permission),
-                                egui::Button::new("Share"),
+                                egui::Button::new("Дать доступ"),
                             )
                             .clicked()
                         {
@@ -58,7 +58,7 @@ impl CalendarApp {
                                 .add_enabled(
                                     !PopupManager::get()
                                         .is_open(PopupType::is_change_access_levels),
-                                    egui::Button::new("Edit"),
+                                    egui::Button::new("Изменить"),
                                 )
                                 .clicked()
                             {
@@ -101,7 +101,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 !PopupManager::get().is_open(PopupType::is_update_permission),
-                                Button::new("MANAGE"),
+                                Button::new("ИЗМЕНИТЬ"),
                             )
                             .clicked()
                         {
@@ -111,7 +111,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 gp.receiver_user_id != self.state.get_me().id,
-                                Button::new("REVOKE"),
+                                Button::new("УДАЛИТЬ"),
                             )
                             .clicked()
                         {

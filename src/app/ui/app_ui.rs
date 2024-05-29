@@ -20,9 +20,9 @@ impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             let calendar_name = if self.state.try_get_me().is_none() {
-                "Calendar".to_owned()
+                "Календарь".to_owned()
             } else if self.selected_user_id == self.state.get_me().id {
-                "Your Calendar".to_owned()
+                "Ваш Календарь".to_owned()
             } else {
                 match self
                     .state
@@ -33,8 +33,8 @@ impl CalendarApp {
                     .iter()
                     .find(|u| u.id == self.selected_user_id)
                 {
-                    Some(user) => format!("{} Calendar", user.name),
-                    None => "Other Calendar".to_owned(),
+                    Some(user) => format!("Календарь {}", user.name),
+                    None => "Календарь".to_owned(),
                 }
             };
             let height = ui.heading(calendar_name).rect.height();
@@ -61,7 +61,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 !PopupManager::get().is_open(PopupType::is_login),
-                                egui::Button::new("Login"),
+                                egui::Button::new("Вход"),
                             )
                             .clicked()
                         {
@@ -70,7 +70,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 !PopupManager::get().is_open(PopupType::is_sign_up),
-                                egui::Button::new("Sign Up"),
+                                egui::Button::new("Регистрация"),
                             )
                             .clicked()
                         {
@@ -108,7 +108,7 @@ impl CalendarApp {
     }
 
     fn burger_menu_expanded(&mut self, ctx: &egui::Context) {
-        let width = 160.;
+        let width = 200.;
         egui::SidePanel::left("burger_menu")
             .resizable(false)
             .show_separator_line(true)
@@ -117,7 +117,7 @@ impl CalendarApp {
                 ui.add_space(ui.ctx().style().spacing.item_spacing.x * 1.5);
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                        let response = ui.add(Label::new("YOUR CALENDAR").sense(Sense::click()));
+                        let response = ui.add(Label::new("ВАШ КАЛЕНДАРЬ").sense(Sense::click()));
                         if response.clicked() {
                             self.selected_user_id = self.state.get_me().id;
                             self.state.clear_events(self.selected_user_id);
@@ -140,7 +140,7 @@ impl CalendarApp {
                     ui.separator();
 
                     if !self.state.granted_states.is_empty() {
-                        CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
+                        CollapsingHeader::new("ДРУГИЕ КАЛЕНДАРИ").show(ui, |ui| {
                             let mut changed = false;
                             self.state.granted_states.iter().for_each(|shared_state| {
                                 let user_response = ui
@@ -166,7 +166,7 @@ impl CalendarApp {
                                     || shared_state.permissions.access_levels.view
                                 {
                                     user_response.context_menu(|ui| {
-                                        if ui.button("Manage Access").clicked() {
+                                        if ui.button("Управлять доступом").clicked() {
                                             self.selected_user_id = shared_state.user.id;
                                             self.view = if shared_state.permissions.allow_share {
                                                 ManageAccessView::Sharing
@@ -187,7 +187,7 @@ impl CalendarApp {
                     }
 
                     if ui
-                        .add(Label::new("MANAGE ACCESS").sense(Sense::click()))
+                        .add(Label::new("УПРАВЛЯТЬ ДОСТУПОМ").sense(Sense::click()))
                         .clicked()
                     {
                         self.selected_user_id = self.state.get_me().id;
@@ -195,7 +195,7 @@ impl CalendarApp {
                     }
                     ui.separator();
 
-                    if ui.add(Label::new("LOGOUT").sense(Sense::click())).clicked() {
+                    if ui.add(Label::new("ВЫЙТИ").sense(Sense::click())).clicked() {
                         self.logout();
                     }
                 });

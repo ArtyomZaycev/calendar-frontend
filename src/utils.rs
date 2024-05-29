@@ -42,52 +42,28 @@ pub fn get_monday(date: &NaiveDate) -> NaiveDate {
     .unwrap()
 }
 
-/*
-
-pub fn weekday_human_name(weekday: &Weekday) -> &'static str {
+pub fn weekday_human_name(weekday: Weekday) -> &'static str {
     match weekday {
-        chrono::Weekday::Mon => "Monday",
-        chrono::Weekday::Tue => "Tuesday",
-        chrono::Weekday::Wed => "Wednesday",
-        chrono::Weekday::Thu => "Thursday",
-        chrono::Weekday::Fri => "Friday",
-        chrono::Weekday::Sat => "Saturday",
-        chrono::Weekday::Sun => "Sunday",
+        chrono::Weekday::Mon => "Понедельник",
+        chrono::Weekday::Tue => "Вторник",
+        chrono::Weekday::Wed => "Среда",
+        chrono::Weekday::Thu => "Четверг",
+        chrono::Weekday::Fri => "Пятница",
+        chrono::Weekday::Sat => "Суббота",
+        chrono::Weekday::Sun => "Воскресенье",
     }
 }
 
-pub fn weekday_human_name_short(weekday: &Weekday) -> &'static str {
+pub fn weekday_human_name_short(weekday: Weekday) -> &'static str {
     match weekday {
-        chrono::Weekday::Mon => "Mon",
-        chrono::Weekday::Tue => "Tue",
-        chrono::Weekday::Wed => "Wed",
-        chrono::Weekday::Thu => "Thu",
-        chrono::Weekday::Fri => "Fri",
-        chrono::Weekday::Sat => "Sat",
-        chrono::Weekday::Sun => "Sun",
+        chrono::Weekday::Mon => "Пн",
+        chrono::Weekday::Tue => "Вт",
+        chrono::Weekday::Wed => "Ср",
+        chrono::Weekday::Thu => "Чт",
+        chrono::Weekday::Fri => "Пт",
+        chrono::Weekday::Sat => "Сб",
+        chrono::Weekday::Sun => "Вс",
     }
-}
-
-*/
-
-pub fn weekday_human_name(weekday: Weekday) -> String {
-    chrono::Local::now()
-        .naive_local()
-        .date()
-        .week(weekday)
-        .first_day()
-        .format("%A")
-        .to_string()
-}
-
-pub fn weekday_human_name_short(weekday: Weekday) -> String {
-    chrono::Local::now()
-        .naive_local()
-        .date()
-        .week(weekday)
-        .first_day()
-        .format("%a")
-        .to_string()
 }
 
 pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32) -> String {
@@ -101,9 +77,9 @@ pub fn access_levels_human_name(access_levels: &[AccessLevel], access_level: i32
 
 pub fn event_visibility_human_name(visibility: &EventVisibility) -> &'static str {
     match visibility {
-        EventVisibility::HideAll => "Hide completelly",
-        EventVisibility::HideName => "Hide name and description",
-        EventVisibility::HideDescription => "Hide description",
-        EventVisibility::Show => "Show",
+        EventVisibility::HideAll => "Скрыть полностью",
+        EventVisibility::HideName => "Скрыть название и описание",
+        EventVisibility::HideDescription => "Скрыть описание",
+        EventVisibility::Show => "Показывать",
     }
 }
