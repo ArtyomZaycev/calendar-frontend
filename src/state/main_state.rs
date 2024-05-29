@@ -193,7 +193,7 @@ impl State {
             .get()
             .iter()
             .filter(|s| s.first_day <= date)
-            .filter(|s| s.last_day.is_some_and(|last_day| date <= last_day))
+            .filter(|s| s.last_day.is_none() || s.last_day.is_some_and(|last_day| date <= last_day))
             .filter(|s| s.access_level <= access_level)
             .flat_map(|schedule| {
                 match user_state
