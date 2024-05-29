@@ -350,7 +350,7 @@ impl CalendarApp {
             let monday = get_monday(&day);
             let column_width = get_width_from_columns(ui, 7);
 
-            let get_weekday_name = if column_width < 120. {
+            let get_weekday_name = if column_width < 160. {
                 weekday_human_name_short
             } else {
                 weekday_human_name
