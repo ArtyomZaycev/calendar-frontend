@@ -183,6 +183,22 @@ impl PopupContent for EventInput {
                         plan_id: None,
                     },
                 ));
+
+/*
+                state.user_state.events.insert(
+                    NewEvent {
+                        user_id: self.user_id,
+                        name: self.name.clone(),
+                        description:
+                            (!self.description.is_empty()).then_some(self.description.clone()),
+                        start: NaiveDateTime::new(self.date, self.start),
+                        end: NaiveDateTime::new(self.date, self.end),
+                        access_level: self.access_level,
+                        visibility: self.visibility,
+                        plan_id: None,
+                    },
+                )
+ */
             }
         }
         if ui.button("Cancel").clicked() {

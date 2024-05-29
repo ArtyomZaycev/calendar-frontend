@@ -37,16 +37,15 @@ impl ContentInfo {
     }
 }
 
+#[allow(unused_variables)]
 pub trait PopupContent {
     /// Called first each frame
-    #[allow(unused_variables)]
     fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {}
 
     fn get_title(&mut self) -> Option<String> {
         None
     }
 
-    #[allow(unused_variables)]
     fn show_title(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if let Some(title) = self.get_title() {
             ui.heading(title);
@@ -57,10 +56,8 @@ pub trait PopupContent {
     fn show_content(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo);
 
     /// RTL
-    #[allow(unused_variables)]
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {}
 
-    #[allow(unused_variables)]
     fn show_error(&mut self, app: &CalendarApp, ui: &mut egui::Ui, error: &str) {
         ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
             ui.add(egui::Label::new(RichText::new(error).color(Color32::RED)).wrap(true));

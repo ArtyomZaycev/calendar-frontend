@@ -315,7 +315,7 @@ impl DbConnector {
         })
         .ok()?;
 
-        // This probably can be simplified, but I can't even understand how it works
+        // This probably can be simplified, but I can't even understand how it works anymore
         Ref::filter_map(request_result, |result| result.result.as_ref().err())
             .err()
             .and_then(|request_result| {
