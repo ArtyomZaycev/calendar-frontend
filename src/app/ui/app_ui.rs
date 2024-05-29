@@ -15,6 +15,7 @@ use crate::{
 };
 use chrono::NaiveDate;
 use egui::{Align, CollapsingHeader, Direction, Label, Layout, Sense};
+use itertools::Itertools;
 
 impl CalendarApp {
     fn top_panel(&mut self, ui: &mut egui::Ui) {
@@ -142,7 +143,8 @@ impl CalendarApp {
                     if !self.state.granted_states.is_empty() {
                         CollapsingHeader::new("ДРУГИЕ КАЛЕНДАРИ").show(ui, |ui| {
                             let mut changed = false;
-                            self.state.granted_states.iter().for_each(|shared_state| {
+                            let shared_users = self.state.user_state.granted_permissions.get_table().get().iter().filter(|gp| gp.receiver_user_id == self.state.get_me().id).collect_vec();
+                            self.state.granted_states.iter().filter(|gs| shared_users.iter().any(|gp| gs.user.id == gp.giver_user_id)).for_each(|shared_state| {
                                 let user_response = ui
                                     .add(Label::new(&shared_state.user.name).sense(Sense::click()));
                                 if user_response.clicked() {
