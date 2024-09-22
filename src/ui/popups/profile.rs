@@ -1,4 +1,7 @@
-use super::popup_content::{ContentInfo, PopupContent};
+use super::{
+    popup::PopupType,
+    popup_content::{ContentInfo, PopupContent},
+};
 use crate::app::CalendarApp;
 use egui::{Align, Layout, Vec2};
 
@@ -11,6 +14,10 @@ impl Profile {
 }
 
 impl PopupContent for Profile {
+    fn get_type(&self) -> PopupType {
+        PopupType::Profile
+    }
+
     fn show_title(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
             ui.spacing_mut().item_spacing = Vec2::new(4., 0.);

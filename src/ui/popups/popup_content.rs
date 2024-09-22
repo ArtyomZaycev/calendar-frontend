@@ -2,6 +2,8 @@ use egui::{Align, Color32, Layout, RichText};
 
 use crate::app::CalendarApp;
 
+use super::popup::PopupType;
+
 pub struct ContentInfo {
     error: Option<String>,
     is_closed: bool,
@@ -39,6 +41,8 @@ impl ContentInfo {
 
 #[allow(unused_variables)]
 pub trait PopupContent {
+    fn get_type(&self) -> PopupType;
+
     /// Called first each frame
     fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {}
 

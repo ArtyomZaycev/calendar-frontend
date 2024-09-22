@@ -1,4 +1,7 @@
-use super::popup_content::{ContentInfo, PopupContent};
+use super::{
+    popup::PopupType,
+    popup_content::{ContentInfo, PopupContent},
+};
 use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
@@ -128,6 +131,14 @@ impl PermissionInput {
 }
 
 impl PopupContent for PermissionInput {
+    fn get_type(&self) -> PopupType {
+        if self.id.is_some() {
+            PopupType::UpdatePermission
+        } else {
+            PopupType::NewPermission
+        }
+    }
+
     fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.update_request.as_ref() {
             if let Some(response_info) = app.state.get_response(&identifier) {
