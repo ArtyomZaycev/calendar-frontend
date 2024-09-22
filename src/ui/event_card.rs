@@ -73,7 +73,7 @@ impl<'a> EventCard<'a> {
         if self.event.visibility == EventVisibility::HideName
             && self.access_level < self.event.access_level
         {
-            "Hidden"
+            "Спрятано"
         } else {
             &self.event.name
         }

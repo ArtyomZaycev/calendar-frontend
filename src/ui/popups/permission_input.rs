@@ -162,7 +162,7 @@ impl PopupContent for PermissionInput {
         if self.id.is_some() {
             Some(format!("Изменить разрешения {}", &self.receiver_name))
         } else {
-            Some("Предоставить разрешение".to_owned())
+            Some("Предоставить доступ".to_owned())
         }
     }
 

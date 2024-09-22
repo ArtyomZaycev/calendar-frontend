@@ -201,7 +201,7 @@ impl PopupContent for ChangeAccessLevelsPopup {
 
     fn show_buttons(&mut self, app: &CalendarApp, ui: &mut egui::Ui, info: &mut ContentInfo) {
         if ui
-            .add_enabled(self.update_request.is_none(), Button::new("Save"))
+            .add_enabled(self.update_request.is_none(), Button::new("Сохранить"))
             .clicked()
         {
             self.update_request = Some(

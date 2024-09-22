@@ -17,7 +17,7 @@ impl CalendarApp {
             let height = ui
                 .horizontal(|ui| {
                     ui.enabled_selectable_header(
-                        "Права",
+                        "Разрешения",
                         permissions.allow_share,
                         view.is_sharing(),
                         || {
@@ -45,7 +45,7 @@ impl CalendarApp {
                         if ui
                             .add_enabled(
                                 !PopupManager::get().is_open(PopupType::is_new_permission),
-                                egui::Button::new("Дать доступ"),
+                                egui::Button::new("Предоставить доступ"),
                             )
                             .clicked()
                         {

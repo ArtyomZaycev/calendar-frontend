@@ -34,7 +34,7 @@ impl CalendarApp {
                     .iter()
                     .find(|u| u.id == self.selected_user_id)
                 {
-                    Some(user) => format!("Календарь {}", user.name),
+                    Some(user) => format!("Календарь пользователя {}", user.name),
                     None => "Календарь".to_owned(),
                 }
             };
