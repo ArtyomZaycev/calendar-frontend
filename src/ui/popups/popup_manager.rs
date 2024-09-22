@@ -65,107 +65,77 @@ impl PopupManager {
 }
 
 impl PopupManager {
-    #[allow(dead_code)]
-    fn get_popup_mut<'a, F: Fn(&PopupType) -> bool>(
-        &'a mut self,
-        check: F,
-    ) -> Option<&'a mut Popup> {
-        self.popups
-            .iter_mut()
-            .find_map(|p| check(p.get_type()).then_some(p))
-    }
-
     pub fn is_open<'a, F: Fn(&PopupType) -> bool>(&'a mut self, check: F) -> bool {
-        self.popups.iter_mut().any(|p| check(p.get_type()))
+        self.popups.iter_mut().any(|p| check(&p.get_type()))
     }
 }
 
 impl PopupManager {
     pub fn open_profile(&mut self) {
-        self.popups.push(PopupType::Profile(Profile::new()).popup());
+        self.popups.push(Popup::new(Profile::new()));
     }
     pub fn open_login(&mut self) {
-        self.popups.push(PopupType::Login(Login::new()).popup());
+        self.popups.push(Popup::new(Login::new()));
     }
     pub fn open_sign_up(&mut self) {
-        self.popups.push(PopupType::SignUp(SignUp::new()).popup());
+        self.popups.push(Popup::new(SignUp::new()));
     }
     pub fn open_new_event(&mut self, user_id: i32) {
         self.popups
-            .push(PopupType::NewEvent(EventInput::new("new_event_popup", user_id)).popup());
+            .push(Popup::new(EventInput::new("new_event_popup", user_id)));
     }
     pub fn open_update_event(&mut self, event: &Event) {
-        self.popups.push(
-            PopupType::UpdateEvent(EventInput::change(
-                format!("update_event_popup_{}", event.id),
-                event,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(EventInput::change(
+            format!("update_event_popup_{}", event.id),
+            event,
+        )));
     }
     pub fn open_new_event_template(&mut self, user_id: i32) {
-        self.popups.push(
-            PopupType::NewEventTemplate(EventTemplateInput::new(
-                "new_event_template_popup",
-                user_id,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(EventTemplateInput::new(
+            "new_event_template_popup",
+            user_id,
+        )));
     }
     pub fn open_update_event_template(&mut self, template: &EventTemplate) {
-        self.popups.push(
-            PopupType::UpdateEventTemplate(EventTemplateInput::change(
-                format!("update_event_template_popup_{}", template.id),
-                template,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(EventTemplateInput::change(
+            format!("update_event_template_popup_{}", template.id),
+            template,
+        )));
     }
     pub fn open_new_schedule(&mut self, user_id: i32) {
-        self.popups.push(
-            PopupType::NewSchedule(ScheduleInput::new("new_schedule_popup", user_id)).popup(),
-        );
+        self.popups.push(Popup::new(ScheduleInput::new(
+            "new_schedule_popup",
+            user_id,
+        )));
     }
     pub fn open_update_schedule(&mut self, schedule: &Schedule) {
-        self.popups.push(
-            PopupType::UpdateSchedule(ScheduleInput::change(
-                format!("update_schedule_popup_{}", schedule.id),
-                schedule,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(ScheduleInput::change(
+            format!("update_schedule_popup_{}", schedule.id),
+            schedule,
+        )));
     }
     pub fn open_new_permission(&mut self, giver_user_id: TableId) {
-        self.popups.push(
-            PopupType::UpdatePermission(PermissionInput::new(
-                format!("new_permission_popup_{}", giver_user_id),
-                giver_user_id,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(PermissionInput::new(
+            format!("new_permission_popup_{}", giver_user_id),
+            giver_user_id,
+        )));
     }
     pub fn open_update_permission(&mut self, permission: &GrantedPermission, user: &User) {
-        self.popups.push(
-            PopupType::NewPermission(PermissionInput::change(
-                format!("update_permission_popup_{}", permission.id),
-                permission,
-                user,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(PermissionInput::change(
+            format!("update_permission_popup_{}", permission.id),
+            permission,
+            user,
+        )));
     }
     pub fn open_change_access_levels(
         &mut self,
         user_id: TableId,
         access_levels: &StateTable<AccessLevel>,
     ) {
-        self.popups.push(
-            PopupType::ChangeAccessLevels(ChangeAccessLevelsPopup::new(
-                format!("change_access_levels_popup_{}", user_id),
-                user_id,
-                access_levels,
-            ))
-            .popup(),
-        );
+        self.popups.push(Popup::new(ChangeAccessLevelsPopup::new(
+            format!("change_access_levels_popup_{}", user_id),
+            user_id,
+            access_levels,
+        )));
     }
 }

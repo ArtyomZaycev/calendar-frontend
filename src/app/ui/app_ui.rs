@@ -143,44 +143,60 @@ impl CalendarApp {
                     if !self.state.granted_states.is_empty() {
                         CollapsingHeader::new("SHARED CALENDARS").show(ui, |ui| {
                             let mut changed = false;
-                            let shared_users = self.state.user_state.granted_permissions.get_table().get().iter().filter(|gp| gp.receiver_user_id == self.state.get_me().id).collect_vec();
-                            self.state.granted_states.iter().filter(|gs| shared_users.iter().any(|gp| gs.user.id == gp.giver_user_id)).for_each(|shared_state| {
-                                let user_response = ui
-                                    .add(Label::new(&shared_state.user.name).sense(Sense::click()));
-                                if user_response.clicked() {
-                                    self.selected_user_id = shared_state.user.id;
-                                    self.view = if shared_state.permissions.events.view {
-                                        EventsView::Month.into()
-                                    } else if shared_state.permissions.schedules.view {
-                                        CalendarView::Schedules.into()
-                                    } else if shared_state.permissions.event_templates.view {
-                                        CalendarView::EventTemplates.into()
-                                    } else if shared_state.permissions.allow_share {
-                                        ManageAccessView::Sharing.into()
-                                    } else if shared_state.permissions.access_levels.view {
-                                        ManageAccessView::AccessLevels.into()
-                                    } else {
-                                        EventsView::Month.into()
-                                    };
-                                    changed = true;
-                                }
-                                if shared_state.permissions.allow_share
-                                    || shared_state.permissions.access_levels.view
-                                {
-                                    user_response.context_menu(|ui| {
-                                        if ui.button("Manage Access").clicked() {
-                                            self.selected_user_id = shared_state.user.id;
-                                            self.view = if shared_state.permissions.allow_share {
-                                                ManageAccessView::Sharing
-                                            } else {
-                                                ManageAccessView::AccessLevels
+                            let shared_users = self
+                                .state
+                                .user_state
+                                .granted_permissions
+                                .get_table()
+                                .get()
+                                .iter()
+                                .filter(|gp| gp.receiver_user_id == self.state.get_me().id)
+                                .collect_vec();
+                            self.state
+                                .granted_states
+                                .iter()
+                                .filter(|gs| {
+                                    shared_users.iter().any(|gp| gs.user.id == gp.giver_user_id)
+                                })
+                                .for_each(|shared_state| {
+                                    let user_response = ui.add(
+                                        Label::new(&shared_state.user.name).sense(Sense::click()),
+                                    );
+                                    if user_response.clicked() {
+                                        self.selected_user_id = shared_state.user.id;
+                                        self.view = if shared_state.permissions.events.view {
+                                            EventsView::Month.into()
+                                        } else if shared_state.permissions.schedules.view {
+                                            CalendarView::Schedules.into()
+                                        } else if shared_state.permissions.event_templates.view {
+                                            CalendarView::EventTemplates.into()
+                                        } else if shared_state.permissions.allow_share {
+                                            ManageAccessView::Sharing.into()
+                                        } else if shared_state.permissions.access_levels.view {
+                                            ManageAccessView::AccessLevels.into()
+                                        } else {
+                                            EventsView::Month.into()
+                                        };
+                                        changed = true;
+                                    }
+                                    if shared_state.permissions.allow_share
+                                        || shared_state.permissions.access_levels.view
+                                    {
+                                        user_response.context_menu(|ui| {
+                                            if ui.button("Manage Access").clicked() {
+                                                self.selected_user_id = shared_state.user.id;
+                                                self.view = if shared_state.permissions.allow_share
+                                                {
+                                                    ManageAccessView::Sharing
+                                                } else {
+                                                    ManageAccessView::AccessLevels
+                                                }
+                                                .into();
+                                                ui.close_menu();
                                             }
-                                            .into();
-                                            ui.close_menu();
-                                        }
-                                    });
-                                }
-                            });
+                                        });
+                                    }
+                                });
                             if changed {
                                 self.state.clear_events(self.selected_user_id);
                             }

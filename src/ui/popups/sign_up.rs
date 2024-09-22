@@ -1,6 +1,9 @@
 use calendar_lib::api::auth::register;
 
-use super::popup_content::{ContentInfo, PopupContent};
+use super::{
+    popup::PopupType,
+    popup_content::{ContentInfo, PopupContent},
+};
 use crate::{
     app::CalendarApp,
     db::request::RequestIdentifier,
@@ -36,6 +39,10 @@ impl SignUp {
 }
 
 impl PopupContent for SignUp {
+    fn get_type(&self) -> PopupType {
+        PopupType::SignUp
+    }
+
     fn init_frame(&mut self, app: &CalendarApp, info: &mut ContentInfo) {
         if let Some(identifier) = self.request.as_ref() {
             if let Some(response_info) = app.state.get_response(identifier) {
