@@ -41,7 +41,7 @@ impl<'a> Widget for ScheduleCard<'a> {
 
             let response = egui::Frame::none()
                 .rounding(4.)
-                .stroke(Stroke::new(1., Color32::GREEN))
+                .stroke(Stroke::new(1.0f32, Color32::GREEN))
                 .inner_margin(4.)
                 .show(ui, |ui| {
                     ui.with_layout(Layout::top_down(Align::LEFT), |ui| {

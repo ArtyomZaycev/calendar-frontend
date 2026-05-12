@@ -324,7 +324,7 @@ impl CalendarApp {
         let right = painter.clip_rect().right();
         let top = painter.clip_rect().top();
         let bottom = painter.clip_rect().bottom();
-        let stroke = Stroke::new(1., Color32::BLACK.gamma_multiply(0.5));
+        let stroke = Stroke::new(1.0f32, Color32::BLACK.gamma_multiply(0.5));
         (1..7).for_each(|i| {
             painter.line_segment(
                 [

@@ -187,7 +187,7 @@ impl<'a> Widget for EventCard<'a> {
             let response = egui::Frame::none()
                 .rounding(4.)
                 .stroke(Stroke::new(
-                    1.,
+                    1.0f32,
                     if is_planned {
                         Color32::BLUE
                     } else {
